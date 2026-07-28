@@ -20,10 +20,20 @@ import {
 } from "@/components/ui/alert-dialog";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
+import { Plus } from "lucide-react";
 
 /**
- * Live previews per component (start: components beginning with "A").
+ * Live previews per component (progress: huruf A & B selesai).
  * Keyed by the exact `name` used in the Components table. Missing keys fall
  * back to an "unavailable" message in the preview dialog.
  * Content is generic placeholder only (Design System rule R31).
@@ -97,6 +107,55 @@ export const componentPreviews = {
       <Avatar className="h-12 w-12">
         <AvatarFallback>AB</AvatarFallback>
       </Avatar>
+    </div>
+  ),
+
+  Badge: (
+    <div className="flex flex-wrap items-center gap-2">
+      <Badge>Default</Badge>
+      <Badge variant="secondary">Secondary</Badge>
+      <Badge variant="outline">Outline</Badge>
+      <Badge variant="destructive">Destructive</Badge>
+    </div>
+  ),
+
+  Breadcrumb: (
+    <Breadcrumb>
+      <BreadcrumbList>
+        <BreadcrumbItem>
+          <BreadcrumbLink href="#">Application Name</BreadcrumbLink>
+        </BreadcrumbItem>
+        <BreadcrumbSeparator />
+        <BreadcrumbItem>
+          <BreadcrumbLink href="#">Feature One</BreadcrumbLink>
+        </BreadcrumbItem>
+        <BreadcrumbSeparator />
+        <BreadcrumbItem>
+          <BreadcrumbPage>Current Page</BreadcrumbPage>
+        </BreadcrumbItem>
+      </BreadcrumbList>
+    </Breadcrumb>
+  ),
+
+  Button: (
+    <div className="flex flex-col items-center gap-4">
+      <div className="flex flex-wrap items-center justify-center gap-2">
+        <Button>Default</Button>
+        <Button variant="secondary">Secondary</Button>
+        <Button variant="outline">Outline</Button>
+        <Button variant="ghost">Ghost</Button>
+        <Button variant="destructive">Destructive</Button>
+        <Button variant="link">Link</Button>
+      </div>
+      <div className="flex flex-wrap items-center justify-center gap-2">
+        <Button size="sm">Small</Button>
+        <Button size="default">Default</Button>
+        <Button size="lg">Large</Button>
+        <Button size="icon" aria-label="Add">
+          <Plus className="h-4 w-4" aria-hidden="true" />
+        </Button>
+        <Button disabled>Disabled</Button>
+      </div>
     </div>
   ),
 };
