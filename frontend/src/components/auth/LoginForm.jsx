@@ -115,11 +115,7 @@ export const LoginForm = () => {
                   type="button"
                   variant="link"
                   className="h-auto p-0 text-xs font-medium text-muted-foreground hover:text-foreground"
-                  onClick={() =>
-                    toast("Reset password", {
-                      description: "Placeholder action. Not implemented.",
-                    })
-                  }
+                  onClick={() => navigate("/forgot-password")}
                 >
                   Forgot password?
                 </Button>

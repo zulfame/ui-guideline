@@ -3,8 +3,12 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "@/components/ui/sonner";
 import { AppLayout } from "@/components/layout/AppLayout";
 import LoginPage from "@/pages/LoginPage";
+import ForgotPasswordPage from "@/pages/ForgotPasswordPage";
 import DashboardPage from "@/pages/DashboardPage";
-import PlaceholderPage from "@/pages/PlaceholderPage";
+import ComponentsPage from "@/pages/ComponentsPage";
+import SidebarBlockPage from "@/pages/blocks/SidebarBlockPage";
+import LoginBlockPage from "@/pages/blocks/LoginBlockPage";
+import ForgotBlockPage from "@/pages/blocks/ForgotBlockPage";
 import AreaChartsPage from "@/pages/charts/AreaChartsPage";
 import BarChartsPage from "@/pages/charts/BarChartsPage";
 import LineChartsPage from "@/pages/charts/LineChartsPage";
@@ -22,19 +26,19 @@ function App() {
           <Route path="/" element={<DashboardPage />} />
           <Route
             path="/design-system/components"
-            element={<PlaceholderPage />}
+            element={<ComponentsPage />}
           />
           <Route
             path="/design-system/blocks/sidebar"
-            element={<PlaceholderPage />}
+            element={<SidebarBlockPage />}
           />
           <Route
             path="/design-system/blocks/login"
-            element={<PlaceholderPage />}
+            element={<LoginBlockPage />}
           />
           <Route
             path="/design-system/blocks/forgot"
-            element={<PlaceholderPage />}
+            element={<ForgotBlockPage />}
           />
           <Route
             path="/design-system/charts/area"
@@ -66,8 +70,9 @@ function App() {
           />
         </Route>
 
-        {/* Standalone auth page */}
+        {/* Standalone auth pages */}
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
 
         {/* Fallback */}
         <Route path="*" element={<Navigate to="/" replace />} />

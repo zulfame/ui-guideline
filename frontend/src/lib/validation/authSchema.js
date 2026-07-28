@@ -22,3 +22,14 @@ export const loginDefaultValues = {
   password: "",
   remember: false,
 };
+
+export const resetSchema = z.object({
+  email: z
+    .string()
+    .min(1, { message: "Email is required." })
+    .email({ message: "Please enter a valid email address." }),
+});
+
+export const resetDefaultValues = {
+  email: "",
+};
