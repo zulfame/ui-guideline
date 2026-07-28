@@ -454,21 +454,39 @@ frontend:
         - working: true
           agent: "testing"
           comment: "VERIFIED: Dashboard app shell has FIXED (non-scrolling) header and sidebar with only the content region scrolling. Tested at 1440x900 viewport. Injected 2000px tall filler element into content container (main > div). BEFORE scroll: Header top 0px, Sidebar user button top 844px, Content scrollTop 0px, Window scrollY 0px. AFTER scrolling content to 1200px: Header top 0px (UNCHANGED), Sidebar user button top 844px (UNCHANGED), Content scrollTop 1200px (SCROLLED), Window scrollY 0px (UNCHANGED). All assertions passed: header position unchanged, sidebar position unchanged, content scrolled successfully, window did not scroll. Layout structure correct: SidebarProvider with h-svh, SidebarInset with overflow-hidden, header with h-[65px] shrink-0, content div with flex-1 overflow-y-auto. No console errors detected."
+        - working: false
+          agent: "testing"
+          comment: "ISSUE FOUND: DashboardPage.jsx placeholder content not rendering with expected height. The tall block has className='min-h-[100vh] flex-1 rounded-xl bg-muted/50 md:min-h-min' but at desktop viewport (1440x900), the md:min-h-min class overrides min-h-[100vh], resulting in computedMinHeight: 'min-content' and height: 0px. The 3 muted blocks render correctly (368x207px each, bg-muted/50 visible). When tall content is injected (2000px div), the scroll behavior works perfectly: header stays fixed at top (0px), content scrolls (900px), window doesn't scroll (0px). ROOT CAUSE: md:min-h-min override on desktop + empty self-closing div with flex-1 collapses to 0 height. FIX NEEDED: Remove md:min-h-min OR add actual content to tall block OR use fixed height instead of min-height."
+  
+  - task: "Dashboard Placeholder Content - Real Tall Block Rendering"
+    implemented: true
+    working: false
+    file: "/app/frontend/src/pages/DashboardPage.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "Added real placeholder content to DashboardPage: 3 muted blocks in a row (aspect-video, rounded-xl, bg-muted/50) and a tall muted block (min-h-[100vh] flex-1 rounded-xl bg-muted/50 md:min-h-min) to demonstrate fixed header with scrollable content."
+        - working: false
+          agent: "testing"
+          comment: "FAILED: Tall block not rendering with expected height at desktop viewport 1440x900. DOM inspection shows: (1) 3 muted blocks render correctly (368x207px each, aspect-ratio 16/9, bg-muted/50 visible); (2) Tall block found in DOM but has 0px height (offsetHeight: 0, computedHeight: '0px', computedMinHeight: 'min-content' instead of '100vh'). Content is NOT scrollable (scrollHeight: 835 = clientHeight: 835). ROOT CAUSE: The className 'min-h-[100vh] flex-1 rounded-xl bg-muted/50 md:min-h-min' has md:min-h-min which overrides min-h-[100vh] at desktop breakpoint (>=768px), setting minHeight to 'min-content'. Combined with empty self-closing div and flex-1, the element collapses to 0 height. VERIFICATION: After injecting 2000px tall content, scroll behavior works perfectly (header fixed, content scrolls, window doesn't scroll). FIX: Remove 'md:min-h-min' class from tall block OR add actual inner content OR use fixed height."
 
 
 metadata:
   created_by: "testing_agent"
-  version: "6.0"
-  test_sequence: 6
+  version: "7.0"
+  test_sequence: 7
   run_ui: true
   test_date: "2026-07-28"
-  last_test: "Fixed Header and Sidebar with Scrollable Content Region"
+  last_test: "Dashboard Placeholder Content - Real Tall Block Rendering"
 
 test_plan:
   current_focus:
-    - "Fixed header and sidebar scroll behavior - test completed and verified"
+    - "Dashboard Placeholder Content - Real Tall Block Rendering"
   stuck_tasks: []
-  test_all: true
+  test_all: false
   test_priority: "high_first"
 
 agent_communication:
@@ -482,3 +500,5 @@ agent_communication:
       message: "RESTRUCTURED NAVIGATION TEST COMPLETED SUCCESSFULLY. Tested the restructured dashboard navigation with Dashboard at root '/', collapsible submenus, and auto-expand functionality at desktop 1440x900 viewport. All 7 test scenarios PASSED: (1) ROOT DASHBOARD - '/' renders Dashboard with sidebar showing 'Greetings' and 'Design System' group labels, Dashboard nav item active; (2) COLLAPSIBLE SUBMENUS - Sample Blocks and Sample Charts expand/collapse on click, chevron rotates 90deg when expanded, submenu items show/hide correctly; (3) SAMPLE BLOCKS NAVIGATION - All submenu items (Sidebar, Login, Forgot) navigate correctly with proper URLs (/design-system/blocks/*), h1 titles, breadcrumbs ('Design System / Sample Blocks / {item}'), and active states; (4) SAMPLE CHARTS NAVIGATION - All 7 submenu items (Area, Bar, Line, Pie, Radar, Radial, Tooltips) navigate correctly with proper URLs (/design-system/charts/*), h1 titles, breadcrumbs ('Design System / Sample Charts / {item}'), and active states; (5) TOP-LEVEL NAVIGATION - Components and Dashboard links work correctly with proper URLs, titles, and breadcrumbs; (6) DIRECT URL AUTO-EXPAND - Navigating directly to /design-system/charts/radar auto-expands Sample Charts submenu, sets Radar Charts as active (data-active='true'), and shows correct breadcrumb; (7) LOGIN REDIRECT - Login with user@example.com/password redirects to '/' (root), shows Dashboard page, sidebar visible, success toast appears. All pages show correct blank placeholder content. Only non-critical console errors (Cloudflare RUM endpoint). Frontend-only prototype with MOCKED auth working perfectly."
     - agent: "testing"
       message: "FIXED HEADER AND SIDEBAR SCROLL BEHAVIOR TEST COMPLETED SUCCESSFULLY. Verified that the dashboard app shell has a FIXED (non-scrolling) header and sidebar, with only the content region scrolling. Tested at 1440x900 desktop viewport. Test methodology: (1) Navigated to root '/' (Dashboard page); (2) Injected 2000px tall filler element into content container (main > div selector); (3) Recorded BEFORE positions - Header top: 0px, Sidebar user button top: 844px, Content scrollTop: 0px, Window scrollY: 0px; (4) Scrolled content container to 1200px; (5) Recorded AFTER positions - Header top: 0px (UNCHANGED), Sidebar user button top: 844px (UNCHANGED), Content scrollTop: 1200px (SCROLLED), Window scrollY: 0px (UNCHANGED). ALL ASSERTIONS PASSED: Header position unchanged (diff: 0px), Sidebar position unchanged (diff: 0px), Content scrolled successfully (1200px), Window did not scroll (scrollY stayed at 0). Layout implementation verified: SidebarProvider uses h-svh, SidebarInset uses overflow-hidden, header uses h-[65px] shrink-0 (fixed sibling), content div uses flex-1 overflow-y-auto (scrollable region). Sidebar uses fixed inset-y-0 positioning on desktop. No console errors detected. Frontend-only prototype working perfectly as specified."
+    - agent: "testing"
+      message: "DASHBOARD PLACEHOLDER CONTENT TEST - ISSUE FOUND. Tested the Dashboard page at root '/' with real placeholder content at desktop viewport 1440x900. FINDINGS: (1) 3 muted blocks render correctly (368x207px each, aspect-ratio 16/9, bg-muted/50 visible at rgba(245,245,245,0.5)); (2) TALL BLOCK ISSUE: Found in DOM but has 0px height (offsetHeight: 0, computedHeight: '0px', computedMinHeight: 'min-content' instead of '100vh'). Content is NOT scrollable (scrollHeight: 835 = clientHeight: 835). ROOT CAUSE: DashboardPage.jsx line 16 has className='min-h-[100vh] flex-1 rounded-xl bg-muted/50 md:min-h-min'. The 'md:min-h-min' class overrides 'min-h-[100vh]' at desktop breakpoint (>=768px), setting minHeight to 'min-content'. Combined with empty self-closing div and flex-1, the element collapses to 0 height. VERIFICATION: After injecting 2000px tall content into the tall block, scroll behavior works PERFECTLY - header stays fixed at top (0px before/after), content scrolls (900px), window doesn't scroll (0px). This confirms the layout structure is correct. FIX REQUIRED: In /app/frontend/src/pages/DashboardPage.jsx line 16, remove 'md:min-h-min' class from the tall block div OR add actual inner content OR use fixed height. The underlying scroll mechanism works correctly; only the placeholder content height is the issue."
