@@ -1,4 +1,5 @@
-import { Link, Outlet, useLocation } from "react-router-dom";
+import { Fragment } from "react";
+import { Outlet, useLocation } from "react-router-dom";
 
 import { Separator } from "@/components/ui/separator";
 import {
@@ -9,24 +10,21 @@ import {
 import {
   Breadcrumb,
   BreadcrumbItem,
-  BreadcrumbLink,
   BreadcrumbList,
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { AppSidebar } from "@/components/layout/AppSidebar";
-import { getActiveNavItem } from "@/config/navigation";
+import { getBreadcrumb } from "@/config/navigation";
 
 /**
  * AppLayout
  * Dashboard shell using the shadcn Sidebar system (sidebar-07, collapse-to-icon).
- * SidebarProvider wraps the collapsible AppSidebar + SidebarInset content, with a
- * sticky header (SidebarTrigger + breadcrumb). Routed pages render via <Outlet />.
+ * Sticky header (SidebarTrigger + breadcrumb trail). Pages render via <Outlet />.
  */
 export const AppLayout = () => {
   const location = useLocation();
-  const active = getActiveNavItem(location.pathname);
-  const isRoot = location.pathname === "/dashboard";
+  const { trail } = getBreadcrumb(location.pathname);
 
   return (
     <SidebarProvider>
@@ -37,23 +35,23 @@ export const AppLayout = () => {
           <Separator orientation="vertical" className="mr-1 h-4" />
           <Breadcrumb>
             <BreadcrumbList>
-              <BreadcrumbItem>
-                {isRoot ? (
-                  <BreadcrumbPage>Dashboard</BreadcrumbPage>
-                ) : (
-                  <BreadcrumbLink asChild>
-                    <Link to="/dashboard">Dashboard</Link>
-                  </BreadcrumbLink>
-                )}
-              </BreadcrumbItem>
-              {!isRoot && active ? (
-                <>
-                  <BreadcrumbSeparator />
-                  <BreadcrumbItem>
-                    <BreadcrumbPage>{active.label}</BreadcrumbPage>
-                  </BreadcrumbItem>
-                </>
-              ) : null}
+              {trail.map((label, index) => {
+                const isLast = index === trail.length - 1;
+                return (
+                  <Fragment key={`${label}-${index}`}>
+                    <BreadcrumbItem className={isLast ? undefined : "hidden md:block"}>
+                      {isLast ? (
+                        <BreadcrumbPage>{label}</BreadcrumbPage>
+                      ) : (
+                        <span className="text-muted-foreground">{label}</span>
+                      )}
+                    </BreadcrumbItem>
+                    {isLast ? null : (
+                      <BreadcrumbSeparator className="hidden md:block" />
+                    )}
+                  </Fragment>
+                );
+              })}
             </BreadcrumbList>
           </Breadcrumb>
         </header>

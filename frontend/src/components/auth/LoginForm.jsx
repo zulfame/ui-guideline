@@ -67,7 +67,7 @@ export const LoginForm = () => {
     toast.success("Signed in successfully", {
       description: `Welcome back, ${values.email}.`,
     });
-    navigate("/dashboard");
+    navigate("/");
   };
 
   return (

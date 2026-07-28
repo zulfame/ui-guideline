@@ -1,6 +1,7 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   GalleryVerticalEnd,
+  ChevronRight,
   ChevronsUpDown,
   BadgeCheck,
   Settings,
@@ -8,6 +9,11 @@ import {
 } from "lucide-react";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -27,28 +33,32 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
   SidebarRail,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { navItems } from "@/config/navigation";
+import { navSections } from "@/config/navigation";
 
 // Generic placeholder user (frontend prototype only).
 const currentUser = { name: "User", email: "user@example.com", initials: "U" };
 
 /**
  * AppSidebar
- * shadcn sidebar-07 pattern (collapse-to-icons) adapted to our React Router
- * navigation. Brand header + primary nav group + user dropdown footer.
+ * shadcn sidebar-07 pattern (collapse-to-icons) with grouped sections and
+ * collapsible submenus, wired to React Router navigation.
  */
 export const AppSidebar = (props) => {
   const location = useLocation();
   const navigate = useNavigate();
   const { isMobile } = useSidebar();
 
-  const isActive = (item) =>
-    item.end
-      ? location.pathname === item.to
-      : location.pathname.startsWith(item.to);
+  const isActive = (to, end) =>
+    end ? location.pathname === to : location.pathname.startsWith(to);
+
+  const hasActiveChild = (item) =>
+    item.children?.some((child) => location.pathname === child.to);
 
   return (
     <Sidebar collapsible="icon" {...props}>
@@ -56,7 +66,7 @@ export const AppSidebar = (props) => {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
-              <Link to="/dashboard">
+              <Link to="/">
                 <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
                   <GalleryVerticalEnd className="size-4" aria-hidden="true" />
                 </div>
@@ -73,28 +83,71 @@ export const AppSidebar = (props) => {
       </SidebarHeader>
 
       <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupLabel>Platform</SidebarGroupLabel>
-          <SidebarMenu>
-            {navItems.map((item) => {
-              const Icon = item.icon;
-              return (
-                <SidebarMenuItem key={item.to}>
-                  <SidebarMenuButton
-                    asChild
-                    isActive={isActive(item)}
-                    tooltip={item.label}
-                  >
-                    <Link to={item.to}>
-                      <Icon aria-hidden="true" />
-                      <span>{item.label}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              );
-            })}
-          </SidebarMenu>
-        </SidebarGroup>
+        {navSections.map((section) => (
+          <SidebarGroup key={section.label}>
+            <SidebarGroupLabel>{section.label}</SidebarGroupLabel>
+            <SidebarMenu>
+              {section.items.map((item) => {
+                const Icon = item.icon;
+
+                if (item.children) {
+                  return (
+                    <Collapsible
+                      key={item.title}
+                      asChild
+                      defaultOpen={hasActiveChild(item)}
+                      className="group/collapsible"
+                    >
+                      <SidebarMenuItem>
+                        <CollapsibleTrigger asChild>
+                          <SidebarMenuButton tooltip={item.title}>
+                            {Icon ? <Icon aria-hidden="true" /> : null}
+                            <span>{item.title}</span>
+                            <ChevronRight
+                              className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90"
+                              aria-hidden="true"
+                            />
+                          </SidebarMenuButton>
+                        </CollapsibleTrigger>
+                        <CollapsibleContent>
+                          <SidebarMenuSub>
+                            {item.children.map((child) => (
+                              <SidebarMenuSubItem key={child.to}>
+                                <SidebarMenuSubButton
+                                  asChild
+                                  isActive={location.pathname === child.to}
+                                >
+                                  <Link to={child.to}>
+                                    <span>{child.title}</span>
+                                  </Link>
+                                </SidebarMenuSubButton>
+                              </SidebarMenuSubItem>
+                            ))}
+                          </SidebarMenuSub>
+                        </CollapsibleContent>
+                      </SidebarMenuItem>
+                    </Collapsible>
+                  );
+                }
+
+                return (
+                  <SidebarMenuItem key={item.to}>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={isActive(item.to, item.end)}
+                      tooltip={item.title}
+                    >
+                      <Link to={item.to}>
+                        {Icon ? <Icon aria-hidden="true" /> : null}
+                        <span>{item.title}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
+              })}
+            </SidebarMenu>
+          </SidebarGroup>
+        ))}
       </SidebarContent>
 
       <SidebarFooter>
