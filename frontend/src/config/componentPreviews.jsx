@@ -239,6 +239,14 @@ import {
   DataTablePreview,
   DatePickerPreview,
 } from "@/components/previews/AdvancedPreviews";
+import {
+  Message,
+  MessageAvatar,
+  MessageContent,
+  MessageFooter,
+  MessageGroup,
+  MessageHeader,
+} from "@/components/ui/message";
 
 const chartData = [
   { m: "A", v: 12 },
@@ -953,6 +961,34 @@ export const componentPreviews = {
       <span className="text-muted-foreground text-xs">+</span>
       <Kbd>B</Kbd>
     </KbdGroup>
+  ),
+
+  Message: (
+    <div className="w-full max-w-sm">
+      <MessageGroup>
+        <Message>
+          <MessageAvatar>
+            <Avatar className="size-8">
+              <AvatarFallback>A</AvatarFallback>
+            </Avatar>
+          </MessageAvatar>
+          <MessageContent>
+            <MessageHeader>Application Name</MessageHeader>
+            <div className="rounded-lg bg-muted px-3 py-2 text-sm">
+              Placeholder incoming message.
+            </div>
+          </MessageContent>
+        </Message>
+        <Message align="end">
+          <MessageContent>
+            <div className="rounded-lg bg-primary px-3 py-2 text-sm text-primary-foreground">
+              Placeholder outgoing message.
+            </div>
+            <MessageFooter>Delivered</MessageFooter>
+          </MessageContent>
+        </Message>
+      </MessageGroup>
+    </div>
   ),
 
   "Native Select": (
