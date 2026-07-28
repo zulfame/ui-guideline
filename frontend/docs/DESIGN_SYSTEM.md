@@ -93,7 +93,7 @@ Ikon: **lucide-react** — **WAJIB** & satu-satunya sumber ikon (`h-4 w-4` defau
 |---|--------|-------------------------------|
 | R01 | **Layout** | HTML semantik (`main/aside/section/nav`) + Flex/Grid. Kontainer form `max-w-md`/sesuai konteks. |
 | R02 | **Grid** | Tailwind grid (`grid`, `grid-cols-*`, `gap-*`). Dekorasi grid berbasis token, low-opacity. |
-| R03 | **Spacing** | Skala 4px shadcn (`space-y-*`, `gap-*`, `p-*`). Compact, hindari whitespace berlebih. |
+| R03 | **Spacing** | Skala 4px shadcn (`space-y-*`, `gap-*`, `p-*`). Compact/enterprise, hindari whitespace berlebih. Ikuti **Spacing System resmi** (lihat **BAGIAN 2B**) untuk aturan lengkap (margin/padding/gap, section/component/form/card/table/modal/drawer/sidebar/header/list/nav/button/input/icon, container width, responsive, density, do's & don'ts). Nilai `px` arbitrer dilarang kecuali konstanta layout terdokumentasi. |
 | R04 | **Typography** | **Font wajib: Geist** (primary) · fallback `Inter, system-ui, sans-serif`. Diimpor di `index.css`. Weight yang dipakai **400/500/600** (700 tersedia, jarang). Ikuti **Skala Tipografi resmi** (lihat **BAGIAN 2A**) untuk ukuran H1→terkecil & aturan `leading`/`tracking`. Warna teks via token semantik (`text-foreground`/`text-muted-foreground`). Dilarang font lain / ukuran di luar skala tanpa persetujuan. |
 | R05 | **Color** | **Token only** (`bg-background`, `text-foreground`, `bg-primary`, `text-muted-foreground`, `text-destructive`, dst). Termasuk keluarga token **`--sidebar-*`** (sidebar) & **`--chart-1..5`** (palet kategori chart). Dilarang warna hardcode/hex. |
 | R06 | **Border** | `border-border` (default), `border-input` (field). Tanpa nilai warna literal. |
@@ -163,6 +163,67 @@ Ikon: **lucide-react** — **WAJIB** & satu-satunya sumber ikon (`h-4 w-4` defau
 
 ---
 
+# BAGIAN 2B — SPACING SYSTEM (resmi, turunan R03)
+
+> Basis: **skala 4px shadcn/Tailwind** (`1`=4px, `2`=8px, `4`=16px, `6`=24px, dst).
+> Gaya sistem = **compact/enterprise**. Semua komponen (termasuk preview di halaman
+> Components) **wajib** mengikuti nilai di bawah. Angka `px` arbitrer **dilarang**
+> kecuali konstanta layout terdokumentasi (`h-[65px]`, lebar sidebar `16rem/3rem/18rem`).
+
+**1. Spacing Scale** — Langkah resmi: `0, 0.5(2px), 1(4px), 1.5(6px), 2(8px), 2.5(10px), 3(12px), 4(16px), 5(20px), 6(24px), 8(32px), 10(40px), 14(56px)`. Utamakan langkah genap. Tanpa nilai di luar skala.
+
+**2. Margin** — Hindari margin untuk ritme layout; pakai `gap`/`space-y` pada induk. Margin hanya untuk nudge lokal (mis. `-ml-1` pada `SidebarTrigger`, `mt-6` catatan auth). Jangan campur margin + gap untuk ritme yang sama.
+
+**3. Padding** — Kontainer konten `p-4` → `lg:p-6`. Card/Dialog/Sheet `p-6`. Panel auth `p-10` → `xl:p-14`. Field kecil ikut default komponen (jangan tambah padding manual).
+
+**4. Gap (Flex & Grid)** — Klaster kontrol inline `gap-2` (ikon+teks, header). Grid kartu/section `gap-4`. Internal Dialog/Sheet `gap-4`. Grup padat `gap-1` (menu sidebar).
+
+**5. Section Spacing** — Ritme antar-section di root halaman **`space-y-6`** (24px) — wajib di setiap page root. Hero/auth boleh `space-y-8`.
+
+**6. Component Spacing** — Tumpukan komponen terkait `space-y-4`; grup rapat `space-y-2`.
+
+**7. Form Spacing** — `<form>` antar-field **`space-y-5`**; `FormItem` internal `space-y-2` (label→control→message); baris checkbox `gap-2`.
+
+**8. Card Spacing** — `CardHeader` `p-6 space-y-1.5`; `CardContent` `p-6 pt-0`; `CardFooter` `p-6 pt-0`; antar-kartu di grid `gap-4`. Jangan bungkus padding ganda di dalam Card.
+
+**9. Table Spacing** — `TableHead` `h-10 px-2`; `TableCell` `p-2`; empty-state cell `h-24 text-center`; bungkus tabel `rounded-md border` (padding milik sel, bukan wrapper).
+
+**10. Modal (Dialog) Spacing** — `DialogContent` `p-6 gap-4 max-w-lg`; header `space-y-1.5`; footer `sm:space-x-2`; tombol close `right-4 top-4`. Body preview `min-h-[160px] p-6`.
+
+**11. Drawer (Sheet) Spacing** — `SheetContent` `p-6 gap-4`; header `space-y-2`; footer `sm:space-x-2`; close `right-4 top-4`.
+
+**12. Sidebar Spacing** — Lebar `16rem` (expanded) / `3rem` (icon) / `18rem` (mobile). Grup `p-2`, menu `gap-1`, sub-item indent via `SidebarMenuSub`, header/footer `p-2`.
+
+**13. Header & Toolbar Spacing** — App header `h-[65px] px-4 gap-2`; preview header `h-14 px-4 gap-2`; separator vertikal `h-4` + `mr-1/mx-1`.
+
+**14. List Item Spacing** — Item daftar/menu tumpuk `gap-1`; internal item `gap-2` (ikon+label); padding vertikal ikut default komponen.
+
+**15. Navigation Spacing** — `SidebarGroup` `p-2` + `SidebarGroupLabel`; breadcrumb antar-item `gap-1.5` (default `BreadcrumbList`); crumb antara `hidden md:block`.
+
+**16. Button Internal Spacing** — default `h-9 px-4 py-2 gap-2`; `sm` `h-8 px-3`; `lg` `h-10 px-8`; `icon` `h-9 w-9` (persegi, tanpa `px`). Tombol ikon di tabel `h-8 w-8`.
+
+**17. Input Internal Spacing** — `h-9 px-3 py-1 text-sm`; input dgn ikon trailing `pr-10`; tombol dalam field `absolute right-1`.
+
+**18. Icon Spacing** — Ukuran default `h-4 w-4`; jarak ke teks lewat `gap-2` induk (jangan `ml-*` manual); dekoratif `aria-hidden`.
+
+**19. Content Width & Container Padding** — Area konten `p-4 lg:p-6`; form auth `max-w-md`; Dialog `max-w-lg`; kotak rasio preview `max-w-sm`. Konten selalu di dalam `SidebarInset` (hindari full-bleed).
+
+**20. Responsive Spacing Rules** — Naikkan padding di `lg` (`p-4`→`lg:p-6`), panel auth `p-10`→`xl:p-14`. Grid `1-col`→`md:grid-cols-*`. Jangan pernah lebih rapat dari basis mobile.
+
+**21. Density (Comfortable / Compact)** — Default = **Compact** (kontrol `h-9`, sel tabel `p-2`, `FormItem space-y-2`). Mode "Comfortable" **dicadangkan** (belum aktif). Jangan pakai spacing longgar (`space-y-8`+) di luar hero/auth.
+
+**22. Spacing Do's & Don'ts**
+- **Do:** pakai skala 4px; ritme via `gap`/`space-y` induk; `p-6` konsisten untuk Card/Dialog/Sheet; root halaman `space-y-6`.
+- **Don't:** nilai `px` arbitrer (kecuali konstanta terdokumentasi); campur `margin`+`gap` untuk ritme sama; padding bersarang berlebih (div ber-padding di dalam Card ber-padding); `space-y` + `gap` pada kontainer yang sama; `m-*` untuk ritme global.
+
+**Tambahan (khusus sistem ini):**
+- **23. Chart Spacing** — `ChartCard` = `Card p-6`; chart `margin={{ left: 12, right: 12 }}`; `tickMargin={8}`.
+- **24. Empty-state Spacing** — sel `colSpan` `h-24 text-center` (lihat Table Spacing).
+- **25. Overlay Offset** — `sideOffset`/`sideOffset={4}` untuk dropdown/tooltip/popover (default shadcn).
+- **26. Separator Spacing** — separator vertikal di header `h-4` + `mr-1`; horizontal ikut `space-y` induk (tanpa margin ekstra).
+
+---
+
 # BAGIAN 3 — PENDING / BUTUH KEPUTUSAN
 
 Item yang ditunda dipindahkan ke **`BACKLOG.md`** (parkir resmi). Ringkasan:
@@ -204,4 +265,5 @@ Setiap kali membangun UI baru:
 | Update 11 | **Typografi diformalkan + halaman Components dikembalikan blank.** (a) Ditambahkan **BAGIAN 2A — Typography Scale** (tabel resmi H1→terkecil: `text-2xl/3xl/4xl` heading, `text-sm/base` body, `text-xs` terkecil; weight 400/500/600; aturan `leading-tight/normal/relaxed` & `tracking-tight` khusus heading); **R04** diperbarui untuk merujuk skala ini. (b) **ComponentsPage dihapus** — rute `/design-system/components` dikembalikan ke `PlaceholderPage` (blank) karena pengisian sebelumnya tidak diinstruksikan user. |
 | Update 12 | **Halaman Components mulai diisi (atas instruksi user).** Primitive ✅ **table** diaktifkan. Pattern ✅ **Data Table (card-wrapped)**: `Table` shadcn dibungkus `Card`. Kolom awal: **No** (urut), **Name** (daftar **All Components** shadcn/ui — 63 item, sumber `ui.shadcn.com/docs/components`), **Action** (`text-right`, tombol ghost icon **Eye/preview** dgn `aria-label` + toast placeholder). Tetap ada fallback empty-state R26 (`No Data Available`). Rute `/design-system/components` kembali ke `ComponentsPage`. |
 | Update 14 | **Tombol Eye → Preview Dialog nyata (mulai komponen awalan "A").** Pattern ✅ **Component Preview Dialog**: klik Eye membuka `Dialog` berisi judul (nama + Badge status) & **preview live** dari `config/componentPreviews.jsx`. Diimplementasi untuk **Accordion, Alert, Alert Dialog, Aspect Ratio, Avatar** (konten placeholder generik); **Attachment** (pending) menampilkan pesan "not yet available". Primitive ✅ diaktifkan: **dialog, accordion, alert-dialog, aspect-ratio**; status baris tabel untuk komponen ini diperbarui ke Established. Komponen lain (non-A) membuka dialog dengan fallback "Preview not implemented yet". |
+| Update 15 | **Spacing System diformalkan.** Ditambahkan **BAGIAN 2B — Spacing System** (26 poin: Spacing Scale, Margin, Padding, Gap, Section, Component, Form, Card, Table, Modal, Drawer, Sidebar, Header/Toolbar, List Item, Navigation, Button, Input, Icon, Content Width & Container Padding, Responsive, Density, Do's & Don'ts + tambahan Chart/Empty-state/Overlay Offset/Separator). Semua nilai diturunkan dari penggunaan nyata (mis. root `space-y-6`, form `space-y-5`, Card/Dialog/Sheet `p-6`, tabel `h-10 px-2`/`p-2`, button `h-9 px-4 py-2 gap-2`, input `h-9 px-3 py-1`, sidebar `16rem/3rem/18rem`). **R03** diperbarui merujuk skala ini. |
 | Update 13 | **Kolom Status ditambahkan di tabel Components.** Tiap komponen shadcn dipetakan ke legenda design system via Badge: **Established** (`default`, sudah dipakai), **Available** (`secondary`, tersedia di `ui/`, belum dipakai), **Pending** (`outline`, belum diport ke `ui/` — mis. Attachment/Bubble/Combobox/Data Table/Date Picker/Field/Spinner/Typography). Primitive ✅ **badge** diaktifkan (dipakai untuk status). |
