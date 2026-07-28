@@ -22,6 +22,9 @@
 - ❌ **JANGAN** memodifikasi struktur/perilaku/gaya bawaan komponen shadcn/ui
   (file di `src/components/ui/`) tanpa persetujuan.
 - ❌ **JANGAN** memakai library UI lain (MUI, Ant, Chakra, Bootstrap, Flowbite, dll).
+  - ✅ **Pengecualian yang diizinkan** (dependency resmi/pendukung shadcn): **lucide-react**
+    (ikon) dan **recharts@2.15.4** (data-viz untuk komponen `chart`). Di luar ini,
+    library baru wajib disetujui dulu.
 - ❌ **JANGAN** memakai elemen HTML mentah untuk hal yang sudah punya komponen
   (mis. `<button>`, `<input>`, `<select>` mentah) — pakai komponen shadcn/ui.
 - ✅ Elemen HTML semantik **boleh** dipakai hanya untuk struktur/layout
