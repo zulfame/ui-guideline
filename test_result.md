@@ -102,34 +102,10 @@
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
 
-user_problem_statement: "Test the Login page of an internal H2H Payment Hub app. Frontend-only prototype with MOCKED authentication."
+user_problem_statement: "Test the Login page with NEW form-level Alert feature for failed authentication. Frontend-only prototype with MOCKED authentication (only user@example.com / password succeeds)."
 
 frontend:
-  - task: "Login Page - Root URL Redirect"
-    implemented: true
-    working: true
-    file: "/app/frontend/src/App.js"
-    stuck_count: 0
-    priority: "high"
-    needs_retesting: false
-    status_history:
-        - working: true
-          agent: "testing"
-          comment: "Root URL '/' correctly redirects to '/login'. Verified with full URL navigation test."
-  
-  - task: "Login Page - UI Elements Rendering"
-    implemented: true
-    working: true
-    file: "/app/frontend/src/pages/LoginPage.jsx"
-    stuck_count: 0
-    priority: "high"
-    needs_retesting: false
-    status_history:
-        - working: true
-          agent: "testing"
-          comment: "All UI elements render correctly: Card title 'Masuk ke akun Anda', Email field, Password field (Kata Sandi), Remember me checkbox ('Ingat saya di perangkat ini'), Forgot password link ('Lupa kata sandi?'), and Submit button ('Masuk')."
-  
-  - task: "Login Form - Validation (Empty Fields)"
+  - task: "Login Form - Form-Level Alert on Failed Auth (NEW FEATURE)"
     implemented: true
     working: true
     file: "/app/frontend/src/components/auth/LoginForm.jsx"
@@ -139,9 +115,45 @@ frontend:
     status_history:
         - working: true
           agent: "testing"
-          comment: "Form validation works correctly for empty fields. Displays 'Email wajib diisi.' and 'Kata sandi wajib diisi.' when submitting with empty fields."
+          comment: "NEW FEATURE VERIFIED: Form-level Alert appears correctly when wrong credentials are submitted (e.g., wrong@example.com / wrongpass). Alert has role='alert', variant='destructive', title 'Sign in failed', and description 'Invalid email or password. Please try again.' Alert disappears when correct credentials (user@example.com / password) are submitted. Success toast 'Signed in successfully' with description 'Welcome back, user@example.com' appears correctly. All tested with Playwright automation."
   
-  - task: "Login Form - Validation (Invalid Email)"
+  - task: "Login Form - Mock Authentication with Demo Credentials"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/components/auth/LoginForm.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "Mock authentication updated to NEW demo credentials (email: user@example.com, password: password). Any other credentials fail and show form-level Alert. Loading state 'Signing in...' appears during 900ms delay. Success flow verified with correct credentials."
+  
+  - task: "Login Form - Remember Me & LocalStorage (Updated Key)"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/components/auth/LoginForm.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "Remember me functionality updated with NEW localStorage key 'app.rememberedEmail' (changed from 'h2h.rememberedEmail'). When checkbox is checked and form is submitted with correct credentials, localStorage correctly stores the email. Verified with localStorage.getItem()."
+  
+  - task: "Login Form - Validation (Empty Fields) - REGRESSION"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/components/auth/LoginForm.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "REGRESSION PASSED: Form validation works correctly for empty fields. Displays 'Email is required.' and 'Password is required.' when submitting with empty fields. English messages confirmed (updated from Indonesian)."
+  
+  - task: "Login Form - Validation (Invalid Email) - REGRESSION"
     implemented: true
     working: true
     file: "/app/frontend/src/lib/validation/authSchema.js"
@@ -151,9 +163,9 @@ frontend:
     status_history:
         - working: true
           agent: "testing"
-          comment: "Email validation works correctly. Displays 'Masukkan alamat email yang valid.' when entering invalid email format (e.g., 'abc')."
+          comment: "REGRESSION PASSED: Email validation works correctly. Displays 'Please enter a valid email address.' when entering invalid email format (e.g., 'abc'). English message confirmed."
   
-  - task: "Login Form - Validation (Short Password)"
+  - task: "Login Form - Validation (Short Password) - REGRESSION"
     implemented: true
     working: true
     file: "/app/frontend/src/lib/validation/authSchema.js"
@@ -163,9 +175,9 @@ frontend:
     status_history:
         - working: true
           agent: "testing"
-          comment: "Password validation works correctly. Displays 'Kata sandi minimal 6 karakter.' when entering password shorter than 6 characters (e.g., '123')."
+          comment: "REGRESSION PASSED: Password validation works correctly. Displays 'Password must be at least 6 characters.' when entering password shorter than 6 characters (e.g., '123'). English message confirmed."
   
-  - task: "Login Form - Password Show/Hide Toggle"
+  - task: "Login Form - Password Show/Hide Toggle - REGRESSION"
     implemented: true
     working: true
     file: "/app/frontend/src/components/auth/LoginForm.jsx"
@@ -175,9 +187,9 @@ frontend:
     status_history:
         - working: true
           agent: "testing"
-          comment: "Password visibility toggle works correctly. Eye icon button toggles password input type between 'password' and 'text'. Verified with detailed attribute checking."
+          comment: "REGRESSION PASSED: Password visibility toggle works correctly. Eye icon button toggles password input type between 'password' and 'text'. Verified with detailed attribute checking and aria-label changes ('Show password' / 'Hide password')."
   
-  - task: "Login Form - Forgot Password Link"
+  - task: "Login Form - Forgot Password Link - REGRESSION"
     implemented: true
     working: true
     file: "/app/frontend/src/components/auth/LoginForm.jsx"
@@ -187,46 +199,23 @@ frontend:
     status_history:
         - working: true
           agent: "testing"
-          comment: "Forgot password link works correctly. Clicking 'Lupa kata sandi?' displays toast 'Atur ulang kata sandi' with description 'Silakan hubungi administrator sistem Anda.'"
-  
-  - task: "Login Form - Mock Authentication & Success Flow"
-    implemented: true
-    working: true
-    file: "/app/frontend/src/components/auth/LoginForm.jsx"
-    stuck_count: 0
-    priority: "high"
-    needs_retesting: false
-    status_history:
-        - working: true
-          agent: "testing"
-          comment: "Mock authentication works correctly. Submitting valid credentials (email: operator@perusahaan.co.id, password: secret123) shows loading state 'Memproses...', then success toast 'Berhasil masuk' with welcome message 'Selamat datang kembali, operator@perusahaan.co.id'. 900ms delay is working as expected."
-  
-  - task: "Login Form - Remember Me & LocalStorage"
-    implemented: true
-    working: true
-    file: "/app/frontend/src/components/auth/LoginForm.jsx"
-    stuck_count: 0
-    priority: "high"
-    needs_retesting: false
-    status_history:
-        - working: true
-          agent: "testing"
-          comment: "Remember me functionality works correctly. When checkbox is checked and form is submitted, localStorage key 'h2h.rememberedEmail' is set to the entered email address. Verified with localStorage.getItem()."
+          comment: "REGRESSION PASSED: Forgot password link works correctly. Clicking 'Forgot password?' displays toast 'Reset password' with description 'Placeholder action. Not implemented.' English messages confirmed."
 
 metadata:
   created_by: "testing_agent"
-  version: "1.0"
-  test_sequence: 1
+  version: "2.0"
+  test_sequence: 2
   run_ui: true
   test_date: "2026-07-28"
+  last_test: "Regression + New Feature Test (Form-level Alert)"
 
 test_plan:
   current_focus:
-    - "All login page tests completed"
+    - "All login page tests completed - NEW feature + regression verified"
   stuck_tasks: []
   test_all: true
   test_priority: "high_first"
 
 agent_communication:
     - agent: "testing"
-      message: "Completed comprehensive testing of the H2H Payment Hub login page. All functionality is working correctly. This is a frontend-only prototype with MOCKED authentication as specified. All 9 test scenarios passed successfully: routing, UI rendering, form validation (empty fields, invalid email, short password), password toggle, forgot password link, mock authentication flow, and localStorage persistence. Only non-critical console warning found: Cloudflare RUM request failure (does not affect functionality). No critical issues found. The login page is production-ready for a frontend prototype."
+      message: "REGRESSION + NEW FEATURE TEST COMPLETED SUCCESSFULLY. Tested the login page at /login with NEW form-level Alert feature for failed authentication. All 7 test scenarios passed: (1) NEW form-level Alert with wrong credentials - Alert appears with role='alert', destructive variant, correct title and description; (2) Correct credentials - Alert disappears, success toast appears, localStorage 'app.rememberedEmail' set correctly; (3-7) REGRESSION tests all passed: empty field validation, invalid email validation, short password validation, password toggle, forgot password link. No console errors or network errors detected. The app has been successfully updated from Indonesian to English, demo credentials changed to user@example.com/password, and localStorage key updated to 'app.rememberedEmail'. All functionality working correctly. Frontend-only prototype with MOCKED auth as specified."

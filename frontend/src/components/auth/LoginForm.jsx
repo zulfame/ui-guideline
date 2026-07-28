@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Eye, EyeOff, Loader2 } from "lucide-react";
+import { AlertCircle, Eye, EyeOff, Loader2 } from "lucide-react";
 
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -17,6 +18,9 @@ import {
 import { toast } from "@/components/ui/sonner";
 import { loginSchema, loginDefaultValues } from "@/lib/validation/authSchema";
 
+// MOCK demo credentials (frontend prototype only). Replace with a real API.
+const DEMO_CREDENTIALS = { email: "user@example.com", password: "password" };
+
 /**
  * LoginForm
  * Accessible, reusable login form built with react-hook-form + zod validation,
@@ -28,6 +32,7 @@ import { loginSchema, loginDefaultValues } from "@/lib/validation/authSchema";
 export const LoginForm = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formError, setFormError] = useState("");
 
   const form = useForm({
     resolver: zodResolver(loginSchema),
@@ -36,10 +41,20 @@ export const LoginForm = () => {
   });
 
   const onSubmit = async (values) => {
+    setFormError("");
     setIsSubmitting(true);
     // --- MOCKED AUTHENTICATION (frontend prototype) ---
     await new Promise((resolve) => setTimeout(resolve, 900));
     setIsSubmitting(false);
+
+    const isValid =
+      values.email === DEMO_CREDENTIALS.email &&
+      values.password === DEMO_CREDENTIALS.password;
+
+    if (!isValid) {
+      setFormError("Invalid email or password. Please try again.");
+      return;
+    }
 
     if (values.remember) {
       window.localStorage.setItem("app.rememberedEmail", values.email);
@@ -59,6 +74,14 @@ export const LoginForm = () => {
         className="space-y-5"
         noValidate
       >
+        {formError ? (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" aria-hidden="true" />
+            <AlertTitle>Sign in failed</AlertTitle>
+            <AlertDescription>{formError}</AlertDescription>
+          </Alert>
+        ) : null}
+
         <FormField
           control={form.control}
           name="email"

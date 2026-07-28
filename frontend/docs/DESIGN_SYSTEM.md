@@ -35,7 +35,7 @@ pembuatan primitive baru **dilarang**.
 | separator | ✅ | Pemisah visual (divider) horizontal/vertikal. |
 | form | ✅ | Wrapper `react-hook-form`: `Form/FormField/FormItem/FormLabel/FormControl/FormMessage`. |
 | sonner (toast) | ✅ | Notifikasi transien; `<Toaster>` dipasang global di `App`. |
-| alert | ⚪ | Pesan inline/blok (mis. error form-level, info). |
+| alert | ✅ | Pesan blok. Dipakai form-level (variant `destructive`) untuk error autentikasi di `LoginForm`. |
 | accordion, alert-dialog, aspect-ratio, avatar, badge, breadcrumb, calendar, carousel, collapsible, command, context-menu, dialog, drawer, dropdown-menu, hover-card, input-otp, menubar, navigation-menu, pagination, popover, progress, radio-group, resizable, scroll-area, select, sheet, skeleton, slider, switch, table, tabs, textarea, toggle, toggle-group, tooltip | ⚪ | Tersedia; daftarkan sebagai ✅ saat pertama kali dipakai. |
 
 Ikon: **lucide-react** (`h-4 w-4` default, `aria-hidden` bila dekoratif). Emoji dilarang.
@@ -49,6 +49,7 @@ Ikon: **lucide-react** (`h-4 w-4` default, `aria-hidden` bila dekoratif). Emoji 
 | Brand/Logo lockup | ✅ | ikon `lucide` dalam kotak `rounded-md` + teks nama | `AuthLayout` | Header/sidebar/auth |
 | Password field + toggle | ✅ | Input + Button(ghost) + Eye/EyeOff | `LoginForm` | Form yang butuh password |
 | Loading button | ✅ | Button + `Loader2 animate-spin` + disabled | `LoginForm` | Semua aksi async |
+| Form-level error alert | ✅ | Alert (destructive) + AlertTitle + AlertDescription + AlertCircle | `LoginForm` | Semua form (error global) |
 | Background grid decoration | ✅ | overlay `aria-hidden` + radial mask (token) | `AuthLayout` | Panel/hero gelap |
 
 ## 1.3 Elemen Konten (placeholder generik)
@@ -103,11 +104,13 @@ Ikon: **lucide-react** (`h-4 w-4` default, `aria-hidden` bila dekoratif). Emoji 
 
 # BAGIAN 3 — PENDING / BUTUH KEPUTUSAN
 
+Item yang ditunda dipindahkan ke **`BACKLOG.md`** (parkir resmi). Ringkasan:
+
 | ID | Item | Status | Keterangan |
 |----|------|--------|------------|
-| P1 | Alert form-level | 🔒 | Aktifkan `Alert` untuk error autentikasi global? |
-| P2 | Dark mode toggle | 🔒 | Token siap; aktifkan sekarang atau tetap Light Mode? |
-| P3 | Empty State pattern | 🔒 | Standarisasi saat halaman data (tabel/list) dibuat. |
+| ~~P1~~ | Alert form-level | ✅ Done | Diaktifkan di `LoginForm` (variant `destructive`). |
+| B1 | Dark mode toggle | 🔒 Deferred | Fokus Light Mode dulu → lihat `BACKLOG.md`. |
+| B2 | Empty State pattern | ⏳ Deferred | Dibuat saat halaman data → lihat `BACKLOG.md`. |
 
 ---
 
@@ -128,3 +131,4 @@ Setiap kali membangun UI baru:
 | Tanggal | Perubahan |
 |---------|-----------|
 | Awal | Seed registry dari halaman **Login**: 6 primitives ✅ (button, input, label, card, checkbox, separator, form, sonner), 6 patterns ✅ (AuthLayout, LoginForm, Brand lockup, Password+toggle, Loading button, Grid decoration), 32 aturan global (R01–R32). |
+| Update 1 | **Alert form-level ✅** diaktifkan di `LoginForm` (variant `destructive`, mock auth: `user@example.com` / `password`). `alert` → ✅ di primitives; pattern "Form-level error alert" ditambahkan. Item ditunda (Dark mode, Empty State) dipindah ke `BACKLOG.md`. |
