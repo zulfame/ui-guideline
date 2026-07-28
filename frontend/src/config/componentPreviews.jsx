@@ -1,4 +1,4 @@
-import { Terminal, Plus, Bold, Italic, Underline } from "lucide-react";
+import { Terminal, Plus, Bold, Italic, Underline, Search, Bell } from "lucide-react";
 import { Bar, BarChart, CartesianGrid, XAxis } from "recharts";
 
 import {
@@ -195,6 +195,50 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { Spinner } from "@/components/ui/spinner";
+import { Kbd, KbdGroup } from "@/components/ui/kbd";
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty";
+import { ButtonGroup, ButtonGroupText } from "@/components/ui/button-group";
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+} from "@/components/ui/input-group";
+import {
+  Field,
+  FieldDescription,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+} from "@/components/ui/field";
+import {
+  Item,
+  ItemActions,
+  ItemContent,
+  ItemDescription,
+  ItemMedia,
+  ItemTitle,
+} from "@/components/ui/item";
+import { NativeSelect } from "@/components/ui/native-select";
+import {
+  TypographyH3,
+  TypographyInlineCode,
+  TypographyLead,
+  TypographyMuted,
+  TypographyP,
+} from "@/components/ui/typography";
+import {
+  ComboboxPreview,
+  DataTablePreview,
+  DatePickerPreview,
+} from "@/components/previews/AdvancedPreviews";
 
 const chartData = [
   { m: "A", v: 12 },
@@ -831,5 +875,112 @@ export const componentPreviews = {
         <TooltipContent>Placeholder tooltip text</TooltipContent>
       </Tooltip>
     </TooltipProvider>
+  ),
+
+  "Button Group": (
+    <ButtonGroup>
+      <Button variant="outline">One</Button>
+      <Button variant="outline">Two</Button>
+      <Button variant="outline">Three</Button>
+    </ButtonGroup>
+  ),
+
+  Combobox: <ComboboxPreview />,
+
+  "Data Table": <DataTablePreview />,
+
+  "Date Picker": <DatePickerPreview />,
+
+  Empty: (
+    <Empty className="w-full max-w-sm">
+      <EmptyHeader>
+        <EmptyMedia variant="icon">
+          <Bell aria-hidden="true" />
+        </EmptyMedia>
+        <EmptyTitle>No items yet</EmptyTitle>
+        <EmptyDescription>Placeholder empty-state description.</EmptyDescription>
+      </EmptyHeader>
+      <EmptyContent>
+        <Button size="sm">Primary action</Button>
+      </EmptyContent>
+    </Empty>
+  ),
+
+  Field: (
+    <FieldGroup className="w-full max-w-sm">
+      <Field>
+        <FieldLabel htmlFor="preview-field">Label</FieldLabel>
+        <Input id="preview-field" placeholder="Placeholder text" />
+        <FieldDescription>Helper text placeholder.</FieldDescription>
+      </Field>
+      <Field>
+        <FieldLabel htmlFor="preview-field-2">Label with error</FieldLabel>
+        <Input id="preview-field-2" aria-invalid placeholder="Invalid value" />
+        <FieldError>This is a placeholder error message.</FieldError>
+      </Field>
+    </FieldGroup>
+  ),
+
+  "Input Group": (
+    <InputGroup className="w-full max-w-sm">
+      <InputGroupAddon>
+        <Search aria-hidden="true" />
+      </InputGroupAddon>
+      <InputGroupInput placeholder="Search..." />
+    </InputGroup>
+  ),
+
+  Item: (
+    <Item className="w-full max-w-sm">
+      <ItemMedia>
+        <Bell aria-hidden="true" />
+      </ItemMedia>
+      <ItemContent>
+        <ItemTitle>Item Title</ItemTitle>
+        <ItemDescription>Placeholder item description.</ItemDescription>
+      </ItemContent>
+      <ItemActions>
+        <Button size="sm" variant="outline">
+          Action
+        </Button>
+      </ItemActions>
+    </Item>
+  ),
+
+  Kbd: (
+    <KbdGroup>
+      <Kbd>Ctrl</Kbd>
+      <span className="text-muted-foreground text-xs">+</span>
+      <Kbd>B</Kbd>
+    </KbdGroup>
+  ),
+
+  "Native Select": (
+    <div className="w-full max-w-sm">
+      <NativeSelect defaultValue="one">
+        <option value="one">Option One</option>
+        <option value="two">Option Two</option>
+        <option value="three">Option Three</option>
+      </NativeSelect>
+    </div>
+  ),
+
+  Spinner: (
+    <div className="flex items-center gap-3 text-sm text-muted-foreground">
+      <Spinner />
+      Loading...
+    </div>
+  ),
+
+  Typography: (
+    <div className="w-full max-w-sm space-y-2 text-left">
+      <TypographyH3>Heading</TypographyH3>
+      <TypographyLead>A lead paragraph placeholder.</TypographyLead>
+      <TypographyP>
+        A body paragraph placeholder with an{" "}
+        <TypographyInlineCode>inline code</TypographyInlineCode> sample.
+      </TypographyP>
+      <TypographyMuted>A muted caption placeholder.</TypographyMuted>
+    </div>
   ),
 };
