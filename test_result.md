@@ -273,18 +273,90 @@ frontend:
         - working: true
           agent: "testing"
           comment: "REGRESSION PASSED: Forgot password link works correctly. Clicking 'Forgot password?' displays toast 'Reset password' with description 'Placeholder action. Not implemented.' English messages confirmed."
+  
+  - task: "Refactored Dashboard - Official shadcn Sidebar Render (sidebar-07)"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/components/layout/AppSidebar.jsx, /app/frontend/src/components/ui/sidebar.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "VERIFIED: Official shadcn Sidebar (sidebar-07, collapse-to-icons) renders correctly at /dashboard. Brand 'UI Guidelines' with caption 'Enterprise' visible, Platform group label present, all nav items (Dashboard, Components, Blocks, Charts) visible with icons (LayoutDashboard, Component, Blocks, BarChart3), user footer shows 'User' / 'user@example.com' with chevron icon (ChevronsUpDown). All elements render as expected."
+  
+  - task: "Refactored Dashboard - Navigation and Active States"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/components/layout/AppSidebar.jsx, /app/frontend/src/config/navigation.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "VERIFIED: Navigation works perfectly. Clicking Components/Blocks/Charts/Dashboard correctly changes URL to /dashboard/components, /dashboard/blocks, /dashboard/charts, /dashboard. Page titles (h1) match navigation. Breadcrumbs update correctly (e.g., 'Dashboard / Components'). Active states correctly set with data-active='true' attribute on clicked nav item. All tested at 1440x900 viewport."
+  
+  - task: "Refactored Dashboard - Collapse to Icon Functionality"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/components/ui/sidebar.jsx, /app/frontend/src/components/layout/AppLayout.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "VERIFIED: Collapse to icon functionality works correctly. Clicking SidebarTrigger button (data-sidebar='trigger') in header toggles sidebar between 'expanded' and 'collapsed' states. When collapsed, sidebar shows narrow icons-only rail with labels hidden. Hovering nav icon shows tooltip with item label (e.g., 'Components'). Clicking trigger again expands sidebar and labels return. Sidebar uses collapsible='icon' prop as specified."
+  
+  - task: "Refactored Dashboard - Keyboard Shortcut (Ctrl+B / Cmd+B)"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/components/ui/sidebar.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "VERIFIED: Keyboard shortcut works correctly. Pressing Ctrl+B (or Cmd+B) toggles sidebar between expanded and collapsed states. Tested both directions: expanded→collapsed and collapsed→expanded. Keyboard shortcut is implemented in SidebarProvider with event listener for 'b' key with metaKey or ctrlKey (SIDEBAR_KEYBOARD_SHORTCUT = 'b')."
+  
+  - task: "Refactored Dashboard - User Dropdown Menu"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/components/layout/AppSidebar.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "VERIFIED: User dropdown menu works correctly. Clicking user button in sidebar footer opens DropdownMenu with items 'Account' (BadgeCheck icon), 'Settings' (Settings icon), and 'Log out' (LogOut icon). All items visible with role='menuitem'. Clicking 'Log out' navigates to /login page. Dropdown positioned correctly (side='right' on desktop, side='bottom' on mobile)."
+  
+  - task: "Refactored Dashboard - Mobile View (390x800)"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/components/ui/sidebar.jsx, /app/frontend/src/components/layout/AppSidebar.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "VERIFIED: Mobile view works correctly at 390x800 viewport. Desktop sidebar hidden, header trigger (hamburger menu) visible. Clicking trigger opens Sheet drawer from left (data-mobile='true') containing brand 'UI Guidelines', caption 'Enterprise', and all nav items (Dashboard, Components, Blocks, Charts). Clicking nav item (e.g., Charts) navigates to /dashboard/charts, page title and breadcrumb update correctly. Sheet uses SheetContent with width SIDEBAR_WIDTH_MOBILE (18rem)."
 
 metadata:
   created_by: "testing_agent"
-  version: "3.0"
-  test_sequence: 3
+  version: "4.0"
+  test_sequence: 4
   run_ui: true
   test_date: "2026-07-28"
-  last_test: "Dashboard Shell Navigation Test"
+  last_test: "Refactored Dashboard with Official shadcn Sidebar (sidebar-07, collapse-to-icons)"
 
 test_plan:
   current_focus:
-    - "All dashboard shell tests completed - navigation, breadcrumbs, mobile drawer verified"
+    - "Refactored Dashboard with official shadcn Sidebar (sidebar-07) - all tests completed and verified"
   stuck_tasks: []
   test_all: true
   test_priority: "high_first"
@@ -294,3 +366,5 @@ agent_communication:
       message: "REGRESSION + NEW FEATURE TEST COMPLETED SUCCESSFULLY. Tested the login page at /login with NEW form-level Alert feature for failed authentication. All 7 test scenarios passed: (1) NEW form-level Alert with wrong credentials - Alert appears with role='alert', destructive variant, correct title and description; (2) Correct credentials - Alert disappears, success toast appears, localStorage 'app.rememberedEmail' set correctly; (3-7) REGRESSION tests all passed: empty field validation, invalid email validation, short password validation, password toggle, forgot password link. No console errors or network errors detected. The app has been successfully updated from Indonesian to English, demo credentials changed to user@example.com/password, and localStorage key updated to 'app.rememberedEmail'. All functionality working correctly. Frontend-only prototype with MOCKED auth as specified."
     - agent: "testing"
       message: "DASHBOARD SHELL TEST COMPLETED SUCCESSFULLY. Tested the new dashboard shell with comprehensive navigation tests. All 6 test scenarios passed: (1) Login->Dashboard redirect - successful login redirects to /dashboard with sidebar, breadcrumb, and avatar visible; (2) Desktop sidebar navigation (1440x900) - all nav items work (Dashboard, Components, Blocks, Charts) with correct URL changes, page titles, and active states (bg-secondary); (3) Breadcrumb navigation - correct breadcrumbs on all pages ('Dashboard' on root, 'Dashboard / Components' on /dashboard/components, etc.); (4) Mobile drawer navigation (390x800) - hamburger menu visible, drawer opens with all nav items, navigation works, drawer closes automatically after selection; (5) Direct URL navigation - /dashboard/blocks loads correctly with proper breadcrumb and active state; (6) Root redirect - '/' correctly redirects to '/login'. No console errors detected. All shadcn/ui components working correctly. Frontend-only prototype as specified."
+    - agent: "testing"
+      message: "REFACTORED DASHBOARD WITH OFFICIAL SHADCN SIDEBAR TEST COMPLETED SUCCESSFULLY. Tested the refactored Dashboard using official shadcn Sidebar (sidebar-07, collapse-to-icons) at desktop viewport 1440x900 and mobile 390x800. All 6 test scenarios PASSED: (1) SIDEBAR RENDER - Brand 'UI Guidelines' with caption 'Enterprise', Platform group label, all nav items (Dashboard/Components/Blocks/Charts) with icons, user footer showing 'User'/'user@example.com' with chevron icon; (2) NAVIGATION + ACTIVE STATE - All navigation works correctly with URL changes, page titles match, breadcrumbs update (e.g., 'Dashboard / Components'), active states correctly set (data-active='true'); (3) COLLAPSE TO ICON - Sidebar toggles between 'expanded' and 'collapsed' states, tooltip 'Components' appears on hover when collapsed, labels return after expansion; (4) KEYBOARD SHORTCUT - Ctrl+B successfully toggles sidebar in both directions; (5) USER DROPDOWN - Dropdown opens with Account/Settings/Log out items, clicking Log out navigates to /login; (6) MOBILE VIEW - Hamburger menu visible, Sheet drawer opens with brand and all nav items, navigation works, page title and breadcrumb update correctly. Only one non-critical console error (Cloudflare RUM endpoint). Frontend-only prototype with MOCKED auth working correctly."
