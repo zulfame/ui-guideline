@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Eye } from "lucide-react";
 
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -10,7 +11,14 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { toast } from "@/components/ui/sonner";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { componentPreviews } from "@/config/componentPreviews";
 import {
   Table,
   TableBody,
@@ -28,10 +36,10 @@ import {
  *  - "pending"     🔒 : belum diport ke `components/ui/` (butuh keputusan/persetujuan).
  */
 const components = [
-  { name: "Accordion", status: "available" },
+  { name: "Accordion", status: "established" },
   { name: "Alert", status: "established" },
-  { name: "Alert Dialog", status: "available" },
-  { name: "Aspect Ratio", status: "available" },
+  { name: "Alert Dialog", status: "established" },
+  { name: "Aspect Ratio", status: "established" },
   { name: "Attachment", status: "pending" },
   { name: "Avatar", status: "established" },
   { name: "Badge", status: "established" },
@@ -50,7 +58,7 @@ const components = [
   { name: "Context Menu", status: "available" },
   { name: "Data Table", status: "pending" },
   { name: "Date Picker", status: "pending" },
-  { name: "Dialog", status: "available" },
+  { name: "Dialog", status: "established" },
   { name: "Direction", status: "pending" },
   { name: "Drawer", status: "available" },
   { name: "Dropdown Menu", status: "established" },
@@ -100,6 +108,9 @@ const STATUS_META = {
 };
 
 export default function ComponentsPage() {
+  const [preview, setPreview] = useState(null);
+  const previewNode = preview ? componentPreviews[preview.name] : null;
+
   return (
     <div className="space-y-6" data-testid="components-page">
       <PageHeader
@@ -166,11 +177,7 @@ export default function ComponentsPage() {
                             className="h-8 w-8 text-muted-foreground hover:text-foreground"
                             aria-label={`Preview ${item.name}`}
                             data-testid={`preview-button-${index + 1}`}
-                            onClick={() =>
-                              toast("Preview", {
-                                description: `Placeholder preview for "${item.name}".`,
-                              })
-                            }
+                            onClick={() => setPreview(item)}
                           >
                             <Eye className="h-4 w-4" aria-hidden="true" />
                           </Button>
@@ -184,6 +191,41 @@ export default function ComponentsPage() {
           </div>
         </CardContent>
       </Card>
+
+      <Dialog
+        open={Boolean(preview)}
+        onOpenChange={(open) => !open && setPreview(null)}
+      >
+        <DialogContent data-testid="component-preview-dialog">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              {preview?.name}
+              {preview ? (
+                <Badge variant={STATUS_META[preview.status].variant}>
+                  {STATUS_META[preview.status].label}
+                </Badge>
+              ) : null}
+            </DialogTitle>
+            <DialogDescription>
+              Live preview of the shadcn/ui component as used in this design
+              system.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div
+            className="flex min-h-[160px] items-center justify-center rounded-md border bg-background p-6"
+            data-testid="component-preview-body"
+          >
+            {previewNode ?? (
+              <p className="text-sm text-muted-foreground">
+                {preview?.status === "pending"
+                  ? "This component is not yet available in the design system."
+                  : "Preview not implemented yet."}
+              </p>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
