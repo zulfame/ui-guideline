@@ -5,7 +5,7 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import LoginPage from "@/pages/LoginPage";
 import ForgotPasswordPage from "@/pages/ForgotPasswordPage";
 import DashboardPage from "@/pages/DashboardPage";
-import PlaceholderPage from "@/pages/PlaceholderPage";
+import ComponentsPage from "@/pages/ComponentsPage";
 import SidebarBlockPage from "@/pages/blocks/SidebarBlockPage";
 import LoginBlockPage from "@/pages/blocks/LoginBlockPage";
 import ForgotBlockPage from "@/pages/blocks/ForgotBlockPage";
@@ -26,7 +26,7 @@ function App() {
           <Route path="/" element={<DashboardPage />} />
           <Route
             path="/design-system/components"
-            element={<PlaceholderPage />}
+            element={<ComponentsPage />}
           />
           <Route
             path="/design-system/blocks/sidebar"

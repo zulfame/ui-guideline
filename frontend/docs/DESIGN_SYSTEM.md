@@ -46,8 +46,9 @@ pembuatan primitive baru **dilarang**.
 | skeleton | ✅ | Dependensi `SidebarMenuSkeleton` (loading nav). |
 | collapsible | ✅ | Submenu sidebar yang bisa dilipat (Sample Blocks, Sample Charts). |
 | chart | ✅ | Komponen chart resmi shadcn (diport ke JSX) di atas **recharts@2.15.4**. ChartContainer/ChartTooltip(Content)/ChartLegend(Content)/ChartStyle. |
-| card | ✅ | Container konten; dipakai di Login & pembungkus setiap chart (`ChartCard`). |
-| accordion, alert-dialog, aspect-ratio, avatar, badge, breadcrumb, calendar, carousel, collapsible, command, context-menu, dialog, drawer, dropdown-menu, hover-card, input-otp, menubar, navigation-menu, pagination, popover, progress, radio-group, resizable, scroll-area, select, sheet, skeleton, slider, switch, table, tabs, textarea, toggle, toggle-group, tooltip | ⚪ | Tersedia; daftarkan sebagai ✅ saat pertama kali dipakai. |
+| card | ✅ | Container konten; dipakai di Login, pembungkus setiap chart (`ChartCard`), & pembungkus Table di halaman Components. |
+| table | ✅ | Tabel data resmi shadcn. Dipakai di halaman Components (dibungkus Card). Empty state = baris `colSpan` penuh berteks `No Data Available` (R26). |
+| accordion, alert-dialog, aspect-ratio, avatar, badge, breadcrumb, calendar, carousel, collapsible, command, context-menu, dialog, drawer, dropdown-menu, hover-card, input-otp, menubar, navigation-menu, pagination, popover, progress, radio-group, resizable, scroll-area, select, sheet, skeleton, slider, switch, tabs, textarea, toggle, toggle-group, tooltip | ⚪ | Tersedia; daftarkan sebagai ✅ saat pertama kali dipakai. |
 
 Ikon: **lucide-react** — **WAJIB** & satu-satunya sumber ikon (`h-4 w-4` default, `aria-hidden` bila dekoratif). Emoji / SVG kustom / library ikon lain dilarang (Aturan R09).
 
@@ -67,6 +68,7 @@ Ikon: **lucide-react** — **WAJIB** & satu-satunya sumber ikon (`h-4 w-4` defau
 | PlaceholderPage | ✅ | PageHeader + judul dari nav config (via `getBreadcrumb`) | `pages/PlaceholderPage.jsx` | Halaman blank reusable |
 | ChartCard | ✅ | Card + header + ChartContainer (anak = 1 elemen chart Recharts) | `components/charts/ChartCard.jsx` | Semua halaman chart |
 | Background grid decoration | ✅ | overlay `aria-hidden` + radial mask (token) | `AuthLayout` | Panel/hero gelap |
+| Data Table (card-wrapped) + empty state | ✅ | Card + Table (Header/Body/Row/Head/Cell) + baris empty-state `colSpan` "No Data Available" | `pages/ComponentsPage.jsx` | Semua tampilan tabular; kolom terakhir `text-right` |
 
 ## 1.3 Elemen Konten (placeholder generik)
 
@@ -194,3 +196,4 @@ Setiap kali membangun UI baru:
 | Update 9 | **Aturan diformalkan.** Ditambahkan **R33 Charts**, **R34 App Shell & Scroll**, **R35 Navigation**, **R36 Routing**, **R37 Dependency Exception**; R05 diperluas (token `--sidebar-*` & `--chart-1..5`); R26 mencatat placeholder surface `bg-muted/50`. Governance (`DESIGN_SYSTEM_RULES.md`) memuat daftar library yang diizinkan (lucide-react, recharts). |
 | Update 10 | **Sample Blocks lengkap.** (a) `SidebarBlockPage` di-wire ke rute `/design-system/blocks/sidebar` dan dibuat **self-contained/inert**: sidebar preview dibangun langsung dari primitive shadcn + struktur `navSections`, memakai `SidebarMenuButton onClick` (bukan `<Link>`) sehingga **klik menu tidak pernah navigate ke URL host** — hanya memperbarui seleksi lokal (breadcrumb) & menampilkan placeholder kosong (`bg-muted/50`). (b) Pattern ✅ **ForgotPasswordForm** + halaman standalone `/forgot-password` (reuse `AuthLayout`; schema `resetSchema` di `authSchema.js`; sukses → Alert non-destructive). Link "Forgot password?" di `LoginForm` kini navigate ke `/forgot-password`. (c) Pattern ✅ **Block Preview via iframe**: `LoginBlockPage` & `ForgotBlockPage` merender rute nyata (`/login`, `/forgot-password`) di dalam `<iframe>` berbingkai `h-[680px]`. |
 | Update 11 | **Typografi diformalkan + halaman Components dikembalikan blank.** (a) Ditambahkan **BAGIAN 2A — Typography Scale** (tabel resmi H1→terkecil: `text-2xl/3xl/4xl` heading, `text-sm/base` body, `text-xs` terkecil; weight 400/500/600; aturan `leading-tight/normal/relaxed` & `tracking-tight` khusus heading); **R04** diperbarui untuk merujuk skala ini. (b) **ComponentsPage dihapus** — rute `/design-system/components` dikembalikan ke `PlaceholderPage` (blank) karena pengisian sebelumnya tidak diinstruksikan user. |
+| Update 12 | **Halaman Components mulai diisi (atas instruksi user).** Primitive ✅ **table** diaktifkan. Pattern ✅ **Data Table (card-wrapped) + empty state**: `Table` shadcn dibungkus `Card`, kolom placeholder generik (ID/Name/Status/Date, kolom terakhir `text-right`), **data kosong** → empty state R26 (`No Data Available`, baris `colSpan` penuh, `text-muted-foreground`, `h-24 text-center`). Rute `/design-system/components` kembali ke `ComponentsPage`. |
