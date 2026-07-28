@@ -22,7 +22,7 @@ export const ChartCard = ({
   return (
     <Card className="flex flex-col">
       <CardHeader>
-        <CardTitle>{title}</CardTitle>
+        <CardTitle className="text-base">{title}</CardTitle>
         {description ? <CardDescription>{description}</CardDescription> : null}
       </CardHeader>
       <CardContent className="flex-1">

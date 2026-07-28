@@ -64,7 +64,7 @@ export const AuthLayout = ({ children }) => {
 
           <ul className="space-y-6">
             {highlights.map(({ icon: Icon, title, description }) => (
-              <li key={title} className="flex items-start gap-3.5">
+              <li key={title} className="flex items-start gap-3">
                 <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary-foreground/10">
                   <Icon className="h-4 w-4" aria-hidden="true" />
                 </span>

@@ -32,7 +32,7 @@ export default function TooltipsChartsPage() {
               dataKey="month"
               tickLine={false}
               axisLine={false}
-              tickMargin={10}
+              tickMargin={8}
               tickFormatter={tickFmt}
             />
             <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
@@ -52,7 +52,7 @@ export default function TooltipsChartsPage() {
               dataKey="month"
               tickLine={false}
               axisLine={false}
-              tickMargin={10}
+              tickMargin={8}
               tickFormatter={tickFmt}
             />
             <ChartTooltip
@@ -75,7 +75,7 @@ export default function TooltipsChartsPage() {
               dataKey="month"
               tickLine={false}
               axisLine={false}
-              tickMargin={10}
+              tickMargin={8}
               tickFormatter={tickFmt}
             />
             <ChartTooltip
@@ -98,7 +98,7 @@ export default function TooltipsChartsPage() {
               dataKey="month"
               tickLine={false}
               axisLine={false}
-              tickMargin={10}
+              tickMargin={8}
               tickFormatter={tickFmt}
             />
             <ChartTooltip

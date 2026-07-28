@@ -31,7 +31,7 @@ export default function BarChartsPage() {
               dataKey="month"
               tickLine={false}
               axisLine={false}
-              tickMargin={10}
+              tickMargin={8}
               tickFormatter={tickFmt}
             />
             <ChartTooltip
@@ -53,7 +53,7 @@ export default function BarChartsPage() {
               dataKey="month"
               tickLine={false}
               axisLine={false}
-              tickMargin={10}
+              tickMargin={8}
               tickFormatter={tickFmt}
             />
             <ChartTooltip
