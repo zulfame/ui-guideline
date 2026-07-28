@@ -37,7 +37,6 @@ import {
   SidebarMenuSubButton,
   SidebarMenuSubItem,
   SidebarRail,
-  SidebarSeparator,
   useSidebar,
 } from "@/components/ui/sidebar";
 import { navSections } from "@/config/navigation";
@@ -63,7 +62,7 @@ export const AppSidebar = (props) => {
 
   return (
     <Sidebar collapsible="icon" {...props}>
-      <SidebarHeader className="sticky top-0 z-10 bg-sidebar">
+      <SidebarHeader className="sticky top-0 z-10 border-b border-sidebar-border bg-sidebar">
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
@@ -82,7 +81,6 @@ export const AppSidebar = (props) => {
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
-      <SidebarSeparator className="mx-0" />
 
       <SidebarContent>
         {navSections.map((section) => (
