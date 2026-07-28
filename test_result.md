@@ -102,7 +102,80 @@
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
 
-user_problem_statement: "Test the Login page with NEW form-level Alert feature for failed authentication. Frontend-only prototype with MOCKED authentication (only user@example.com / password succeeds)."
+user_problem_statement: "Test the Dashboard shell of a frontend-only prototype (design system app). Base URL redirects '/' -> '/login'. Test login->dashboard redirect, desktop sidebar navigation, mobile drawer, breadcrumbs, and active states."
+
+frontend:
+  - task: "Dashboard Shell - Login to Dashboard Redirect"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/components/auth/LoginForm.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "VERIFIED: Login with user@example.com / password successfully redirects to /dashboard. Success toast 'Signed in successfully' appears. Dashboard page loads with sidebar visible (desktop), page title 'Dashboard', breadcrumb shows 'Dashboard', and avatar 'UI' visible in header. All working correctly."
+  
+  - task: "Dashboard Shell - Desktop Sidebar Navigation (1440x900)"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/components/layout/AppLayout.jsx, /app/frontend/src/components/layout/AppSidebar.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "VERIFIED: Desktop sidebar navigation works perfectly. Fixed left sidebar with brand 'UI Guidelines' visible. All navigation items work: Dashboard -> Components (/dashboard/components), Components -> Blocks (/dashboard/blocks), Blocks -> Charts (/dashboard/charts), Charts -> Dashboard (/dashboard). Each page shows correct title and description. Active nav items correctly highlighted with bg-secondary class (secondary variant). All tested at 1440x900 viewport."
+  
+  - task: "Dashboard Shell - Breadcrumb Navigation"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/components/layout/AppLayout.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "VERIFIED: Breadcrumb navigation works correctly on all pages. On /dashboard: shows only 'Dashboard' (no separator). On /dashboard/components: shows 'Dashboard / Components'. On /dashboard/blocks: shows 'Dashboard / Blocks'. On /dashboard/charts: shows 'Dashboard / Charts'. Breadcrumb is sticky in header and updates correctly on navigation."
+  
+  - task: "Dashboard Shell - Mobile Drawer Navigation (390x800)"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/components/layout/AppLayout.jsx, /app/frontend/src/components/layout/AppSidebar.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "VERIFIED: Mobile drawer navigation works perfectly. At 390x800 viewport, desktop sidebar is hidden. Hamburger menu button (aria-label='Open navigation menu') is visible in header. Clicking hamburger opens Sheet drawer from left with brand 'UI Guidelines' and all nav items (Dashboard, Components, Blocks, Charts). Clicking 'Charts' in drawer navigates to /dashboard/charts AND drawer closes automatically. Page title and breadcrumb update correctly. All functionality working as expected."
+  
+  - task: "Dashboard Shell - Direct URL Navigation"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/App.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "VERIFIED: Direct URL navigation works correctly. Navigating directly to /dashboard/blocks renders the Blocks page with correct page title 'Blocks', breadcrumb 'Dashboard / Blocks', sidebar visible, and Blocks nav item highlighted as active. Routing works as expected."
+  
+  - task: "Dashboard Shell - Root Redirect"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/App.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "VERIFIED: Root URL '/' correctly redirects to '/login' as expected. Tested and confirmed."
 
 frontend:
   - task: "Login Form - Form-Level Alert on Failed Auth (NEW FEATURE)"
@@ -203,15 +276,15 @@ frontend:
 
 metadata:
   created_by: "testing_agent"
-  version: "2.0"
-  test_sequence: 2
+  version: "3.0"
+  test_sequence: 3
   run_ui: true
   test_date: "2026-07-28"
-  last_test: "Regression + New Feature Test (Form-level Alert)"
+  last_test: "Dashboard Shell Navigation Test"
 
 test_plan:
   current_focus:
-    - "All login page tests completed - NEW feature + regression verified"
+    - "All dashboard shell tests completed - navigation, breadcrumbs, mobile drawer verified"
   stuck_tasks: []
   test_all: true
   test_priority: "high_first"
@@ -219,3 +292,5 @@ test_plan:
 agent_communication:
     - agent: "testing"
       message: "REGRESSION + NEW FEATURE TEST COMPLETED SUCCESSFULLY. Tested the login page at /login with NEW form-level Alert feature for failed authentication. All 7 test scenarios passed: (1) NEW form-level Alert with wrong credentials - Alert appears with role='alert', destructive variant, correct title and description; (2) Correct credentials - Alert disappears, success toast appears, localStorage 'app.rememberedEmail' set correctly; (3-7) REGRESSION tests all passed: empty field validation, invalid email validation, short password validation, password toggle, forgot password link. No console errors or network errors detected. The app has been successfully updated from Indonesian to English, demo credentials changed to user@example.com/password, and localStorage key updated to 'app.rememberedEmail'. All functionality working correctly. Frontend-only prototype with MOCKED auth as specified."
+    - agent: "testing"
+      message: "DASHBOARD SHELL TEST COMPLETED SUCCESSFULLY. Tested the new dashboard shell with comprehensive navigation tests. All 6 test scenarios passed: (1) Login->Dashboard redirect - successful login redirects to /dashboard with sidebar, breadcrumb, and avatar visible; (2) Desktop sidebar navigation (1440x900) - all nav items work (Dashboard, Components, Blocks, Charts) with correct URL changes, page titles, and active states (bg-secondary); (3) Breadcrumb navigation - correct breadcrumbs on all pages ('Dashboard' on root, 'Dashboard / Components' on /dashboard/components, etc.); (4) Mobile drawer navigation (390x800) - hamburger menu visible, drawer opens with all nav items, navigation works, drawer closes automatically after selection; (5) Direct URL navigation - /dashboard/blocks loads correctly with proper breadcrumb and active state; (6) Root redirect - '/' correctly redirects to '/login'. No console errors detected. All shadcn/ui components working correctly. Frontend-only prototype as specified."

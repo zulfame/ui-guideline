@@ -36,6 +36,10 @@ pembuatan primitive baru **dilarang**.
 | form | ✅ | Wrapper `react-hook-form`: `Form/FormField/FormItem/FormLabel/FormControl/FormMessage`. |
 | sonner (toast) | ✅ | Notifikasi transien; `<Toaster>` dipasang global di `App`. |
 | alert | ✅ | Pesan blok. Dipakai form-level (variant `destructive`) untuk error autentikasi di `LoginForm`. |
+| scroll-area | ✅ | Area scroll pada nav sidebar. |
+| sheet | ✅ | Drawer navigasi mobile (side `left`). |
+| breadcrumb | ✅ | Jejak lokasi di header dashboard. |
+| avatar | ✅ | Placeholder identitas di header (fallback inisial). |
 | accordion, alert-dialog, aspect-ratio, avatar, badge, breadcrumb, calendar, carousel, collapsible, command, context-menu, dialog, drawer, dropdown-menu, hover-card, input-otp, menubar, navigation-menu, pagination, popover, progress, radio-group, resizable, scroll-area, select, sheet, skeleton, slider, switch, table, tabs, textarea, toggle, toggle-group, tooltip | ⚪ | Tersedia; daftarkan sebagai ✅ saat pertama kali dipakai. |
 
 Ikon: **lucide-react** — **WAJIB** & satu-satunya sumber ikon (`h-4 w-4` default, `aria-hidden` bila dekoratif). Emoji / SVG kustom / library ikon lain dilarang (Aturan R09).
@@ -50,6 +54,9 @@ Ikon: **lucide-react** — **WAJIB** & satu-satunya sumber ikon (`h-4 w-4` defau
 | Password field + toggle | ✅ | Input + Button(ghost) + Eye/EyeOff | `LoginForm` | Form yang butuh password |
 | Loading button | ✅ | Button + `Loader2 animate-spin` + disabled | `LoginForm` | Semua aksi async |
 | Form-level error alert | ✅ | Alert (destructive) + AlertTitle + AlertDescription + AlertCircle | `LoginForm` | Semua form (error global) |
+| AppLayout (dashboard shell) | ✅ | aside sidebar + Sheet (mobile) + header + Breadcrumb + Avatar + Outlet | `components/layout/AppLayout.jsx` | Semua halaman aplikasi (dashboard) |
+| AppSidebar (nav) | ✅ | Button(asChild Link) + ScrollArea + brand lockup | `components/layout/AppSidebar.jsx` | Sidebar desktop + drawer mobile |
+| PageHeader | ✅ | `h1` + deskripsi muted + slot actions | `components/layout/PageHeader.jsx` | Header setiap halaman |
 | Background grid decoration | ✅ | overlay `aria-hidden` + radial mask (token) | `AuthLayout` | Panel/hero gelap |
 
 ## 1.3 Elemen Konten (placeholder generik)
@@ -133,3 +140,4 @@ Setiap kali membangun UI baru:
 | Awal | Seed registry dari halaman **Login**: 6 primitives ✅ (button, input, label, card, checkbox, separator, form, sonner), 6 patterns ✅ (AuthLayout, LoginForm, Brand lockup, Password+toggle, Loading button, Grid decoration), 32 aturan global (R01–R32). |
 | Update 1 | **Alert form-level ✅** diaktifkan di `LoginForm` (variant `destructive`, mock auth: `user@example.com` / `password`). `alert` → ✅ di primitives; pattern "Form-level error alert" ditambahkan. Item ditunda (Dark mode, Empty State) dipindah ke `BACKLOG.md`. |
 | Update 2 | **Foundations ditetapkan:** Font **Geist** (primary) + fallback `Inter, system-ui, sans-serif` (R04); Ikon **wajib `lucide-react`** (R09). Font diperbarui di `index.css`. |
+| Update 3 | **Dashboard shell** ditambahkan: primitives ✅ scroll-area, sheet, breadcrumb, avatar; patterns ✅ AppLayout, AppSidebar, PageHeader. Navigasi terpusat di `src/config/navigation.js` (menu: Dashboard, Components, Blocks, Charts). Rute `/dashboard/*` di `App.js`; login sukses → redirect `/dashboard`. Halaman utama & sub-halaman sengaja **kosong** dulu. |

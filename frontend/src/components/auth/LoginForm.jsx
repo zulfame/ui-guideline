@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { AlertCircle, Eye, EyeOff, Loader2 } from "lucide-react";
@@ -30,6 +31,7 @@ const DEMO_CREDENTIALS = { email: "user@example.com", password: "password" };
  * `onSubmit` body with a real API call when the backend is available.
  */
 export const LoginForm = () => {
+  const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState("");
@@ -65,6 +67,7 @@ export const LoginForm = () => {
     toast.success("Signed in successfully", {
       description: `Welcome back, ${values.email}.`,
     });
+    navigate("/dashboard");
   };
 
   return (

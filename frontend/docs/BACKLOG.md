@@ -15,6 +15,7 @@ Status: 🔒 Deferred (ditunda) · ⏳ Menunggu halaman terkait
 |----|------|--------|---------------------------|-------------------------|
 | B1 | **Dark Mode Toggle** | 🔒 | Fokus **Light Mode** dulu sampai semua komponen selesai. Token light+dark sudah tersedia di `index.css`. | `switch` / `dropdown-menu` (+ `next-themes`) |
 | B2 | **Empty State / "No Data Available"** | ⏳ | Distandarkan saat halaman **data** (tabel/list) dibuat. | `skeleton`, `table`, `card` |
+| B3 | **Reduced Motion** (`prefers-reduced-motion`) | 🔒 | Dikategorikan sebagai **peningkatan performa/aksesibilitas gerak**; dikerjakan nanti. Menonaktifkan animasi (mis. `animate-spin`, transisi Sheet) bagi pengguna yang meminta pengurangan animasi. | utility CSS / Tailwind `motion-reduce:*` |
 
 ---
 
