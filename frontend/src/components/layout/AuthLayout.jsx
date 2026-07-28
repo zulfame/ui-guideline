@@ -33,8 +33,14 @@ export const AuthLayout = ({ children }) => {
   return (
     <div className="grid min-h-screen w-full lg:grid-cols-2">
       {/* Branding panel — desktop only */}
-      <aside className="relative hidden flex-col justify-between bg-primary p-10 text-primary-foreground lg:flex xl:p-14">
-        <div className="flex items-center gap-2.5">
+      <aside className="relative hidden flex-col justify-between overflow-hidden bg-primary p-10 text-primary-foreground lg:flex xl:p-14">
+        {/* Decorative grid overlay — monochrome, fades at the edges */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,hsl(var(--primary-foreground)/0.06)_1px,transparent_1px),linear-gradient(to_bottom,hsl(var(--primary-foreground)/0.06)_1px,transparent_1px)] bg-[size:44px_44px] [mask-image:radial-gradient(ellipse_at_top_left,black,transparent_75%)]"
+        />
+
+        <div className="relative z-10 flex items-center gap-2.5">
           <span className="flex h-9 w-9 items-center justify-center rounded-md bg-primary-foreground/10 ring-1 ring-inset ring-primary-foreground/20">
             <GalleryVerticalEnd className="h-5 w-5" aria-hidden="true" />
           </span>
@@ -43,7 +49,7 @@ export const AuthLayout = ({ children }) => {
           </span>
         </div>
 
-        <div className="max-w-md space-y-8">
+        <div className="relative z-10 max-w-md space-y-8">
           <div className="space-y-3">
             <h1 className="text-3xl font-semibold leading-tight tracking-tight xl:text-4xl">
               Welcome back
@@ -73,7 +79,7 @@ export const AuthLayout = ({ children }) => {
           </ul>
         </div>
 
-        <p className="text-xs text-primary-foreground/50">
+        <p className="relative z-10 text-xs text-primary-foreground/50">
           &copy; {new Date().getFullYear()} UI Guidelines. All rights
           reserved.
         </p>
