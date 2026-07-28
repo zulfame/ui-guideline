@@ -8,12 +8,12 @@ import { z } from "zod";
 export const loginSchema = z.object({
   email: z
     .string()
-    .min(1, { message: "Email wajib diisi." })
-    .email({ message: "Masukkan alamat email yang valid." }),
+    .min(1, { message: "Email is required." })
+    .email({ message: "Please enter a valid email address." }),
   password: z
     .string()
-    .min(1, { message: "Kata sandi wajib diisi." })
-    .min(6, { message: "Kata sandi minimal 6 karakter." }),
+    .min(1, { message: "Password is required." })
+    .min(6, { message: "Password must be at least 6 characters." }),
   remember: z.boolean().optional().default(false),
 });
 

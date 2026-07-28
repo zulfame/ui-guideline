@@ -1,4 +1,4 @@
-import { Landmark, ShieldCheck, Network, Activity } from "lucide-react";
+import { GalleryVerticalEnd, CheckCircle2 } from "lucide-react";
 
 import { Separator } from "@/components/ui/separator";
 
@@ -8,23 +8,24 @@ import { Separator } from "@/components/ui/separator";
  * (login, forgot password, etc.). Left panel carries the brand,
  * right panel renders the page content (forms/cards).
  *
+ * Generic template — no business/domain-specific content.
  * Composed exclusively from shadcn/ui primitives + lucide-react icons.
  */
 const highlights = [
   {
-    icon: ShieldCheck,
-    title: "Keamanan tingkat enterprise",
-    description: "Enkripsi menyeluruh dan kontrol akses berbasis peran.",
+    icon: CheckCircle2,
+    title: "Feature One",
+    description: "Supporting text placeholder for this item.",
   },
   {
-    icon: Network,
-    title: "Koneksi Host-to-Host",
-    description: "Integrasi langsung dan andal dengan mitra perbankan.",
+    icon: CheckCircle2,
+    title: "Feature Two",
+    description: "Supporting text placeholder for this item.",
   },
   {
-    icon: Activity,
-    title: "Pemantauan real-time",
-    description: "Visibilitas penuh atas setiap transaksi yang berjalan.",
+    icon: CheckCircle2,
+    title: "Feature Three",
+    description: "Supporting text placeholder for this item.",
   },
 ];
 
@@ -35,21 +36,21 @@ export const AuthLayout = ({ children }) => {
       <aside className="relative hidden flex-col justify-between bg-primary p-10 text-primary-foreground lg:flex xl:p-14">
         <div className="flex items-center gap-2.5">
           <span className="flex h-9 w-9 items-center justify-center rounded-md bg-primary-foreground/10 ring-1 ring-inset ring-primary-foreground/20">
-            <Landmark className="h-5 w-5" aria-hidden="true" />
+            <GalleryVerticalEnd className="h-5 w-5" aria-hidden="true" />
           </span>
           <span className="text-sm font-semibold tracking-tight">
-            H2H Payment Hub
+            UI Guidelines
           </span>
         </div>
 
         <div className="max-w-md space-y-8">
           <div className="space-y-3">
             <h1 className="text-3xl font-semibold leading-tight tracking-tight xl:text-4xl">
-              Pusat kendali pembayaran Host-to-Host Anda.
+              Welcome back
             </h1>
             <p className="text-sm leading-relaxed text-primary-foreground/70">
-              Kelola, monitor, dan rekonsiliasi seluruh transaksi dalam satu
-              platform yang aman dan terpadu.
+              Sign in to your account to continue. This is a placeholder
+              description for the sign-in screen.
             </p>
           </div>
 
@@ -73,8 +74,8 @@ export const AuthLayout = ({ children }) => {
         </div>
 
         <p className="text-xs text-primary-foreground/50">
-          &copy; {new Date().getFullYear()} H2H Payment Hub. Untuk penggunaan
-          internal.
+          &copy; {new Date().getFullYear()} UI Guidelines. All rights
+          reserved.
         </p>
       </aside>
 
@@ -84,10 +85,10 @@ export const AuthLayout = ({ children }) => {
           {/* Brand — mobile only */}
           <div className="mb-8 flex items-center gap-2.5 lg:hidden">
             <span className="flex h-9 w-9 items-center justify-center rounded-md bg-primary text-primary-foreground">
-              <Landmark className="h-5 w-5" aria-hidden="true" />
+              <GalleryVerticalEnd className="h-5 w-5" aria-hidden="true" />
             </span>
             <span className="text-sm font-semibold tracking-tight text-foreground">
-              H2H Payment Hub
+              UI Guidelines
             </span>
           </div>
 

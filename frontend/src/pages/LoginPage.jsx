@@ -13,9 +13,9 @@ export default function LoginPage() {
     <AuthLayout>
       <Card className="border-border/60">
         <CardHeader className="space-y-1.5">
-          <CardTitle className="text-2xl">Masuk ke akun Anda</CardTitle>
+          <CardTitle className="text-2xl">Sign in</CardTitle>
           <CardDescription>
-            Masukkan kredensial Anda untuk mengakses H2H Payment Hub.
+            Enter your credentials to access your account.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -24,7 +24,7 @@ export default function LoginPage() {
       </Card>
 
       <p className="mt-6 text-center text-xs text-muted-foreground">
-        Akses hanya untuk pengguna internal yang berwenang.
+        This is a placeholder note for the sign-in screen.
       </p>
     </AuthLayout>
   );

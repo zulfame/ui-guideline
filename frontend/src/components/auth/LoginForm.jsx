@@ -19,8 +19,8 @@ import { loginSchema, loginDefaultValues } from "@/lib/validation/authSchema";
 
 /**
  * LoginForm
- * Accessible login form built with react-hook-form + zod validation,
- * composed entirely from shadcn/ui primitives.
+ * Accessible, reusable login form built with react-hook-form + zod validation,
+ * composed entirely from shadcn/ui primitives. Generic template content only.
  *
  * NOTE: Authentication is mocked (frontend prototype only). Replace the
  * `onSubmit` body with a real API call when the backend is available.
@@ -42,13 +42,13 @@ export const LoginForm = () => {
     setIsSubmitting(false);
 
     if (values.remember) {
-      window.localStorage.setItem("h2h.rememberedEmail", values.email);
+      window.localStorage.setItem("app.rememberedEmail", values.email);
     } else {
-      window.localStorage.removeItem("h2h.rememberedEmail");
+      window.localStorage.removeItem("app.rememberedEmail");
     }
 
-    toast.success("Berhasil masuk", {
-      description: `Selamat datang kembali, ${values.email}.`,
+    toast.success("Signed in successfully", {
+      description: `Welcome back, ${values.email}.`,
     });
   };
 
@@ -69,7 +69,7 @@ export const LoginForm = () => {
                 <Input
                   type="email"
                   autoComplete="email"
-                  placeholder="nama@perusahaan.co.id"
+                  placeholder="name@example.com"
                   {...field}
                 />
               </FormControl>
@@ -84,19 +84,18 @@ export const LoginForm = () => {
           render={({ field }) => (
             <FormItem>
               <div className="flex items-center justify-between">
-                <FormLabel>Kata Sandi</FormLabel>
+                <FormLabel>Password</FormLabel>
                 <Button
                   type="button"
                   variant="link"
                   className="h-auto p-0 text-xs font-medium text-muted-foreground hover:text-foreground"
                   onClick={() =>
-                    toast("Atur ulang kata sandi", {
-                      description:
-                        "Silakan hubungi administrator sistem Anda.",
+                    toast("Reset password", {
+                      description: "Placeholder action. Not implemented.",
                     })
                   }
                 >
-                  Lupa kata sandi?
+                  Forgot password?
                 </Button>
               </div>
               <div className="relative">
@@ -104,7 +103,7 @@ export const LoginForm = () => {
                   <Input
                     type={showPassword ? "text" : "password"}
                     autoComplete="current-password"
-                    placeholder="Masukkan kata sandi"
+                    placeholder="Enter your password"
                     className="pr-10"
                     {...field}
                   />
@@ -115,11 +114,7 @@ export const LoginForm = () => {
                   size="icon"
                   className="absolute right-1 top-1/2 h-7 w-7 -translate-y-1/2 text-muted-foreground hover:bg-transparent hover:text-foreground"
                   onClick={() => setShowPassword((prev) => !prev)}
-                  aria-label={
-                    showPassword
-                      ? "Sembunyikan kata sandi"
-                      : "Tampilkan kata sandi"
-                  }
+                  aria-label={showPassword ? "Hide password" : "Show password"}
                 >
                   {showPassword ? (
                     <EyeOff className="h-4 w-4" aria-hidden="true" />
@@ -145,7 +140,7 @@ export const LoginForm = () => {
                 />
               </FormControl>
               <FormLabel className="font-normal text-muted-foreground">
-                Ingat saya di perangkat ini
+                Remember me
               </FormLabel>
             </FormItem>
           )}
@@ -155,10 +150,10 @@ export const LoginForm = () => {
           {isSubmitting ? (
             <>
               <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-              Memproses...
+              Signing in...
             </>
           ) : (
-            "Masuk"
+            "Sign In"
           )}
         </Button>
       </form>
