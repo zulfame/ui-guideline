@@ -247,6 +247,24 @@ import {
   MessageGroup,
   MessageHeader,
 } from "@/components/ui/message";
+import {
+  Bubble,
+  BubbleGroup,
+  BubbleContent,
+  BubbleReactions,
+} from "@/components/ui/bubble";
+import { Marker, MarkerIcon, MarkerContent } from "@/components/ui/marker";
+import {
+  Attachment,
+  AttachmentMedia,
+  AttachmentContent,
+  AttachmentTitle,
+  AttachmentDescription,
+  AttachmentActions,
+  AttachmentAction,
+  AttachmentGroup,
+} from "@/components/ui/attachment";
+import { FileText, ImageIcon, X, GitBranch, Loader2 } from "lucide-react";
 
 const chartData = [
   { m: "A", v: 12 },
@@ -961,6 +979,104 @@ export const componentPreviews = {
       <span className="text-muted-foreground text-xs">+</span>
       <Kbd>B</Kbd>
     </KbdGroup>
+  ),
+
+  Attachment: (
+    <div className="w-full max-w-sm space-y-3">
+      <Attachment state="done">
+        <AttachmentMedia>
+          <FileText />
+        </AttachmentMedia>
+        <AttachmentContent>
+          <AttachmentTitle>document-one.pdf</AttachmentTitle>
+          <AttachmentDescription>PDF · 2.4 MB</AttachmentDescription>
+        </AttachmentContent>
+        <AttachmentActions>
+          <AttachmentAction aria-label="Remove document-one.pdf">
+            <X />
+          </AttachmentAction>
+        </AttachmentActions>
+      </Attachment>
+      <Attachment state="uploading">
+        <AttachmentMedia>
+          <FileText />
+        </AttachmentMedia>
+        <AttachmentContent>
+          <AttachmentTitle className="animate-pulse">
+            file-two.zip
+          </AttachmentTitle>
+          <AttachmentDescription>Uploading · 64%</AttachmentDescription>
+        </AttachmentContent>
+      </Attachment>
+      <AttachmentGroup>
+        <Attachment size="sm" className="w-40">
+          <AttachmentMedia>
+            <ImageIcon />
+          </AttachmentMedia>
+          <AttachmentContent>
+            <AttachmentTitle>image-one.png</AttachmentTitle>
+            <AttachmentDescription>PNG · 820 KB</AttachmentDescription>
+          </AttachmentContent>
+        </Attachment>
+        <Attachment size="sm" className="w-40">
+          <AttachmentMedia>
+            <FileText />
+          </AttachmentMedia>
+          <AttachmentContent>
+            <AttachmentTitle>data-set.csv</AttachmentTitle>
+            <AttachmentDescription>CSV · 18 KB</AttachmentDescription>
+          </AttachmentContent>
+        </Attachment>
+      </AttachmentGroup>
+    </div>
+  ),
+
+  Bubble: (
+    <div className="w-full max-w-sm">
+      <BubbleGroup>
+        <Bubble variant="secondary" align="start">
+          <BubbleContent>Placeholder incoming message.</BubbleContent>
+        </Bubble>
+        <Bubble variant="default" align="end">
+          <BubbleContent>Placeholder outgoing message.</BubbleContent>
+        </Bubble>
+        <Bubble variant="muted" align="start">
+          <BubbleContent>A lower-emphasis placeholder bubble.</BubbleContent>
+        </Bubble>
+        <Bubble variant="outline" align="start">
+          <div className="flex flex-col gap-1">
+            <BubbleContent>A bubble with a reaction row.</BubbleContent>
+            <BubbleReactions align="start" role="img" aria-label="Two reactions">
+              <span>👍</span>
+              <span>🔥</span>
+            </BubbleReactions>
+          </div>
+        </Bubble>
+      </BubbleGroup>
+    </div>
+  ),
+
+  Marker: (
+    <div className="w-full max-w-sm space-y-4">
+      <Marker>
+        <MarkerIcon>
+          <GitBranch />
+        </MarkerIcon>
+        <MarkerContent>Switched to a new branch</MarkerContent>
+      </Marker>
+      <Marker role="status">
+        <MarkerIcon>
+          <Loader2 className="animate-spin" />
+        </MarkerIcon>
+        <MarkerContent>Processing…</MarkerContent>
+      </Marker>
+      <Marker variant="separator">
+        <MarkerContent>Today</MarkerContent>
+      </Marker>
+      <Marker variant="border">
+        <MarkerContent>Reviewed 8 related files</MarkerContent>
+      </Marker>
+    </div>
   ),
 
   Message: (

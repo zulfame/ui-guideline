@@ -44,6 +44,12 @@ Bahasa komunikasi user: **Bahasa Indonesia**.
   - Docs governance diperluas: Typography (2A), Spacing (2B), Extended Registries & Rules (2C: State/Size/Responsive/Density/Interaction/Form/Table/Icon/Content/Naming/Composition/Page Template/Registry Audit), `PAGE_SPEC_TEMPLATE.md`, `DESIGN_SYSTEM_PROPOSAL.md`.
   - Roadmap: Page Specifications DITUNDA hingga fondasi matang.
 
+- **2026-06 (Base Components finalisasi):**
+  - Komponen **`Direction` (RTL)** dihapus total dari kode & seluruh dokumentasi (perintah user).
+  - 12 komponen "pending" sebelumnya diport → Established (spinner, kbd, empty, button-group, input-group, field, item, native-select, typography, Combobox, Date Picker, Data Table + `@tanstack/react-table@8.21.3`).
+  - **4 komponen chat/AI diport → Established:** `message.jsx`, `attachment.jsx`, `bubble.jsx`, `marker.jsx` (semua presentational, 100% Tailwind + cva, pola shadcn base). Preview live di `componentPreviews.jsx`. Diverifikasi via screenshot (0 error).
+  - **Base Components: 60/61 Established.** Sisa 1 **Pending: `Message Scroller`** — bukan primitive styling, tapi engine headless streaming `@shadcn/react` (provider + hooks imperatif). Menunggu keputusan user apakah menambah dependency berat tsb.
+
 ## Backlog / Remaining
 - **P2**: Global form-level Alert untuk empty state / "No Data Available".
 - **P2**: Dark mode toggle.

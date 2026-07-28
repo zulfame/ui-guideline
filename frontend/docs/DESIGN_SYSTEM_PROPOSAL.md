@@ -5,7 +5,6 @@
 > dipindahkan ke `DESIGN_SYSTEM.md` (jadi aturan resmi) + `CHANGELOG`.
 >
 > Prinsip tetap: 100% shadcn/ui · token-first · monochrome-first · enterprise.
-> **Dikecualikan atas permintaan user: P3 — RTL / Direction.**
 >
 > Legenda status: 🔵 Proposed · 🟢 Approved · ⚪ Deferred.
 
@@ -211,7 +210,7 @@ badge/pill `full` (bila dipakai), popover/menu `md`. Tetapkan sikap: **sharp-rou
 
 **Y3 — i18n & Format Data.** Standar format angka/tanggal/mata uang via `Intl.*`
 (locale-aware), penomoran tabel, dan pemisah ribuan. Teks UI disiapkan untuk translasi
-(hindari string tergabung). *(Catatan: arah teks/RTL dikecualikan.)*
+(hindari string tergabung).
 
 **Y4 — Naming, Versioning & Deprecation.**
 - Penamaan: file `kebab-case`, komponen `PascalCase`, named export untuk komponen,
