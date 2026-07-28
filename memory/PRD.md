@@ -38,6 +38,12 @@ Bahasa komunikasi user: **Bahasa Indonesia**.
     Selection controls, Tabs, Feedback, Avatar+Tooltip, Table.
   - Semua 4 halaman diverifikasi via screenshot (render OK).
 
+- **2026-06 (lanjutan):**
+  - Menu Components → grup (Base Components + Composite Component).
+  - **Base Components: SEMUA 45 preview komponen non-pending selesai** (dialog Eye → live preview via `config/componentPreviews.jsx`); 18 pending → "not yet available". Diverifikasi testing_agent (frontend 100%).
+  - Docs governance diperluas: Typography (2A), Spacing (2B), Extended Registries & Rules (2C: State/Size/Responsive/Density/Interaction/Form/Table/Icon/Content/Naming/Composition/Page Template/Registry Audit), `PAGE_SPEC_TEMPLATE.md`, `DESIGN_SYSTEM_PROPOSAL.md`.
+  - Roadmap: Page Specifications DITUNDA hingga fondasi matang.
+
 ## Backlog / Remaining
 - **P2**: Global form-level Alert untuk empty state / "No Data Available".
 - **P2**: Dark mode toggle.
