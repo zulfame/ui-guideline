@@ -48,6 +48,11 @@
 - ✅ Warna hanya sebagai **accent** untuk aksi penting / status
   (mis. `destructive` untuk error), **bukan** dekorasi.
 - ✅ Spacing, radius, shadow, dan motion mengikuti skala bawaan shadcn/ui.
+- ✅ **Font WAJIB: Geist** (primary), fallback `Inter, system-ui, sans-serif`.
+  Diatur di `index.css`. Dilarang memakai font lain tanpa persetujuan.
+- ✅ **Ikon WAJIB: `lucide-react`** (satu-satunya sumber ikon), ukuran default
+  `h-4 w-4`, `aria-hidden` bila dekoratif. ❌ Dilarang emoji, SVG inline kustom,
+  atau library ikon lain.
 
 ---
 

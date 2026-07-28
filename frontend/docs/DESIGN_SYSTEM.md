@@ -38,7 +38,7 @@ pembuatan primitive baru **dilarang**.
 | alert | ✅ | Pesan blok. Dipakai form-level (variant `destructive`) untuk error autentikasi di `LoginForm`. |
 | accordion, alert-dialog, aspect-ratio, avatar, badge, breadcrumb, calendar, carousel, collapsible, command, context-menu, dialog, drawer, dropdown-menu, hover-card, input-otp, menubar, navigation-menu, pagination, popover, progress, radio-group, resizable, scroll-area, select, sheet, skeleton, slider, switch, table, tabs, textarea, toggle, toggle-group, tooltip | ⚪ | Tersedia; daftarkan sebagai ✅ saat pertama kali dipakai. |
 
-Ikon: **lucide-react** (`h-4 w-4` default, `aria-hidden` bila dekoratif). Emoji dilarang.
+Ikon: **lucide-react** — **WAJIB** & satu-satunya sumber ikon (`h-4 w-4` default, `aria-hidden` bila dekoratif). Emoji / SVG kustom / library ikon lain dilarang (Aturan R09).
 
 ## 1.2 Compositions / Patterns (dibangun dari primitives)
 
@@ -70,12 +70,12 @@ Ikon: **lucide-react** (`h-4 w-4` default, `aria-hidden` bila dekoratif). Emoji 
 | R01 | **Layout** | HTML semantik (`main/aside/section/nav`) + Flex/Grid. Kontainer form `max-w-md`/sesuai konteks. |
 | R02 | **Grid** | Tailwind grid (`grid`, `grid-cols-*`, `gap-*`). Dekorasi grid berbasis token, low-opacity. |
 | R03 | **Spacing** | Skala 4px shadcn (`space-y-*`, `gap-*`, `p-*`). Compact, hindari whitespace berlebih. |
-| R04 | **Typography** | Font **Inter**. Judul `text-2xl`+; body `text-sm/base`; label `text-sm font-medium`; weight 400/500/600; `leading-tight/relaxed`. |
+| R04 | **Typography** | **Font wajib: Geist** (primary) · fallback `Inter, system-ui, sans-serif`. Diimpor di `index.css`. Judul `text-2xl`+; body `text-sm/base`; label `text-sm font-medium`; weight 400/500/600; `leading-tight/relaxed`. Dilarang font lain tanpa persetujuan. |
 | R05 | **Color** | **Token only** (`bg-background`, `text-foreground`, `bg-primary`, `text-muted-foreground`, `text-destructive`, dst). Dilarang warna hardcode/hex. |
 | R06 | **Border** | `border-border` (default), `border-input` (field). Tanpa nilai warna literal. |
 | R07 | **Radius** | `--radius: 0.5rem` → `rounded-sm/md/lg/xl` (turunan token). |
 | R08 | **Shadow** | Shadow bawaan shadcn (`shadow`, `shadow-sm`). Tanpa shadow kustom. |
-| R09 | **Icon** | `lucide-react`, `h-4 w-4`; `aria-hidden` bila dekoratif. Emoji dilarang. |
+| R09 | **Icon** | **Wajib `lucide-react`** (satu-satunya sumber ikon). Ukuran default `h-4 w-4`; `aria-hidden` bila dekoratif. Dilarang emoji, SVG inline kustom, atau library ikon lain tanpa persetujuan. |
 | R10 | **Responsive** | Mobile-first; breakpoint `sm/md/lg/xl`. Semua halaman wajib responsif. |
 | R11 | **Focus State** | `focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none` (bawaan shadcn). |
 | R12 | **Hover State** | Pakai hover bawaan varian (`hover:bg-primary/90`, `hover:bg-accent`, `hover:underline`). |
@@ -132,3 +132,4 @@ Setiap kali membangun UI baru:
 |---------|-----------|
 | Awal | Seed registry dari halaman **Login**: 6 primitives ✅ (button, input, label, card, checkbox, separator, form, sonner), 6 patterns ✅ (AuthLayout, LoginForm, Brand lockup, Password+toggle, Loading button, Grid decoration), 32 aturan global (R01–R32). |
 | Update 1 | **Alert form-level ✅** diaktifkan di `LoginForm` (variant `destructive`, mock auth: `user@example.com` / `password`). `alert` → ✅ di primitives; pattern "Form-level error alert" ditambahkan. Item ditunda (Dark mode, Empty State) dipindah ke `BACKLOG.md`. |
+| Update 2 | **Foundations ditetapkan:** Font **Geist** (primary) + fallback `Inter, system-ui, sans-serif` (R04); Ikon **wajib `lucide-react`** (R09). Font diperbarui di `index.css`. |
