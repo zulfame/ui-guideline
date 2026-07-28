@@ -405,17 +405,24 @@ Struktur standar tiap spec: **Tujuan · Route · Layout (AppLayout/AuthLayout) �
 | Template | Status |
 |----------|--------|
 | Login | ✅ (spec ada: `LOGIN_PAGE_SPEC.md`) |
-| Dashboard | ✅ (spec ada: `DASHBOARD_PAGE_SPEC.md`, 🔵 Proposed) |
-| Master Data (list/table) | ✅ (spec ada: `MASTER_DATA_PAGE_SPEC.md`, 🔵 Proposed) |
-| Detail | 🔵 |
-| Form (create/edit) | 🔵 |
-| Settings | 🔵 |
-| Profile | 🔵 |
-| Error Page (404/500) | 🔵 |
+| Dashboard | ⚪ Deferred (menunggu fondasi matang) |
+| Master Data (list/table) | ⚪ Deferred |
+| Detail | ⚪ Deferred |
+| Form (create/edit) | ⚪ Deferred |
+| Settings | ⚪ Deferred |
+| Profile | ⚪ Deferred |
+| Error Page (404/500) | ⚪ Deferred |
 
 Belum perlu membuat semua halaman — cukup standar & struktur dokumentasi ini. **Halaman
 baru → buat Page Specification lebih dulu**, lalu implementasi. **Template acuan:
 `PAGE_SPEC_TEMPLATE.md`** (wajib disalin untuk setiap spec baru).
+
+> **Roadmap (revisi):** pembuatan Page Specification konkret **DITUNDA** hingga fondasi
+> matang. Urutan prioritas pengembangan:
+> **1) Foundation → 2) Component Registry → 3) Base Components → 4) Composite Components →
+> 5) Sample Blocks → 6) Layout Patterns → 7) `PAGE_SPEC_TEMPLATE.md` (selesai) →
+> 8) Page Specifications.** Alasan: agar setiap spec memakai komponen & pola yang sudah
+> distandarkan, sehingga tidak perlu revisi berulang saat Design System berubah.
 
 ## 2C.13 Registry Audit (Single Source of Truth)
 
@@ -471,4 +478,5 @@ Setiap kali membangun UI baru:
 | Update 17 | **Audit konsistensi Typography (2A) & Spacing (2B) pada halaman existing.** Diperiksa: Login, Dashboard, Base Components, Sample Blocks (semua), Sample Charts (semua). Deviasi diperbaiki: (a) `AuthLayout` list item `gap-3.5` (off-scale) → `gap-3`; (b) `tickMargin` diseragamkan ke **8** (Bar & Tooltips sebelumnya 10) agar konsisten dgn area/line & rule Chart Spacing; (c) `ChartCard` `CardTitle` → `text-base` (eksplisit H3 sesuai 2A, selaras `ComponentsPage`). Sisanya sudah patuh (root `space-y-6`, grid `gap-4`, Card `p-6`, form `space-y-5`, PageHeader H1 `text-2xl`). Dashboard tetap `flex gap-4` (blok demo, nilai on-scale). |
 | Update 18 | **Audit Improvement — registri & aturan baru (BAGIAN 2C).** Ditambahkan (tanpa mengubah aturan lama): **2C.1 State Registry**, **2C.2 Size System (SSOT dimensi)**, **2C.3 Responsive Rules**, **2C.4 Density Rules** (Compact default / Comfortable dicadangkan), **2C.5 Interaction Rules** (+Cursor, Click Feedback), **2C.6 Form Rules**, **2C.7 Table Rules**, **2C.8 Icon Rules**, **2C.9 Content Rules**, **2C.10 Naming Convention**, **2C.11 Composition Rules**, **2C.12 Page Template Registry**, **2C.13 Registry Audit**. Sub-bagian merujuk R11–R16/R09/R25/R31 & 2A/2B untuk hindari duplikasi. **Dedup:** baris `card` yang terdaftar dua kali di 1.1 disatukan (SSOT). |
 | Update 19 | **Page Specification: template + 2 spec turunan.** Dibuat `PAGE_SPEC_TEMPLATE.md` (acuan wajib, struktur: Informasi Halaman, Tujuan, Layout, Component Registry, Component Composition, User Interaction Flow, Responsive, Accessibility, States, Empty/Loading/Error, Permissions opsional, Notes, Changelog — semua generic). Ditambah `DASHBOARD_PAGE_SPEC.md` & `MASTER_DATA_PAGE_SPEC.md` (🔵 Proposed, UI/struktur saja, tanpa konteks bisnis). Registry 2C.12 diperbarui (Login/Dashboard/Master Data = ✅ ada spec) + rujukan template. |
+| Update 20 | **Koreksi Roadmap — Page Specification ditunda.** `DASHBOARD_PAGE_SPEC.md` & `MASTER_DATA_PAGE_SPEC.md` **dihapus** (dibuat terlalu dini). `PAGE_SPEC_TEMPLATE.md` dipertahankan sebagai **template dokumentasi generic** (struktur diselaraskan: "User Interaction Flow"→**User Flow**, bagian **Permissions dihapus**; bagian akhir: Notes, Changelog). 2C.12 diperbarui: semua Page Spec konkret → ⚪ Deferred + urutan roadmap resmi (Foundation → Registry → Base → Composite → Sample Blocks → Layout Patterns → Template → Page Specs). Fokus dev berikutnya: menuntaskan Base & Composite Components, Sample Blocks reusable, Layout Patterns. |
 | Update 13 | **Kolom Status ditambahkan di tabel Components.** Tiap komponen shadcn dipetakan ke legenda design system via Badge: **Established** (`default`, sudah dipakai), **Available** (`secondary`, tersedia di `ui/`, belum dipakai), **Pending** (`outline`, belum diport ke `ui/` — mis. Attachment/Bubble/Combobox/Data Table/Date Picker/Field/Spinner/Typography). Primitive ✅ **badge** diaktifkan (dipakai untuk status). |

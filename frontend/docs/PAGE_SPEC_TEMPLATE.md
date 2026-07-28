@@ -12,6 +12,11 @@
 > - Spec = **struktur & UI saja** (belum implementasi) kecuali dinyatakan lain.
 >
 > Status marker: 🔵 Proposed · 🟢 Approved · ⚪ Deferred.
+>
+> **CATATAN ROADMAP:** pembuatan Page Specification konkret (Dashboard, Master Data, dll)
+> **DITUNDA** hingga Foundation → Component Registry → Base Components → Composite
+> Components → Sample Blocks → Layout Patterns cukup matang. File ini **hanya template
+> dokumentasi** (generic & reusable), bukan spec halaman tertentu.
 
 ---
 
@@ -54,7 +59,7 @@ AppLayout
      └─ <Section B>
 ```
 
-## 6. User Interaction Flow
+## 6. User Flow
 Langkah interaksi utama pengguna (generik), mis.:
 1. Halaman dimuat → tampil `Loading State`.
 2. Data tersedia → render konten.
@@ -97,14 +102,10 @@ Untuk section non-tabel: pesan netral + (opsional) aksi primer.
 ### 9.3 Error State
 Pesan generik non-teknis via `Alert` (variant `destructive`) + opsi retry bila relevan.
 
-## 10. Permissions (opsional)
-Jika ada, jelaskan secara **generik** (mis. "aksi X hanya untuk role dengan izin Y").
-Tanpa nama role bisnis nyata. Hilangkan bagian ini bila tidak berlaku.
-
-## 11. Notes
+## 10. Notes
 Catatan tambahan, keputusan desain, atau tautan ke spec/rule terkait.
 
-## 12. Changelog
+## 11. Changelog
 | Tanggal | Perubahan |
 |---------|-----------|
 | `<YYYY-MM-DD>` | Spec dibuat (🔵 Proposed). |
