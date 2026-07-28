@@ -38,7 +38,7 @@ export default function BarChartsPage() {
               cursor={false}
               content={<ChartTooltipContent hideLabel />}
             />
-            <Bar dataKey="desktop" fill="var(--color-desktop)" radius={8} />
+            <Bar dataKey="desktop" fill="var(--color-desktop)" radius={8} isAnimationActive={false} />
           </BarChart>
         </ChartCard>
 
@@ -60,8 +60,8 @@ export default function BarChartsPage() {
               cursor={false}
               content={<ChartTooltipContent indicator="dashed" />}
             />
-            <Bar dataKey="desktop" fill="var(--color-desktop)" radius={4} />
-            <Bar dataKey="mobile" fill="var(--color-mobile)" radius={4} />
+            <Bar dataKey="desktop" fill="var(--color-desktop)" radius={4} isAnimationActive={false} />
+            <Bar dataKey="mobile" fill="var(--color-mobile)" radius={4} isAnimationActive={false} />
             <ChartLegend content={<ChartLegendContent />} />
           </BarChart>
         </ChartCard>

@@ -7,24 +7,12 @@ import { monthlyConfig, monthlyData } from "@/config/chartSampleData";
 
 const tickFmt = (value) => value.slice(0, 3);
 
-function TooltipDemo({ content }) {
-  return (
-    <BarChart data={monthlyData}>
-      <CartesianGrid vertical={false} />
-      <XAxis
-        dataKey="month"
-        tickLine={false}
-        axisLine={false}
-        tickMargin={10}
-        tickFormatter={tickFmt}
-      />
-      <ChartTooltip cursor={false} content={content} />
-      <Bar dataKey="desktop" fill="var(--color-desktop)" radius={4} />
-      <Bar dataKey="mobile" fill="var(--color-mobile)" radius={4} />
-    </BarChart>
-  );
-}
-
+/**
+ * NOTE: The chart element must be rendered as a DIRECT child of ChartContainer
+ * (which wraps it in a Recharts ResponsiveContainer). Wrapping the chart in a
+ * custom component prevents ResponsiveContainer from injecting width/height,
+ * so we inline the BarChart in every card.
+ */
 export default function TooltipsChartsPage() {
   return (
     <div className="space-y-6">
@@ -38,15 +26,42 @@ export default function TooltipsChartsPage() {
           description="Dot indicator with label"
           config={monthlyConfig}
         >
-          <TooltipDemo content={<ChartTooltipContent />} />
+          <BarChart data={monthlyData}>
+            <CartesianGrid vertical={false} />
+            <XAxis
+              dataKey="month"
+              tickLine={false}
+              axisLine={false}
+              tickMargin={10}
+              tickFormatter={tickFmt}
+            />
+            <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
+            <Bar dataKey="desktop" fill="var(--color-desktop)" radius={4} isAnimationActive={false} />
+            <Bar dataKey="mobile" fill="var(--color-mobile)" radius={4} isAnimationActive={false} />
+          </BarChart>
         </ChartCard>
 
         <ChartCard
           title="Line Indicator"
-          description="indicator=&quot;line&quot;"
+          description='indicator="line"'
           config={monthlyConfig}
         >
-          <TooltipDemo content={<ChartTooltipContent indicator="line" />} />
+          <BarChart data={monthlyData}>
+            <CartesianGrid vertical={false} />
+            <XAxis
+              dataKey="month"
+              tickLine={false}
+              axisLine={false}
+              tickMargin={10}
+              tickFormatter={tickFmt}
+            />
+            <ChartTooltip
+              cursor={false}
+              content={<ChartTooltipContent indicator="line" />}
+            />
+            <Bar dataKey="desktop" fill="var(--color-desktop)" radius={4} isAnimationActive={false} />
+            <Bar dataKey="mobile" fill="var(--color-mobile)" radius={4} isAnimationActive={false} />
+          </BarChart>
         </ChartCard>
 
         <ChartCard
@@ -54,7 +69,22 @@ export default function TooltipsChartsPage() {
           description="hideIndicator"
           config={monthlyConfig}
         >
-          <TooltipDemo content={<ChartTooltipContent hideIndicator />} />
+          <BarChart data={monthlyData}>
+            <CartesianGrid vertical={false} />
+            <XAxis
+              dataKey="month"
+              tickLine={false}
+              axisLine={false}
+              tickMargin={10}
+              tickFormatter={tickFmt}
+            />
+            <ChartTooltip
+              cursor={false}
+              content={<ChartTooltipContent hideIndicator />}
+            />
+            <Bar dataKey="desktop" fill="var(--color-desktop)" radius={4} isAnimationActive={false} />
+            <Bar dataKey="mobile" fill="var(--color-mobile)" radius={4} isAnimationActive={false} />
+          </BarChart>
         </ChartCard>
 
         <ChartCard
@@ -62,14 +92,27 @@ export default function TooltipsChartsPage() {
           description="labelFormatter"
           config={monthlyConfig}
         >
-          <TooltipDemo
-            content={
-              <ChartTooltipContent
-                indicator="dashed"
-                labelFormatter={(value) => `Month: ${value}`}
-              />
-            }
-          />
+          <BarChart data={monthlyData}>
+            <CartesianGrid vertical={false} />
+            <XAxis
+              dataKey="month"
+              tickLine={false}
+              axisLine={false}
+              tickMargin={10}
+              tickFormatter={tickFmt}
+            />
+            <ChartTooltip
+              cursor={false}
+              content={
+                <ChartTooltipContent
+                  indicator="dashed"
+                  labelFormatter={(value) => `Month: ${value}`}
+                />
+              }
+            />
+            <Bar dataKey="desktop" fill="var(--color-desktop)" radius={4} isAnimationActive={false} />
+            <Bar dataKey="mobile" fill="var(--color-mobile)" radius={4} isAnimationActive={false} />
+          </BarChart>
         </ChartCard>
       </div>
     </div>
