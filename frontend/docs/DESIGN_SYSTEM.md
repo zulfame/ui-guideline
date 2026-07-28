@@ -30,7 +30,7 @@ pembuatan primitive baru **dilarang**.
 | button | ✅ | Variant: default, secondary, outline, ghost, link, destructive. Size: sm, default, lg, icon. |
 | input | ✅ | `h-9`, `text-sm`; selalu berpasangan dengan `Label`/`FormLabel`. |
 | label | ✅ | Selalu `htmlFor` terkait input (via `FormLabel`/`FormControl`). |
-| card | ✅ | `Card > CardHeader(CardTitle, CardDescription) > CardContent > CardFooter`. |
+| card | ✅ | Struktur: `Card > CardHeader(CardTitle, CardDescription) > CardContent > CardFooter`. Dipakai di Login, pembungkus tiap chart (`ChartCard`), & pembungkus Table di halaman Components. |
 | checkbox | ✅ | Untuk boolean; dampingi `Label`. |
 | separator | ✅ | Pemisah visual (divider) horizontal/vertikal. |
 | form | ✅ | Wrapper `react-hook-form`: `Form/FormField/FormItem/FormLabel/FormControl/FormMessage`. |
@@ -46,7 +46,6 @@ pembuatan primitive baru **dilarang**.
 | skeleton | ✅ | Dependensi `SidebarMenuSkeleton` (loading nav). |
 | collapsible | ✅ | Submenu sidebar yang bisa dilipat (Sample Blocks, Sample Charts). |
 | chart | ✅ | Komponen chart resmi shadcn (diport ke JSX) di atas **recharts@2.15.4**. ChartContainer/ChartTooltip(Content)/ChartLegend(Content)/ChartStyle. |
-| card | ✅ | Container konten; dipakai di Login, pembungkus setiap chart (`ChartCard`), & pembungkus Table di halaman Components. |
 | table | ✅ | Tabel data resmi shadcn. Dipakai di halaman Components (dibungkus Card). Empty state = baris `colSpan` penuh berteks `No Data Available` (R26). |
 | badge | ✅ | Status accent. Dipakai di kolom Status halaman Components (variant `default`=Established, `secondary`=Available, `outline`=Pending). |
 | dialog | ✅ | Modal preview komponen di halaman Components (`DialogContent/Header/Title/Description`). |
@@ -224,6 +223,207 @@ Ikon: **lucide-react** — **WAJIB** & satu-satunya sumber ikon (`h-4 w-4` defau
 
 ---
 
+# BAGIAN 2C — EXTENDED REGISTRIES & RULES
+
+> Penambahan (tidak menggantikan Bagian 1/2/2A/2B/R01–R37). Bila sebuah topik sudah
+> punya aturan, sub-bagian ini **merujuk** ke sana (bukan menduplikasi) dan hanya
+> menambah yang belum ada. Semua komponen/halaman **wajib** mengacu ke registri ini.
+
+## 2C.1 State Registry (global)
+
+Sumber tunggal state komponen. Setiap komponen mengacu ke tabel ini (memperluas R11–R16).
+
+| State | Utility/Token kanonik | Catatan |
+|-------|-----------------------|---------|
+| Default | token semantik dasar (`bg-*`, `text-*`, `border-*`) | Kondisi awal. |
+| Hover | varian bawaan (`hover:bg-primary/90`, `hover:bg-accent`, `hover:underline`) | R12. |
+| Focus | `focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring` | R11; ring dari `--ring`. |
+| Active/Pressed | `transition-colors` + perubahan warna varian / `data-[state=active]` | R13. |
+| Disabled | `disabled:opacity-50 disabled:pointer-events-none` | R14. |
+| Loading | `Loader2 animate-spin` + teks status + kontrol disabled | R16. |
+| Error/Invalid | `aria-invalid` + `FormMessage` `text-destructive` (+ Alert destructive form-level) | R15/R24. |
+| Success | Alert non-destructive / teks `text-xs` konfirmasi (mis. reset sukses) | Feedback positif; hemat warna. |
+| Readonly | `readOnly` + `bg-muted/50 cursor-default` (tanpa `opacity-50`) | Berbeda dari disabled (nilai tetap terbaca). |
+
+## 2C.2 Size System (global — SSOT dimensi)
+
+SSOT untuk **dimensi** (tinggi/lebar/ukuran ikon). 2B mengatur **jarak** (gap/padding);
+di sini **dimensi**. Komponen **dilarang** menentukan ukuran sendiri bila standar ada.
+
+| Aspek | Nilai standar |
+|-------|---------------|
+| Control height (button/input/select) | `sm` 2rem(32) · **default 2.25rem(36) `h-9`** · `lg` 2.5rem(40) |
+| Icon button | `h-9 w-9` (default) · `h-8 w-8` (padat, mis. aksi tabel) |
+| Icon size | 14 (`h-3.5`) · **16 (`h-4 w-4`) default** · 20 (`h-5`) · 24 (`h-6`) |
+| Table head height | `h-10` (40) |
+| Toolbar / preview header | `h-14` (56) |
+| App header (fixed) | `h-[65px]` (64 + 1px border) — konstanta terdokumentasi |
+| Sidebar width | expanded `16rem` · icon `3rem` · mobile `18rem` |
+| Modal (Dialog) width | `max-w-lg` (32rem) |
+| Drawer (Sheet) width | mengikuti `side` (default konten `p-6`, lebar responsif) |
+| Form/auth container | `max-w-md` (28rem) |
+| Preview aspect box | `max-w-sm` (24rem) |
+
+Skala ukuran interaktif: `sm | default | lg` (+ `icon` untuk button). Selaras Density (2C.4).
+
+## 2C.3 Responsive Rules
+
+Breakpoint Tailwind: `sm 640 · md 768 · lg 1024 · xl 1280 · 2xl 1536`. (Memperluas R10 & 2B.20.)
+
+| Aspek | Perilaku |
+|-------|----------|
+| Layout Changes | Padding konten `p-4` → `lg:p-6`; panel auth `p-10` → `xl:p-14`. |
+| Sidebar Behavior | ≥`md`: sidebar icon-collapsible (shortcut Ctrl/Cmd+B). <`md`: berubah jadi **Sheet drawer** (off-canvas, side kiri). |
+| Grid Behavior | Mobile 1 kolom → `md:grid-cols-2/3`; `gap-4`. |
+| Table Behavior | Bungkus `overflow-x-auto` pada layar kecil; pertahankan lebar minimum kolom (tanpa memaksa wrap). |
+| Modal Behavior | Desktop: `max-w-lg` center; mobile: lebar penuh dengan margin (default `DialogContent`). |
+| Drawer Behavior | Nav mobile = Sheet side kiri; panel kontekstual boleh side kanan/bawah. |
+| Navigation Behavior | Crumb antara `hidden md:block`; label nav disembunyikan saat sidebar collapse (tooltip label). |
+
+## 2C.4 Density Rules
+
+Filosofi: **Compact Enterprise UI**. Dua mode (memperluas 2B.21):
+
+| Aspek | Compact (default) | Comfortable (dicadangkan) |
+|-------|-------------------|---------------------------|
+| Component height | `h-9` (36) | `h-10` (40) |
+| Padding (surface) | `p-4` | `p-6` |
+| Gap | `gap-2` (kontrol) | `gap-3` |
+| Table row height | head `h-10`, cell `p-2` | cell `py-2.5` |
+| Toolbar height | `h-14` | `h-16` |
+| Form spacing | `space-y-5` / item `space-y-2` | `space-y-6` / item `space-y-2.5` |
+
+Default sistem = **Compact**. Mode **Comfortable** terdokumentasi tetapi **belum aktif**
+(implementasi switch berbasis token = Proposal **P4**, pending — lihat `DESIGN_SYSTEM_PROPOSAL.md`).
+
+## 2C.5 Interaction Rules
+
+Konsolidasi (merujuk aturan yang ada + menambah Cursor & Click Feedback):
+
+| Aspek | Standar |
+|-------|---------|
+| Hover | Varian bawaan (R12). |
+| Focus Ring | `focus-visible:ring-1 ring-ring outline-none` (R11); offset dari surface bila perlu. |
+| Transition | Hanya properti spesifik (`transition-colors`/`opacity`/`transform`); **dilarang `transition: all`** (R18). |
+| Cursor | Aksi klik → `cursor-pointer` (bawaan Button); teks/nonaktif → default; disabled → `pointer-events-none` (bukan `cursor-not-allowed`). |
+| Disabled Interaction | `disabled:opacity-50 disabled:pointer-events-none` (R14). |
+| Click Feedback | Perubahan warna varian saat active; hasil aksi async → `sonner`/`Alert` (R24), bukan animasi berlebihan. |
+| Keyboard Navigation | Tab/Shift+Tab; Enter submit; Esc menutup overlay; focus-trap + kembalikan fokus ke pemicu; Ctrl/Cmd+B sidebar (R23). |
+
+## 2C.6 Form Rules
+
+Standar wajib semua form (memperluas R15/R22; jarak lihat 2B.7):
+
+- **Label Position:** di atas kontrol (`FormLabel`), rata kiri. `text-sm font-medium`.
+- **Required Indicator:** asterisk `*` `text-destructive` setelah label.
+- **Optional Field:** akhiri label dengan `(optional)` `text-muted-foreground`.
+- **Helper Text:** `text-xs text-muted-foreground` di bawah field.
+- **Validation Message:** via `FormMessage` `text-destructive text-xs` + `aria-invalid` (R15).
+- **Error Message (global):** `Alert` variant `destructive` di atas form.
+- **Success Message:** `Alert` non-destructive / teks konfirmasi ringkas (pola reset sukses).
+- **Field Spacing:** `<form>` `space-y-5`; `FormItem` `space-y-2` (2B.7).
+- **Grouping:** field terkait dikelompokkan dengan judul seksi (`text-sm font-medium`) + `Separator`; gunakan semantik `fieldset` bila relevan.
+
+## 2C.7 Table Rules
+
+Standar Data Table (memperluas pattern "Data Table" & 2B.9):
+
+- **Header:** `TableHead h-10 px-2 font-medium text-muted-foreground`.
+- **Toolbar:** bar di atas tabel — `flex items-center justify-between gap-2` (kiri: search/filter; kanan: actions).
+- **Filter:** via `Select`/`DropdownMenu` di toolbar.
+- **Search:** `Input` dengan ikon leading, placeholder `Search...`.
+- **Sorting:** header dapat diklik + ikon chevron; set `aria-sort`.
+- **Pagination:** komponen `Pagination` di bawah, rata kanan; page-size opsional.
+- **Row Selection:** kolom `Checkbox` di depan + select-all di header.
+- **Empty State:** `No Data Available` — cell `colSpan` `h-24 text-center` (R26).
+- **Loading State:** baris `Skeleton` atau `Spinner`.
+- **Alignment:** angka `text-right`; teks `text-left`; status/badge kiri; actions `text-right`.
+- **Actions Column:** kolom terakhir, `text-right`, ghost icon button (mis. Eye/Edit/Delete) + `aria-label`.
+
+## 2C.8 Icon Rules
+
+Satu standar (memperluas R09 & 2B.18):
+
+- **Icon Library:** **lucide-react** (satu-satunya). Emoji/SVG kustom/library lain dilarang.
+- **Icon Size:** default `h-4 w-4` (16); skala 14/16/20/24 mengikuti ukuran kontrol.
+- **Icon Position:** leading (sebelum teks) default; trailing untuk chevron/eksternal.
+- **Icon + Text:** jarak `gap-2` (induk), rata tengah vertikal.
+- **Icon Only Button:** `size="icon"` (`h-9 w-9`/`h-8 w-8`) + **wajib `aria-label`**.
+- **Decorative Icon:** `aria-hidden="true"`.
+- **Functional Icon:** menyampaikan makna/aksi → wajib punya nama aksesibel (aria-label / teks berdampingan).
+
+## 2C.9 Content Rules
+
+Konten UI **generik** (memperluas R25/R27/R31; ukuran teks lihat 2A):
+
+| Elemen | Aturan |
+|--------|--------|
+| Page Title | Sentence case, ringkas (`PageHeader` H1). |
+| Section Title | Sentence case, `text-base/sm font-medium`. |
+| Button Label | Verb-first, sentence case ("Sign in", "Send reset link"). |
+| Placeholder | Generik (`name@example.com`, `Search...`) — R25. |
+| Empty State | `No Data Available` (R26). |
+| Dialog | Title = aksi/pertanyaan; description 1 baris. |
+| Tooltip | Singkat, tanpa tanda baca akhir. |
+| Toast | Title + deskripsi opsional; ringkas. |
+| Validation Message | Spesifik & solutif ("Please enter a valid email address."). |
+| Error Message | Jelas, non-teknis, generik. |
+
+## 2C.10 Naming Convention
+
+| Aspek | Standar |
+|-------|---------|
+| Component | `PascalCase`, **named export** (`export const X`). |
+| Page | `PascalCase`, **default export**. |
+| Folder | Berkelompok: `components/ui`, `components/layout`, `components/auth`, `pages/*`, `config`. |
+| File | Komponen/Page `PascalCase.jsx`; primitive shadcn `kebab-case.jsx` (konvensi upstream). |
+| Props | `camelCase`; boolean positif (`isOpen`); handler `onX`. |
+| CSS Variables | `--kebab-case`, berprefiks makna (`--sidebar-*`, `--chart-*`). |
+| Design Tokens | HSL; tier token = Proposal P1 (pending). |
+| Variant | string lowercase (`default`, `secondary`, `outline`, `ghost`, `destructive`, `link`). |
+| Size | `sm | default | lg` (+ `icon`) — selaras 2C.2. |
+| Icon | import lucide `PascalCase`; `data-testid` kebab-case (deskriptif fungsi). |
+
+## 2C.11 Composition Rules
+
+Urutan komposisi kanonik (jangan mengarang urutan lain; hanya anak terdokumentasi):
+
+- **Card:** `Card > CardHeader(CardTitle[, CardDescription]) > CardContent [> CardFooter]` (`p-6`).
+- **Form:** `Form > FormField > FormItem(FormLabel, FormControl, [helper], FormMessage) …> Button submit` (`space-y-5`).
+- **Dialog:** `Dialog > (DialogTrigger) + DialogContent(DialogHeader(DialogTitle, DialogDescription), body, [DialogFooter])`.
+- **Toolbar:** `flex items-center justify-between gap-2` (kiri: search/filter; kanan: actions).
+- **Table:** `[Toolbar] + div.rounded-md.border > Table(TableHeader>TableRow>TableHead ; TableBody>TableRow>TableCell) + [Pagination]`.
+- **Sidebar:** `Sidebar > SidebarHeader(brand) + SidebarContent(SidebarGroup>SidebarGroupLabel+SidebarMenu…) + SidebarFooter(user) + SidebarRail`.
+
+## 2C.12 Page Template Registry
+
+**Semua halaman WAJIB memiliki Page Specification** (mengikuti format `LOGIN_PAGE_SPEC.md`).
+Struktur standar tiap spec: **Tujuan · Route · Layout (AppLayout/AuthLayout) · Struktur
+(PageHeader + sections) · Komponen dipakai (rujuk registry) · State (loading/empty/error)
+· Data/Props · Responsive · Aksesibilitas · Konten (generik)**.
+
+| Template | Status |
+|----------|--------|
+| Login | ✅ (spec ada: `LOGIN_PAGE_SPEC.md`) |
+| Dashboard | 🔵 belum ada spec |
+| Master Data (list/table) | 🔵 |
+| Detail | 🔵 |
+| Form (create/edit) | 🔵 |
+| Settings | 🔵 |
+| Profile | 🔵 |
+| Error Page (404/500) | 🔵 |
+
+Belum perlu membuat semua halaman — cukup standar & struktur dokumentasi ini. **Halaman
+baru → buat Page Specification lebih dulu**, lalu implementasi.
+
+## 2C.13 Registry Audit (Single Source of Truth)
+
+- **Temuan & perbaikan:** baris `card` sebelumnya terdaftar **dua kali** di 1.1 → **disatukan** menjadi satu baris (SSOT).
+- **Aturan:** setiap primitive/pattern **hanya satu baris** di registry. Sebelum menambah, **cek keberadaan**; jangan membuat entri ganda. Daftar ⚪ (available) dan baris ✅ tidak boleh memuat komponen yang sama.
+
+---
+
+
 # BAGIAN 3 — PENDING / BUTUH KEPUTUSAN
 
 Item yang ditunda dipindahkan ke **`BACKLOG.md`** (parkir resmi). Ringkasan:
@@ -268,4 +468,5 @@ Setiap kali membangun UI baru:
 | Update 15 | **Spacing System diformalkan.** Ditambahkan **BAGIAN 2B — Spacing System** (26 poin: Spacing Scale, Margin, Padding, Gap, Section, Component, Form, Card, Table, Modal, Drawer, Sidebar, Header/Toolbar, List Item, Navigation, Button, Input, Icon, Content Width & Container Padding, Responsive, Density, Do's & Don'ts + tambahan Chart/Empty-state/Overlay Offset/Separator). Semua nilai diturunkan dari penggunaan nyata (mis. root `space-y-6`, form `space-y-5`, Card/Dialog/Sheet `p-6`, tabel `h-10 px-2`/`p-2`, button `h-9 px-4 py-2 gap-2`, input `h-9 px-3 py-1`, sidebar `16rem/3rem/18rem`). **R03** diperbarui merujuk skala ini. |
 | Update 16 | **Menu "Components" jadi grup + submenu.** `navigation.js`: item **Components** kini collapsible dgn children **Base Components** (`/design-system/components/base`) & **Composite Component** (`/design-system/components/composite`). Base = halaman tabel shadcn (judul → "Base Components"); Composite = `PlaceholderPage` (blank, menunggu konten). Rute lama `/design-system/components` → redirect ke `/base`. Sidebar preview & breadcrumb otomatis mengikuti (bersumber dari `navSections`). |
 | Update 17 | **Audit konsistensi Typography (2A) & Spacing (2B) pada halaman existing.** Diperiksa: Login, Dashboard, Base Components, Sample Blocks (semua), Sample Charts (semua). Deviasi diperbaiki: (a) `AuthLayout` list item `gap-3.5` (off-scale) → `gap-3`; (b) `tickMargin` diseragamkan ke **8** (Bar & Tooltips sebelumnya 10) agar konsisten dgn area/line & rule Chart Spacing; (c) `ChartCard` `CardTitle` → `text-base` (eksplisit H3 sesuai 2A, selaras `ComponentsPage`). Sisanya sudah patuh (root `space-y-6`, grid `gap-4`, Card `p-6`, form `space-y-5`, PageHeader H1 `text-2xl`). Dashboard tetap `flex gap-4` (blok demo, nilai on-scale). |
+| Update 18 | **Audit Improvement — registri & aturan baru (BAGIAN 2C).** Ditambahkan (tanpa mengubah aturan lama): **2C.1 State Registry**, **2C.2 Size System (SSOT dimensi)**, **2C.3 Responsive Rules**, **2C.4 Density Rules** (Compact default / Comfortable dicadangkan), **2C.5 Interaction Rules** (+Cursor, Click Feedback), **2C.6 Form Rules**, **2C.7 Table Rules**, **2C.8 Icon Rules**, **2C.9 Content Rules**, **2C.10 Naming Convention**, **2C.11 Composition Rules**, **2C.12 Page Template Registry**, **2C.13 Registry Audit**. Sub-bagian merujuk R11–R16/R09/R25/R31 & 2A/2B untuk hindari duplikasi. **Dedup:** baris `card` yang terdaftar dua kali di 1.1 disatukan (SSOT). |
 | Update 13 | **Kolom Status ditambahkan di tabel Components.** Tiap komponen shadcn dipetakan ke legenda design system via Badge: **Established** (`default`, sudah dipakai), **Available** (`secondary`, tersedia di `ui/`, belum dipakai), **Pending** (`outline`, belum diport ke `ui/` — mis. Attachment/Bubble/Combobox/Data Table/Date Picker/Field/Spinner/Typography). Primitive ✅ **badge** diaktifkan (dipakai untuk status). |
