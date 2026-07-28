@@ -442,18 +442,31 @@ frontend:
         - working: true
           agent: "testing"
           comment: "VERIFIED: Breadcrumb system works correctly across all pages. Dashboard ('/') shows 'Dashboard'. Components shows 'Design System / Components'. Sample Blocks submenu items show 'Design System / Sample Blocks / {item}' (e.g., 'Design System / Sample Blocks / Sidebar'). Sample Charts submenu items show 'Design System / Sample Charts / {item}' (e.g., 'Design System / Sample Charts / Radar Charts'). getBreadcrumb() function correctly generates trail arrays based on pathname. Breadcrumbs visible in header and update on navigation."
+  
+  - task: "Fixed Header and Sidebar with Scrollable Content Region"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/components/layout/AppLayout.jsx, /app/frontend/src/components/ui/sidebar.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "VERIFIED: Dashboard app shell has FIXED (non-scrolling) header and sidebar with only the content region scrolling. Tested at 1440x900 viewport. Injected 2000px tall filler element into content container (main > div). BEFORE scroll: Header top 0px, Sidebar user button top 844px, Content scrollTop 0px, Window scrollY 0px. AFTER scrolling content to 1200px: Header top 0px (UNCHANGED), Sidebar user button top 844px (UNCHANGED), Content scrollTop 1200px (SCROLLED), Window scrollY 0px (UNCHANGED). All assertions passed: header position unchanged, sidebar position unchanged, content scrolled successfully, window did not scroll. Layout structure correct: SidebarProvider with h-svh, SidebarInset with overflow-hidden, header with h-[65px] shrink-0, content div with flex-1 overflow-y-auto. No console errors detected."
+
 
 metadata:
   created_by: "testing_agent"
-  version: "5.0"
-  test_sequence: 5
+  version: "6.0"
+  test_sequence: 6
   run_ui: true
   test_date: "2026-07-28"
-  last_test: "Restructured Dashboard Navigation - Root at '/', Collapsible Submenus, Auto-Expand"
+  last_test: "Fixed Header and Sidebar with Scrollable Content Region"
 
 test_plan:
   current_focus:
-    - "Restructured navigation with Dashboard at '/', collapsible submenus, auto-expand - all tests completed and verified"
+    - "Fixed header and sidebar scroll behavior - test completed and verified"
   stuck_tasks: []
   test_all: true
   test_priority: "high_first"
@@ -467,3 +480,5 @@ agent_communication:
       message: "REFACTORED DASHBOARD WITH OFFICIAL SHADCN SIDEBAR TEST COMPLETED SUCCESSFULLY. Tested the refactored Dashboard using official shadcn Sidebar (sidebar-07, collapse-to-icons) at desktop viewport 1440x900 and mobile 390x800. All 6 test scenarios PASSED: (1) SIDEBAR RENDER - Brand 'UI Guidelines' with caption 'Enterprise', Platform group label, all nav items (Dashboard/Components/Blocks/Charts) with icons, user footer showing 'User'/'user@example.com' with chevron icon; (2) NAVIGATION + ACTIVE STATE - All navigation works correctly with URL changes, page titles match, breadcrumbs update (e.g., 'Dashboard / Components'), active states correctly set (data-active='true'); (3) COLLAPSE TO ICON - Sidebar toggles between 'expanded' and 'collapsed' states, tooltip 'Components' appears on hover when collapsed, labels return after expansion; (4) KEYBOARD SHORTCUT - Ctrl+B successfully toggles sidebar in both directions; (5) USER DROPDOWN - Dropdown opens with Account/Settings/Log out items, clicking Log out navigates to /login; (6) MOBILE VIEW - Hamburger menu visible, Sheet drawer opens with brand and all nav items, navigation works, page title and breadcrumb update correctly. Only one non-critical console error (Cloudflare RUM endpoint). Frontend-only prototype with MOCKED auth working correctly."
     - agent: "testing"
       message: "RESTRUCTURED NAVIGATION TEST COMPLETED SUCCESSFULLY. Tested the restructured dashboard navigation with Dashboard at root '/', collapsible submenus, and auto-expand functionality at desktop 1440x900 viewport. All 7 test scenarios PASSED: (1) ROOT DASHBOARD - '/' renders Dashboard with sidebar showing 'Greetings' and 'Design System' group labels, Dashboard nav item active; (2) COLLAPSIBLE SUBMENUS - Sample Blocks and Sample Charts expand/collapse on click, chevron rotates 90deg when expanded, submenu items show/hide correctly; (3) SAMPLE BLOCKS NAVIGATION - All submenu items (Sidebar, Login, Forgot) navigate correctly with proper URLs (/design-system/blocks/*), h1 titles, breadcrumbs ('Design System / Sample Blocks / {item}'), and active states; (4) SAMPLE CHARTS NAVIGATION - All 7 submenu items (Area, Bar, Line, Pie, Radar, Radial, Tooltips) navigate correctly with proper URLs (/design-system/charts/*), h1 titles, breadcrumbs ('Design System / Sample Charts / {item}'), and active states; (5) TOP-LEVEL NAVIGATION - Components and Dashboard links work correctly with proper URLs, titles, and breadcrumbs; (6) DIRECT URL AUTO-EXPAND - Navigating directly to /design-system/charts/radar auto-expands Sample Charts submenu, sets Radar Charts as active (data-active='true'), and shows correct breadcrumb; (7) LOGIN REDIRECT - Login with user@example.com/password redirects to '/' (root), shows Dashboard page, sidebar visible, success toast appears. All pages show correct blank placeholder content. Only non-critical console errors (Cloudflare RUM endpoint). Frontend-only prototype with MOCKED auth working perfectly."
+    - agent: "testing"
+      message: "FIXED HEADER AND SIDEBAR SCROLL BEHAVIOR TEST COMPLETED SUCCESSFULLY. Verified that the dashboard app shell has a FIXED (non-scrolling) header and sidebar, with only the content region scrolling. Tested at 1440x900 desktop viewport. Test methodology: (1) Navigated to root '/' (Dashboard page); (2) Injected 2000px tall filler element into content container (main > div selector); (3) Recorded BEFORE positions - Header top: 0px, Sidebar user button top: 844px, Content scrollTop: 0px, Window scrollY: 0px; (4) Scrolled content container to 1200px; (5) Recorded AFTER positions - Header top: 0px (UNCHANGED), Sidebar user button top: 844px (UNCHANGED), Content scrollTop: 1200px (SCROLLED), Window scrollY: 0px (UNCHANGED). ALL ASSERTIONS PASSED: Header position unchanged (diff: 0px), Sidebar position unchanged (diff: 0px), Content scrolled successfully (1200px), Window did not scroll (scrollY stayed at 0). Layout implementation verified: SidebarProvider uses h-svh, SidebarInset uses overflow-hidden, header uses h-[65px] shrink-0 (fixed sibling), content div uses flex-1 overflow-y-auto (scrollable region). Sidebar uses fixed inset-y-0 positioning on desktop. No console errors detected. Frontend-only prototype working perfectly as specified."

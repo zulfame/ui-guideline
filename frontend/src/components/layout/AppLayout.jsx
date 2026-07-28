@@ -27,10 +27,14 @@ export const AppLayout = () => {
   const { trail } = getBreadcrumb(location.pathname);
 
   return (
-    <SidebarProvider>
+    <SidebarProvider className="h-svh">
       <AppSidebar />
-      <SidebarInset>
-        <header className="sticky top-0 z-10 flex h-16 shrink-0 items-center gap-2 border-b border-border bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <SidebarInset className="overflow-hidden">
+        {/* h-[65px]: matches the sidebar header's auto height (content 64px + 1px
+            border) so both bottom borders align into one continuous line.
+            The header is a fixed (non-scrolling) sibling; only the content
+            region below scrolls. */}
+        <header className="flex h-[65px] shrink-0 items-center gap-2 border-b border-border bg-background px-4">
           <SidebarTrigger className="-ml-1" />
           <Separator orientation="vertical" className="mr-1 h-4" />
           <Breadcrumb>
@@ -56,9 +60,9 @@ export const AppLayout = () => {
           </Breadcrumb>
         </header>
 
-        <main className="flex-1 p-4 lg:p-6">
+        <div className="flex-1 overflow-y-auto p-4 lg:p-6">
           <Outlet />
-        </main>
+        </div>
       </SidebarInset>
     </SidebarProvider>
   );
