@@ -90,8 +90,9 @@ export function ComboboxPreview() {
 
 export function DatePickerPreview() {
   const [date, setDate] = useState();
+  const [open, setOpen] = useState(false);
   return (
-    <Popover>
+    <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button
           variant="outline"
@@ -105,7 +106,15 @@ export function DatePickerPreview() {
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-auto p-0" align="start">
-        <Calendar mode="single" selected={date} onSelect={setDate} initialFocus />
+        <Calendar
+          mode="single"
+          selected={date}
+          onSelect={(d) => {
+            setDate(d);
+            setOpen(false);
+          }}
+          initialFocus
+        />
       </PopoverContent>
     </Popover>
   );

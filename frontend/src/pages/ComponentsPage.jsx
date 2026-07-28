@@ -218,9 +218,7 @@ export default function ComponentsPage() {
           >
             {previewNode ?? (
               <p className="text-sm text-muted-foreground">
-                {preview?.status === "pending"
-                  ? "This component is not yet available in the design system."
-                  : "Preview not implemented yet."}
+                This component is not yet available in the design system.
               </p>
             )}
           </div>
