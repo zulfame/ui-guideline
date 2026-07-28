@@ -21,8 +21,14 @@ export const navSections = [
     items: [
       {
         title: "Components",
-        to: "/design-system/components",
         icon: Component,
+        children: [
+          { title: "Base Components", to: "/design-system/components/base" },
+          {
+            title: "Composite Component",
+            to: "/design-system/components/composite",
+          },
+        ],
       },
       {
         title: "Sample Blocks",

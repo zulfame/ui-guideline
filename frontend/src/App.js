@@ -5,6 +5,7 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import LoginPage from "@/pages/LoginPage";
 import ForgotPasswordPage from "@/pages/ForgotPasswordPage";
 import DashboardPage from "@/pages/DashboardPage";
+import PlaceholderPage from "@/pages/PlaceholderPage";
 import ComponentsPage from "@/pages/ComponentsPage";
 import SidebarBlockPage from "@/pages/blocks/SidebarBlockPage";
 import LoginBlockPage from "@/pages/blocks/LoginBlockPage";
@@ -26,7 +27,15 @@ function App() {
           <Route path="/" element={<DashboardPage />} />
           <Route
             path="/design-system/components"
+            element={<Navigate to="/design-system/components/base" replace />}
+          />
+          <Route
+            path="/design-system/components/base"
             element={<ComponentsPage />}
+          />
+          <Route
+            path="/design-system/components/composite"
+            element={<PlaceholderPage />}
           />
           <Route
             path="/design-system/blocks/sidebar"

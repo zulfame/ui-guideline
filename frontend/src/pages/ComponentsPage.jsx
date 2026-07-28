@@ -114,8 +114,8 @@ export default function ComponentsPage() {
   return (
     <div className="space-y-6" data-testid="components-page">
       <PageHeader
-        title="Components"
-        description="Showcase of standard shadcn/ui primitives used across the design system."
+        title="Base Components"
+        description="Base components from shadcn/ui, adjusted to this design system."
       />
 
       <Card data-testid="table-card">
