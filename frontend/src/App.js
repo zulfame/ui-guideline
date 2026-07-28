@@ -5,6 +5,13 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import LoginPage from "@/pages/LoginPage";
 import DashboardPage from "@/pages/DashboardPage";
 import PlaceholderPage from "@/pages/PlaceholderPage";
+import AreaChartsPage from "@/pages/charts/AreaChartsPage";
+import BarChartsPage from "@/pages/charts/BarChartsPage";
+import LineChartsPage from "@/pages/charts/LineChartsPage";
+import PieChartsPage from "@/pages/charts/PieChartsPage";
+import RadarChartsPage from "@/pages/charts/RadarChartsPage";
+import RadialChartsPage from "@/pages/charts/RadialChartsPage";
+import TooltipsChartsPage from "@/pages/charts/TooltipsChartsPage";
 
 function App() {
   return (
@@ -31,31 +38,31 @@ function App() {
           />
           <Route
             path="/design-system/charts/area"
-            element={<PlaceholderPage />}
+            element={<AreaChartsPage />}
           />
           <Route
             path="/design-system/charts/bar"
-            element={<PlaceholderPage />}
+            element={<BarChartsPage />}
           />
           <Route
             path="/design-system/charts/line"
-            element={<PlaceholderPage />}
+            element={<LineChartsPage />}
           />
           <Route
             path="/design-system/charts/pie"
-            element={<PlaceholderPage />}
+            element={<PieChartsPage />}
           />
           <Route
             path="/design-system/charts/radar"
-            element={<PlaceholderPage />}
+            element={<RadarChartsPage />}
           />
           <Route
             path="/design-system/charts/radial"
-            element={<PlaceholderPage />}
+            element={<RadialChartsPage />}
           />
           <Route
             path="/design-system/charts/tooltips"
-            element={<PlaceholderPage />}
+            element={<TooltipsChartsPage />}
           />
         </Route>
 
