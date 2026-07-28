@@ -86,7 +86,7 @@ Ikon: **lucide-react** — **WAJIB** & satu-satunya sumber ikon (`h-4 w-4` defau
 | R01 | **Layout** | HTML semantik (`main/aside/section/nav`) + Flex/Grid. Kontainer form `max-w-md`/sesuai konteks. |
 | R02 | **Grid** | Tailwind grid (`grid`, `grid-cols-*`, `gap-*`). Dekorasi grid berbasis token, low-opacity. |
 | R03 | **Spacing** | Skala 4px shadcn (`space-y-*`, `gap-*`, `p-*`). Compact, hindari whitespace berlebih. |
-| R04 | **Typography** | **Font wajib: Geist** (primary) · fallback `Inter, system-ui, sans-serif`. Diimpor di `index.css`. Judul `text-2xl`+; body `text-sm/base`; label `text-sm font-medium`; weight 400/500/600; `leading-tight/relaxed`. Dilarang font lain tanpa persetujuan. |
+| R04 | **Typography** | **Font wajib: Geist** (primary) · fallback `Inter, system-ui, sans-serif`. Diimpor di `index.css`. Weight yang dipakai **400/500/600** (700 tersedia, jarang). Ikuti **Skala Tipografi resmi** (lihat **BAGIAN 2A**) untuk ukuran H1→terkecil & aturan `leading`/`tracking`. Warna teks via token semantik (`text-foreground`/`text-muted-foreground`). Dilarang font lain / ukuran di luar skala tanpa persetujuan. |
 | R05 | **Color** | **Token only** (`bg-background`, `text-foreground`, `bg-primary`, `text-muted-foreground`, `text-destructive`, dst). Termasuk keluarga token **`--sidebar-*`** (sidebar) & **`--chart-1..5`** (palet kategori chart). Dilarang warna hardcode/hex. |
 | R06 | **Border** | `border-border` (default), `border-input` (field). Tanpa nilai warna literal. |
 | R07 | **Radius** | `--radius: 0.5rem` → `rounded-sm/md/lg/xl` (turunan token). |
@@ -120,6 +120,38 @@ Ikon: **lucide-react** — **WAJIB** & satu-satunya sumber ikon (`h-4 w-4` defau
 | R35 | **Navigation** | Config nav **terpusat** (`config/navigation.js` → `navSections`), grup ber-label, submenu **collapsible** (`children`), deteksi active-state (exact/prefix), breadcrumb trail diturunkan dari config (`getBreadcrumb`). Sidebar collapse-to-icon + tooltip label saat ringkas; shortcut **Ctrl/Cmd+B**. Link internal via React Router (`Link`/`SidebarMenuButton asChild`). |
 | R36 | **Routing** | React Router: layout route induk (`AppLayout` + `<Outlet />`) membungkus halaman; halaman auth standalone (`/login`); redirect root & fallback (`*`) terdefinisi; login sukses → `/`. Rute chart per-tipe → halaman masing-masing. |
 | R37 | **Dependency Exception** | Library non-shadcn yang **diizinkan** (dependency resmi/pendukung): **lucide-react** (ikon, R09) & **recharts@2.15.4** (data-viz untuk komponen `chart`, R33). Di luar ini, **dilarang** library UI/komponen lain tanpa persetujuan. |
+
+---
+
+# BAGIAN 2A — TYPOGRAPHY SCALE (resmi, turunan R04)
+
+**Font:** Geist (primary) · fallback `Inter, system-ui, sans-serif`.
+**Weight:** 400 (body) · 500 (label/aktif) · 600 (heading). 700 tersedia tapi jarang.
+**Skala ukuran = subset Tailwind:** `12 / 14 / 16 / 24 / 30 / 36 px` (sengaja ringkas, gaya enterprise — hindari display size besar tanpa persetujuan).
+
+## 2A.1 Skala ukuran (H1 → terkecil)
+
+| Peran | Kelas Tailwind | px | Weight | Line-height | Tracking |
+|-------|----------------|----|--------|-------------|----------|
+| **H1 — judul halaman** (`PageHeader`) | `text-2xl font-semibold tracking-tight` | 24 | 600 | `leading-tight` | `tracking-tight` |
+| **H1 — hero / auth** (`AuthLayout`) | `text-3xl xl:text-4xl font-semibold leading-tight tracking-tight` | 30→36 | 600 | `leading-tight` | `tracking-tight` |
+| **H2 — judul Card besar** (`CardTitle`, auth) | `text-2xl` | 24 | 600 | tight | normal |
+| **H3 — judul section / Card kecil** | `text-base font-semibold` | 16 | 600 | normal | normal |
+| **Body — UI text default** | `text-sm` | 14 | 400 | `leading-normal` | normal |
+| **Body — prosa / deskripsi panjang** | `text-base leading-relaxed` | 16 | 400 | `leading-relaxed` | normal |
+| **Label form / meta** | `text-sm font-medium` | 14 | 500 | normal | normal |
+| **Deskripsi muted** (`CardDescription`, desc `PageHeader`) | `text-sm text-muted-foreground` | 14 | 400 | normal | normal |
+| **Terkecil — caption / footer / hint** | `text-xs text-muted-foreground` | 12 | 400 | normal | normal |
+
+> Belum ada penggunaan `text-lg/xl/5xl/6xl` (sengaja). Butuh ukuran di luar skala → lapor (R32).
+
+## 2A.2 Line-spacing (leading)
+
+- **Heading (H1–H3):** `leading-tight` (≈1.25–1.3) — judul padat & tegas.
+- **Body pendek / UI text:** default `leading-normal` (≈1.5).
+- **Paragraf/prosa multi-baris:** `leading-relaxed` (≈1.625).
+- **Dilarang** `leading-loose` tanpa alasan (terlalu renggang untuk enterprise).
+- **`tracking-tight`** hanya untuk heading; body selalu tracking normal.
 
 ---
 
@@ -160,4 +192,5 @@ Setiap kali membangun UI baru:
 | Update 7 | **App-shell fixed header + presisi 1px.** Layout dikunci `h-svh`; hanya area konten (`overflow-y-auto`) yang scroll → header & sidebar benar-benar diam. Header konten `h-[65px]` untuk menyamai tinggi header sidebar (auto 64px + 1px border) → garis benar-benar sejajar. |
 | Update 8 | **Sample Charts diisi konten.** Ditambahkan primitive resmi ✅ `chart` (`ui/chart.jsx`, diport TSX→JSX) + **recharts di-pin ke `2.15.4`** (versi yang didukung shadcn; recharts 3.x menyebabkan `width(-1)` & render parsial). Pattern ✅ `ChartCard`; data contoh generik di `config/chartSampleData.js`. 7 halaman chart (Area/Bar/Line/Pie/Radar/Radial/Tooltips) via Recharts. Catatan: (a) container pie/radar/radial pakai `aspect-square w-full max-w-[320px]` agar tak kolaps; (b) RadialBar diberi warna per-slice via `<Cell>`; (c) `<Bar>` diberi `isAnimationActive={false}` karena React StrictMode membuat animasi bar tersangkut di tinggi 0; (d) elemen chart harus anak langsung `ChartContainer` (jangan dibungkus komponen). Dashboard `/` diisi blok placeholder (`bg-muted/50`) yang cukup tinggi untuk uji scroll. |
 | Update 9 | **Aturan diformalkan.** Ditambahkan **R33 Charts**, **R34 App Shell & Scroll**, **R35 Navigation**, **R36 Routing**, **R37 Dependency Exception**; R05 diperluas (token `--sidebar-*` & `--chart-1..5`); R26 mencatat placeholder surface `bg-muted/50`. Governance (`DESIGN_SYSTEM_RULES.md`) memuat daftar library yang diizinkan (lucide-react, recharts). |
-| Update 10 | **Sample Blocks lengkap + halaman Components diisi.** (a) `SidebarBlockPage` di-wire ke rute `/design-system/blocks/sidebar` dan dibuat **self-contained/inert**: sidebar preview dibangun langsung dari primitive shadcn + struktur `navSections`, memakai `SidebarMenuButton onClick` (bukan `<Link>`) sehingga **klik menu tidak pernah navigate ke URL host** — hanya memperbarui seleksi lokal (breadcrumb) & menampilkan placeholder kosong (`bg-muted/50`). Breadcrumb generik ("Application Name / Feature One" → kini mengikuti seleksi). (b) Pattern ✅ **ForgotPasswordForm** + halaman standalone `/forgot-password` (reuse `AuthLayout`; schema `resetSchema` di `authSchema.js`; sukses → Alert non-destructive). Link "Forgot password?" di `LoginForm` kini navigate ke `/forgot-password`. (c) Pattern ✅ **Block Preview via iframe**: `LoginBlockPage` & `ForgotBlockPage` merender rute nyata (`/login`, `/forgot-password`) di dalam `<iframe>` berbingkai `h-[680px]`. (d) **ComponentsPage** (`/design-system/components`) diisi showcase primitif: Buttons, Badges, Inputs, Selection, Tabs, Feedback, Avatar+Tooltip, Table. `PlaceholderPage` tidak lagi dipakai di router. |
+| Update 10 | **Sample Blocks lengkap.** (a) `SidebarBlockPage` di-wire ke rute `/design-system/blocks/sidebar` dan dibuat **self-contained/inert**: sidebar preview dibangun langsung dari primitive shadcn + struktur `navSections`, memakai `SidebarMenuButton onClick` (bukan `<Link>`) sehingga **klik menu tidak pernah navigate ke URL host** — hanya memperbarui seleksi lokal (breadcrumb) & menampilkan placeholder kosong (`bg-muted/50`). (b) Pattern ✅ **ForgotPasswordForm** + halaman standalone `/forgot-password` (reuse `AuthLayout`; schema `resetSchema` di `authSchema.js`; sukses → Alert non-destructive). Link "Forgot password?" di `LoginForm` kini navigate ke `/forgot-password`. (c) Pattern ✅ **Block Preview via iframe**: `LoginBlockPage` & `ForgotBlockPage` merender rute nyata (`/login`, `/forgot-password`) di dalam `<iframe>` berbingkai `h-[680px]`. |
+| Update 11 | **Typografi diformalkan + halaman Components dikembalikan blank.** (a) Ditambahkan **BAGIAN 2A — Typography Scale** (tabel resmi H1→terkecil: `text-2xl/3xl/4xl` heading, `text-sm/base` body, `text-xs` terkecil; weight 400/500/600; aturan `leading-tight/normal/relaxed` & `tracking-tight` khusus heading); **R04** diperbarui untuk merujuk skala ini. (b) **ComponentsPage dihapus** — rute `/design-system/components` dikembalikan ke `PlaceholderPage` (blank) karena pengisian sebelumnya tidak diinstruksikan user. |
