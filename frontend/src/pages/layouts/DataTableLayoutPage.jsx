@@ -413,6 +413,7 @@ export default function DataTableLayoutPage() {
   const [rows, setRows] = useState(INITIAL_DATA);
   const [dialog, setDialog] = useState({ open: false, mode: "add", user: EMPTY_USER });
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
 
   useEffect(() => {
     localStorage.setItem("dt-density", density);
@@ -437,6 +438,16 @@ export default function DataTableLayoutPage() {
     setRows((prev) => prev.filter((u) => u.id !== deleteTarget.id));
     toast.success("User deleted", { description: deleteTarget.name });
     setDeleteTarget(null);
+  };
+
+  const confirmBulkDelete = () => {
+    const ids = new Set(
+      table.getFilteredSelectedRowModel().rows.map((r) => r.original.id),
+    );
+    setRows((prev) => prev.filter((u) => !ids.has(u.id)));
+    toast.success(`${ids.size} user(s) deleted`);
+    setRowSelection({});
+    setBulkDeleteOpen(false);
   };
 
   const table = useReactTable({
@@ -494,6 +505,17 @@ export default function DataTableLayoutPage() {
               />
             </div>
             <div className="flex flex-wrap items-center gap-2">
+              {selectedCount > 0 && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setBulkDeleteOpen(true)}
+                  className="border-destructive/50 text-destructive hover:text-destructive"
+                  data-testid="dt-bulk-delete"
+                >
+                  <Trash2 className="size-4" /> Delete ({selectedCount})
+                </Button>
+              )}
               <FacetedFilter
                 column={table.getColumn("role")}
                 title="Role"
@@ -658,6 +680,8 @@ export default function DataTableLayoutPage() {
         <AlertDialogContent data-testid="dt-delete-dialog">
           <AlertDialogHeader>
             <AlertDialogTitle>Delete user?</AlertDialogTitle>
+          </AlertDialogHeader>
+          <div className="px-6 py-4">
             <AlertDialogDescription>
               This will permanently remove{" "}
               <span className="font-medium text-foreground">
@@ -665,13 +689,40 @@ export default function DataTableLayoutPage() {
               </span>
               . This action cannot be undone.
             </AlertDialogDescription>
-          </AlertDialogHeader>
+          </div>
           <AlertDialogFooter>
             <AlertDialogCancel data-testid="dt-delete-cancel">Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmDelete}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               data-testid="dt-delete-confirm"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Bulk delete confirmation */}
+      <AlertDialog open={bulkDeleteOpen} onOpenChange={setBulkDeleteOpen}>
+        <AlertDialogContent data-testid="dt-bulk-delete-dialog">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete {selectedCount} user(s)?</AlertDialogTitle>
+          </AlertDialogHeader>
+          <div className="px-6 py-4">
+            <AlertDialogDescription>
+              This will permanently remove the selected users. This action cannot
+              be undone.
+            </AlertDialogDescription>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-testid="dt-bulk-delete-cancel">
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmBulkDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              data-testid="dt-bulk-delete-confirm"
             >
               Delete
             </AlertDialogAction>
