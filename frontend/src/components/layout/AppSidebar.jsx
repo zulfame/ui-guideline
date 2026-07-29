@@ -242,11 +242,17 @@ export const AppSidebar = (props) => {
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuGroup>
-                  <DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => navigate("/account")}
+                    data-testid="user-menu-account"
+                  >
                     <BadgeCheck aria-hidden="true" />
                     Account
                   </DropdownMenuItem>
-                  <DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => navigate("/settings")}
+                    data-testid="user-menu-settings"
+                  >
                     <Settings aria-hidden="true" />
                     Settings
                   </DropdownMenuItem>

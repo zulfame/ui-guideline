@@ -143,5 +143,7 @@ export const getBreadcrumb = (pathname) => {
       }
     }
   }
+  const accountTitle = { "/account": "Account", "/settings": "Settings" }[pathname];
+  if (accountTitle) return { title: accountTitle, trail: [accountTitle] };
   return { title: "Page", trail: ["Page"] };
 };

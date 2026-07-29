@@ -39,6 +39,8 @@ function App() {
           <Route path="/users" element={<PlaceholderPage />} />
           <Route path="/roles" element={<PlaceholderPage />} />
           <Route path="/offices" element={<PlaceholderPage />} />
+          <Route path="/account" element={<PlaceholderPage />} />
+          <Route path="/settings" element={<PlaceholderPage />} />
           <Route
             path="/design-system/components"
             element={<ComponentsPage />}
