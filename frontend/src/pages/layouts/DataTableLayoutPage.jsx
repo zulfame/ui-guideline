@@ -475,8 +475,6 @@ export default function DataTableLayoutPage() {
   const selectedCount = table.getFilteredSelectedRowModel().rows.length;
   const { pageIndex, pageSize } = table.getState().pagination;
   const totalRows = table.getFilteredRowModel().rows.length;
-  const firstRow = totalRows === 0 ? 0 : pageIndex * pageSize + 1;
-  const lastRow = Math.min((pageIndex + 1) * pageSize, totalRows);
 
   const hasActiveFilters = globalFilter.trim().length > 0 || columnFilters.length > 0;
   const clearFilters = () => {
@@ -632,8 +630,8 @@ export default function DataTableLayoutPage() {
 
           {/* Footer */}
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-muted-foreground">Rows per page</span>
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <span>Rows per page</span>
               <Select
                 value={String(pageSize)}
                 onValueChange={(v) => table.setPageSize(Number(v))}
@@ -649,11 +647,9 @@ export default function DataTableLayoutPage() {
                   ))}
                 </SelectContent>
               </Select>
+              <span data-testid="dt-showing">of {totalRows} rows</span>
             </div>
             <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-              <span className="text-xs text-muted-foreground" data-testid="dt-showing">
-                {firstRow}–{lastRow} of {totalRows}
-              </span>
               <span className="text-xs text-muted-foreground">
                 Page {pageIndex + 1} of {table.getPageCount()}
               </span>
