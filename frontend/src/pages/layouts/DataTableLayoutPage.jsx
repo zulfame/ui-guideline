@@ -632,28 +632,25 @@ export default function DataTableLayoutPage() {
 
           {/* Footer */}
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <span className="text-xs text-muted-foreground" data-testid="dt-selected">
-              {selectedCount} of {totalRows} row(s) selected.
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground">Rows per page</span>
+              <Select
+                value={String(pageSize)}
+                onValueChange={(v) => table.setPageSize(Number(v))}
+              >
+                <SelectTrigger className="h-8 w-[70px]" data-testid="dt-page-size">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {[8, 16, 24].map((n) => (
+                    <SelectItem key={n} value={String(n)}>
+                      {n}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-muted-foreground">Rows per page</span>
-                <Select
-                  value={String(pageSize)}
-                  onValueChange={(v) => table.setPageSize(Number(v))}
-                >
-                  <SelectTrigger className="h-8 w-[70px]" data-testid="dt-page-size">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {[8, 16, 24].map((n) => (
-                      <SelectItem key={n} value={String(n)}>
-                        {n}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
               <span className="text-xs text-muted-foreground" data-testid="dt-showing">
                 {firstRow}–{lastRow} of {totalRows}
               </span>
