@@ -45,10 +45,10 @@ const profileSchema = z.object({
 });
 
 const defaultValues = {
-  fullName: "",
-  email: "",
+  fullName: "Jane Doe",
+  email: "jane.doe@example.com",
   bio: "",
-  role: "",
+  role: "member",
   emailNotifications: true,
   marketingEmails: false,
 };
