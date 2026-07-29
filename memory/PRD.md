@@ -50,10 +50,22 @@ Bahasa komunikasi user: **Bahasa Indonesia**.
   - **4 komponen chat/AI diport → Established:** `message.jsx`, `attachment.jsx`, `bubble.jsx`, `marker.jsx` (semua presentational, 100% Tailwind + cva, pola shadcn base). Preview live di `componentPreviews.jsx`. Diverifikasi via screenshot (0 error).
   - **Base Components: 60/61 Established.** Sisa 1 **Pending: `Message Scroller`** — bukan primitive styling, tapi engine headless streaming `@shadcn/react` (provider + hooks imperatif). Menunggu keputusan user apakah menambah dependency berat tsb.
 
+- **2026-06 (Message Scroller + Composite Components):**
+  - **`message-scroller.jsx`** diport versi *styled sederhana tanpa engine* (Context lokal + auto-scroll + tombol jump-to-latest). **Base Components: 61/61 Established (tuntas).**
+  - **Submenu "Composite Component" diisi 15 komponen** (halaman tabel `CompositeComponentsPage.jsx` + `config/compositePreviews.jsx`; komponen di `src/components/composite/`). Semua Established, generik, monochrome:
+    - **Tanpa dep (9):** Autocomplete, Rating, Stepper, List, Cookie Banner, Preloader, Widget, Placeholder, Data Grid.
+    - **Dengan dep baru (6):** Code Block (`react-syntax-highlighter`), Markdown (`react-markdown`+`remark-gfm`), Phone Input (`react-phone-number-input`), Input Mask (`react-imask`), Kanban & Sortable (`@dnd-kit/*`).
+  - Compile sukses (0 error webpack). ⚠️ **Verifikasi visual (screenshot/testing_agent) TERTUNDA** karena gangguan tool platform saat sesi ini — perlu di-retest saat tool pulih.
+
+## Changes in Tech Stack
+- Dependency baru terpasang (disetujui user, R37): `react-syntax-highlighter`, `react-markdown`, `remark-gfm`, `react-phone-number-input`, `react-imask`, `@dnd-kit/core`, `@dnd-kit/sortable`, `@dnd-kit/utilities`.
+
 ## Backlog / Remaining
+- **P1 (pending verifikasi)**: Uji visual + testing_agent untuk 15 Composite Components & Message Scroller (tertunda karena gangguan tool platform).
 - **P2**: Global form-level Alert untuk empty state / "No Data Available".
 - **P2**: Dark mode toggle.
 - **P3**: "Reduced Motion" accessibility handling.
+- **P3**: Layout Patterns (langkah roadmap berikutnya setelah Composite).
 (Detail parked di `frontend/docs/BACKLOG.md`.)
 
 ## Credentials (mock)
