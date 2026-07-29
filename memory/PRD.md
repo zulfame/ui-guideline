@@ -32,7 +32,7 @@ Membangun template **UI Guidelines / Design System** generik sebagai fondasi apl
 
 ## Backlog
 - P1: Layout Patterns tambahan bila diminta (mis. Dashboard Layout).
-- P2: Page Specifications (Dashboard, Master Data) via PAGE_SPEC_TEMPLATE.md — SETELAH Layout Patterns matang.
+- ~~P2: Page Specifications (Dashboard, Master Data)~~ ✅ Dokumen spec selesai (2026-07-29): `DASHBOARD_PAGE_SPEC.md` & `MASTER_DATA_PAGE_SPEC.md` (🔵 Proposed, struktur/UI saja). Implementasi halaman = opsional berikutnya.
 - ~~P3: Arsitektur 2-layer Design Token + Dark Mode~~ ✅ Selesai (2026-07-29).
 
 ## Kredensial (mock auth)
