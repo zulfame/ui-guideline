@@ -1,12 +1,36 @@
 import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { toast } from "sonner";
+import { Plus } from "lucide-react";
 
 import { PageHeader } from "@/components/layout/PageHeader";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -38,6 +62,116 @@ function Field({ title, children, testid }) {
       </CardHeader>
       <CardContent>{children}</CardContent>
     </Card>
+  );
+}
+
+const addUserSchema = z.object({
+  fullName: z.string().min(1, "Name is required"),
+  email: z.string().min(1, "Email is required").email("Enter a valid email"),
+  role: z.string().min(1, "Please select a role"),
+});
+
+function AddUserDialog() {
+  const [open, setOpen] = useState(false);
+  const form = useForm({
+    resolver: zodResolver(addUserSchema),
+    defaultValues: { fullName: "", email: "", role: "" },
+  });
+
+  const onSubmit = (data) => {
+    toast.success("User added", { description: data.email });
+    setOpen(false);
+    form.reset();
+  };
+
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={(v) => {
+        setOpen(v);
+        if (!v) form.reset();
+      }}
+    >
+      <DialogTrigger asChild>
+        <Button className="w-full" data-testid="fe-add-user-trigger">
+          <Plus className="size-4" /> Add User
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-md" data-testid="fe-add-user-dialog">
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} noValidate>
+            <DialogHeader>
+              <DialogTitle>Add User</DialogTitle>
+              <DialogDescription>
+                Create a new user account. All fields are required.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4 px-6 py-4">
+              <FormField
+                control={form.control}
+                name="fullName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Full name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Jane Doe" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email</FormLabel>
+                    <FormControl>
+                      <Input type="email" placeholder="name@example.com" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="role"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Role</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a role" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="admin">Admin</SelectItem>
+                        <SelectItem value="member">Member</SelectItem>
+                        <SelectItem value="viewer">Viewer</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <DialogFooter>
+              <DialogClose asChild>
+                <Button type="button" variant="outline" data-testid="fe-add-user-cancel">
+                  Cancel
+                </Button>
+              </DialogClose>
+              <Button type="submit" data-testid="fe-add-user-save">
+                Save user
+              </Button>
+            </DialogFooter>
+          </form>
+        </Form>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -169,6 +303,13 @@ export default function FormElementsPage() {
                 ))}
               </InputOTPGroup>
             </InputOTP>
+          </div>
+        </Field>
+
+        <Field title="Dialog Form" testid="fe-dialog-form">
+          <div className="space-y-2">
+            <Label>Add user</Label>
+            <AddUserDialog />
           </div>
         </Field>
       </div>
