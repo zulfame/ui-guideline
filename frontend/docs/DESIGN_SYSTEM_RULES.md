@@ -147,3 +147,19 @@ Data Grid, Code Block, Markdown, Phone Input, Input Mask, Kanban, Sortable. Comp
 - [ ] Konten generik (tanpa konten bisnis).
 - [ ] Jika ada kebutuhan di luar design system → sudah dilaporkan & disetujui,
       bukan diimprovisasi.
+- [ ] Modifikasi komponen di `ui/`/`composite` menjaga invarian (Compact/2B,
+      Typography/2A, warna token-only, density) & dampaknya sudah diverifikasi ke
+      semua konsumen — **R38**.
+
+---
+
+## 8. Aturan Modifikasi Komponen (Non-Negotiable)
+
+Komponen bersifat **reusable** (satu sumber) → setiap modifikasi pada
+`src/components/ui/` atau `src/components/composite/` **WAJIB** menjaga invarian
+design system: **Compact/Spacing (2B)**, **Typography (2A)**, **warna token saja
+(R06/R29 — gambar referensi hanya acuan struktur, bukan warna)**, dan **density**.
+Sebelum selesai, **verifikasi dampak ke semua konsumen** (min. 2–3 halaman).
+Menukar compact demi fitur visual = **pelanggaran / regresi**.
+
+> Definisi lengkap & otoritatif (SSOT): **R38** pada `DESIGN_SYSTEM.md`.
