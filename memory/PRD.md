@@ -22,6 +22,7 @@ Membangun template **UI Guidelines / Design System** generik sebagai fondasi apl
 - **R38**: Modifikasi primitive/composite harus jaga compact spacing (`px-6 py-4`), grid 4px, token monochrome (`border-border`), typography tepat. Verifikasi semua consumer via screenshot sebelum selesai.
 
 ## Sudah Diimplementasikan
+- (2026-07-29) **P3 — Design Token 2-layer + Dark Mode**: `index.css` direfaktor jadi 2-layer (Layer 1 primitives `--neutral-*`/`--red-*`/`--hue-chart-*` → Layer 2 semantic via `var()`). `ThemeProvider` (Light/Dark/System, localStorage `ui-theme`, matchMedia) + `ModeToggle` di header. Halaman baru **Design Tokens** (`/design-system/tokens`). Diverifikasi screenshot (light & dark).
 - (2026-07-29) FormLayoutPage: tata letak dipisah per ukuran — 3 form kecil (Login, Reset, OTP) di grid `md:grid-cols-2 lg:grid-cols-3`; 3 form besar (Register, Change Password, Contact) di grid `md:grid-cols-2`. Diverifikasi via screenshot.
 - 78 komponen (Base + Composite) dalam satu data table A-Z.
 - Sample Layout: DataTable, Form Elements, Form Layout.
@@ -32,7 +33,7 @@ Membangun template **UI Guidelines / Design System** generik sebagai fondasi apl
 ## Backlog
 - P1: Layout Patterns tambahan bila diminta (mis. Dashboard Layout).
 - P2: Page Specifications (Dashboard, Master Data) via PAGE_SPEC_TEMPLATE.md — SETELAH Layout Patterns matang.
-- P3: Arsitektur 2-layer Design Token + Dark Mode.
+- ~~P3: Arsitektur 2-layer Design Token + Dark Mode~~ ✅ Selesai (2026-07-29).
 
 ## Kredensial (mock auth)
 - Email: `user@example.com` / Password: `password`

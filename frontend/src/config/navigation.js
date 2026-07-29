@@ -4,6 +4,7 @@ import {
   Blocks,
   BarChart3,
   LayoutTemplate,
+  Palette,
 } from "lucide-react";
 
 /**
@@ -20,6 +21,11 @@ export const navSections = [
   {
     label: "Design System",
     items: [
+      {
+        title: "Design Tokens",
+        to: "/design-system/tokens",
+        icon: Palette,
+      },
       {
         title: "Components",
         to: "/design-system/components",

@@ -7,6 +7,7 @@ import ForgotPasswordPage from "@/pages/ForgotPasswordPage";
 import DashboardPage from "@/pages/DashboardPage";
 import PlaceholderPage from "@/pages/PlaceholderPage";
 import ComponentsPage from "@/pages/ComponentsPage";
+import DesignTokensPage from "@/pages/DesignTokensPage";
 import DataTableLayoutPage from "@/pages/layouts/DataTableLayoutPage";
 import FormElementsPage from "@/pages/layouts/FormElementsPage";
 import FormLayoutPage from "@/pages/layouts/FormLayoutPage";
@@ -31,6 +32,10 @@ function App() {
           <Route
             path="/design-system/components"
             element={<ComponentsPage />}
+          />
+          <Route
+            path="/design-system/tokens"
+            element={<DesignTokensPage />}
           />
           <Route
             path="/design-system/components/base"

@@ -15,6 +15,7 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { AppSidebar } from "@/components/layout/AppSidebar";
+import { ModeToggle } from "@/components/mode-toggle";
 import { getBreadcrumb } from "@/config/navigation";
 
 /**
@@ -58,6 +59,9 @@ export const AppLayout = () => {
               })}
             </BreadcrumbList>
           </Breadcrumb>
+          <div className="ml-auto flex items-center gap-2">
+            <ModeToggle />
+          </div>
         </header>
 
         <div className="flex-1 overflow-y-auto p-4 lg:p-6">
