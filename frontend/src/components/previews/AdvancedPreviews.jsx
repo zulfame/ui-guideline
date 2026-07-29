@@ -41,7 +41,6 @@ const comboItems = [
 export function ComboboxPreview({ className }) {
   const [open, setOpen] = useState(false);
   const [value, setValue] = useState("");
-  const fullWidth = Boolean(className);
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
@@ -49,7 +48,7 @@ export function ComboboxPreview({ className }) {
           variant="outline"
           role="combobox"
           aria-expanded={open}
-          className={cn("justify-between", fullWidth ? className : "w-[220px]")}
+          className={cn("w-full justify-between", className)}
         >
           {value
             ? comboItems.find((i) => i.value === value)?.label
@@ -57,12 +56,7 @@ export function ComboboxPreview({ className }) {
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent
-        className={cn(
-          "p-0",
-          fullWidth ? "w-[--radix-popover-trigger-width]" : "w-[220px]",
-        )}
-      >
+      <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
         <Command>
           <CommandInput placeholder="Search..." />
           <CommandList>
@@ -103,8 +97,8 @@ export function DatePickerPreview({ className }) {
         <Button
           variant="outline"
           className={cn(
-            "justify-start text-left font-normal",
-            className ?? "w-[240px]",
+            "w-full justify-start text-left font-normal",
+            className,
             !date && "text-muted-foreground",
           )}
         >

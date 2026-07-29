@@ -103,14 +103,14 @@ export default function FormElementsPage() {
         <Field title="Combobox" testid="fe-combobox">
           <div className="space-y-2">
             <Label>Framework</Label>
-            <ComboboxPreview className="w-full" />
+            <ComboboxPreview />
           </div>
         </Field>
 
         <Field title="Date Picker" testid="fe-datepicker">
           <div className="space-y-2">
             <Label>Date</Label>
-            <DatePickerPreview className="w-full" />
+            <DatePickerPreview />
           </div>
         </Field>
 
@@ -162,10 +162,10 @@ export default function FormElementsPage() {
         <Field title="Input OTP" testid="fe-otp">
           <div className="space-y-2">
             <Label>Verification code</Label>
-            <InputOTP maxLength={6} containerClassName="w-full">
-              <InputOTPGroup className="w-full">
+            <InputOTP maxLength={6}>
+              <InputOTPGroup>
                 {Array.from({ length: 6 }).map((_, i) => (
-                  <InputOTPSlot key={i} index={i} className="flex-1" />
+                  <InputOTPSlot key={i} index={i} />
                 ))}
               </InputOTPGroup>
             </InputOTP>
