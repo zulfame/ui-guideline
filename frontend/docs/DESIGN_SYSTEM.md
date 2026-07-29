@@ -89,6 +89,9 @@ Ikon: **lucide-react** — **WAJIB** & satu-satunya sumber ikon (`h-4 w-4` defau
 | Wizard Block | ✅ | **Multi-step Wizard**: `StepIndicator` + 3 langkah Account/Profile/Review, validasi per-langkah via `form.trigger`, Back/Next/Finish | `pages/blocks/WizardBlockPage.jsx` | Alur multi-langkah |
 | Design Tokens gallery | ✅ | PageHeader + Layer 1 swatch primitive (neutral/red/chart, nilai HSL mentah) + Layer 2 swatch semantic (badge L/D mapping, `hsl(var(--token))` remap live per theme) | `pages/DesignTokensPage.jsx` | Dokumentasi & referensi token |
 | Theme system (Light/Dark/System) | ✅ | `ThemeProvider` (context + localStorage `ui-theme` + `matchMedia`) + `ModeToggle` (DropdownMenu Sun/Moon/Monitor) di header | `components/theme-provider.jsx` + `components/mode-toggle.jsx` | Seluruh aplikasi |
+| Empty States block | ✅ | Grid Card per jenis + composite **`EmptyState`** (6 varian: no-data/no-results/first-time/forbidden/offline/error, ikon lucide + aksi opsional) — implementasi konkret Registry **2C.18** | `pages/blocks/EmptyStatesBlockPage.jsx` + `components/composite/EmptyState.jsx` | Semua kondisi kosong/gagal/terlarang |
+| Permissions block | ✅ | `ToggleGroup` role (Admin/Member/Viewer) mengendalikan 4 kartu strategi: **Hide** (render kondisional), **Disable** (`disabled`+Tooltip alasan), **Read-only** (`readOnly`+`bg-muted/50`), **Forbidden** (`EmptyState` variant `forbidden`) — implementasi konkret **2C.21** | `pages/blocks/PermissionsBlockPage.jsx` | Halaman/section ber-permission |
+| Data Display block | ✅ | Card + Table nilai terformat via util `lib/format.js` (Number/Currency/Percentage/Date/Relative + Status Badge); angka `text-right tabular-nums`, negatif `text-destructive`, nil → `—` — implementasi konkret **2C.20** | `pages/blocks/DataDisplayBlockPage.jsx` + `lib/format.js` | Tampilan tabular/nilai terformat |
 
 ## 1.3 Elemen Konten (placeholder generik)
 
@@ -123,6 +126,7 @@ konten generik, monochrome-first.
 | Kanban | Card + Badge + ikon (drag) | `@dnd-kit/core` + `sortable` + `utilities` | `KanbanBoard.jsx` |
 | Sortable | (Tailwind + ikon `GripVertical`) | `@dnd-kit/sortable` + `core` + `utilities` | `SortableList.jsx` |
 | Password Input | Input + Button (ghost icon) + state | — | `PasswordInput.jsx` |
+| Empty State | Empty (+Header/Media/Title/Description/Content) + ikon lucide (+Button aksi) | — | `EmptyState.jsx` |
 
 > **Aturan composite:** (a) tiap dependency HANYA dipakai oleh composite terkait — jangan menyebar;
 > (b) tidak boleh membuat primitive UI baru — komposisi saja; (c) konten wajib placeholder generik (R31).
@@ -580,6 +584,8 @@ Memperluas R26 & 2C.7. Bedakan **jenis** kekosongan; jangan pakai satu teks gene
 
 Semua memakai token monochrome, ikon `lucide-react`, copy generik & solutif (2C.9).
 
+> **Implementasi:** composite **`EmptyState`** (`components/composite/EmptyState.jsx`, 6 varian) + halaman **Empty States** (`pages/blocks/EmptyStatesBlockPage.jsx`). "No Search Result" juga aktif di DataTable.
+
 ## 2C.19 Search, Filter & Sort Pattern (global — #9)
 
 Mengangkat aturan tabel (2C.7) menjadi **pola global** (berlaku di list, tabel, katalog, dsb).
@@ -612,6 +618,8 @@ Konvensi menampilkan nilai data (tetap generik, tanpa konteks bisnis). Formatter
 **Alignment aturan umum:** teks kiri, angka/mata-uang/persen kanan, status/badge kiri,
 actions kanan (selaras 2C.7).
 
+> **Implementasi:** util **`lib/format.js`** (`formatNumber/Currency/Percent/Date/Time/Relative`, `statusBadgeVariant`, nil → `—`) + halaman **Data Display** (`pages/blocks/DataDisplayBlockPage.jsx`).
+
 ## 2C.21 Permission Pattern (generik enterprise — #6)
 
 Pola menangani elemen/halaman yang bergantung hak akses. Tetap generik (tanpa model RBAC nyata).
@@ -625,6 +633,8 @@ Pola menangani elemen/halaman yang bergantung hak akses. Tetap generik (tanpa mo
 
 **Panduan Hide vs Disable:** *Hide* bila keberadaan fitur bersifat rahasia/tak relevan bagi peran;
 *Disable* bila fitur relevan tapi terkunci sementara (beri konteks agar tidak membingungkan).
+
+> **Implementasi:** halaman **Permissions** (`pages/blocks/PermissionsBlockPage.jsx`) — `ToggleGroup` role mendemokan Hide/Disable/Read-only/Forbidden (Forbidden pakai `EmptyState` variant `forbidden`).
 
 ## 2C.22 Testing Standard (aturan, bukan implementasi — #3)
 
@@ -746,3 +756,4 @@ Setiap kali membangun UI baru:
 | Update 55 | **AlertDialog: deskripsi dipindah ke BODY (3 seksi terlihat).** Atas permintaan user. Pada `DataTableLayoutPage` (dialog Delete tunggal & Bulk), `AlertDialogDescription` dikeluarkan dari `AlertDialogHeader` ke **wrapper body `px-6 py-4`** tersendiri → struktur jelas **Header (judul, border-b) · Body (deskripsi) · Footer (tombol, border-t)**. Doc 2B.10 diperbarui: header hanya judul; taruh `AlertDialogDescription` di body untuk konfirmasi. **Verifikasi via screenshot:** dialog Delete menampilkan 3 seksi terpisah divider; guard clean; 0 console error. |
 | Update 56 | **Sinkronisasi dokumentasi menyeluruh + audit UI site-wide (pra Save-to-GitHub) + Empty-state filter DataTable.** Atas permintaan user (finalisasi sebelum review ahli). **(Audit)** Ditelusuri seluruh halaman utama (Components, Form Elements, Form Layout, DataTable, Profile, Wizard, Design Tokens) terhadap R38 (header/body/footer + divider), R39/2B.5 (`space-y` compact), token monochrome, ikon lucide. **Temuan & fix:** `DesignTokensPage` H2 section memakai `text-lg` (di luar skala 2A yang mendokumentasikan `text-lg` sengaja tak dipakai) → dibetulkan ke **`text-base font-semibold`** (H3 section). **(Fitur backlog) DataTable empty-state filter-aware:** saat search/faceted-filter aktif tetapi 0 baris cocok, tampil pesan **"No users match your filters."** + tombol **Clear filters** (`outline sm`, ikon `FilterX`) yang reset `globalFilter`+`columnFilters`; empty-state generik `No Data Available` tetap dipakai saat data memang kosong. Docs 2C.7 (Empty State) & 1.2 (baris DataTable) disinkronkan. **Verifikasi:** guard clean (exit 0); testing agent frontend. |
 | Update 57 | **Governance maturity — 9 section baru dari review ahli (doc-only).** Atas permintaan user (menindaklanjuti 10 catatan ahli pra-review GitHub). Ditambah **2C.15 Versioning & Release Policy** (SemVer, Breaking Change, Deprecation, Migration Guide, Changelog Policy gaya *Keep a Changelog*; baseline `0.x`), **2C.16 Component Lifecycle** (fase 🧪 Experimental / ⚪ Available / ✅ Established / ⚠️ Deprecated / 🔒 Pending / 🗑️ Removed + alur transisi; legenda status header diperluas), **2C.17 Feedback Pattern** (matriks Toast vs Inline vs Alert vs Dialog), **2C.18 Empty State Registry** (klasifikasi: No Data / No Search Result ✅ / First-Time / Permission Denied / Offline / Error), **2C.19 Search, Filter & Sort Pattern** (global: search/filter/sort/reset ✅; Saved Filter ⚪ Deferred), **2C.20 Data Display & Formatting** (Number/Currency/Percentage/Date/Time/Status/Boolean/null), **2C.21 Permission Pattern** (Hide/Disable/Read-only/Forbidden + panduan Hide vs Disable), **2C.22 Testing Standard** (Visual/A11y/Interaction/Responsive — aturan saja), **2C.23 Performance Guideline** (Lazy Loading/Memoization/Virtualization/Bundle/Chart/Large Table). Catatan ahli **#8 Navigation** dinilai sudah tercakup (R35/2B.15/2C.3) → tidak ada section duplikat. **Tanpa perubahan kode UI** (semua governance/dokumentasi); guard tetap clean. |
+| Update 58 | **Implementasi 3 pattern dari governance → komponen nyata + halaman.** Atas permintaan user (mengubah sebagian dokumentasi 2C.18/2C.20/2C.21 jadi implementasi). **(Composite)** **`EmptyState`** (`components/composite/EmptyState.jsx`) — 6 varian terklasifikasi (no-data/no-results/first-time/forbidden/offline/error) via `Empty` primitive + ikon lucide + aksi opsional; terdaftar di Registry 1.4 & RULES §5. **(Util)** **`lib/format.js`** — `formatNumber/Currency/Percent/Date/Time/Relative` + `statusBadgeVariant`; nil → em dash `—`. **(Halaman baru di Sample Blocks)** **Empty States** (`/design-system/blocks/empty-states`, grid 6 varian), **Permissions** (`/design-system/blocks/permissions`, `ToggleGroup` role mengendalikan Hide/Disable+Tooltip/Read-only/Forbidden), **Data Display** (`/design-system/blocks/data-display`, Table nilai terformat, angka `text-right tabular-nums`, negatif `text-destructive`). Nav (`navigation.js`) + rute (`App.js`) ditambah; docs 1.2 (3 pattern rows), 1.4 (EmptyState), 2C.18/2C.20/2C.21 (catatan "Implementasi") disinkronkan. **Verifikasi:** guard clean (exit 0); compile sukses; screenshot Empty States render 6 kartu; testing agent. |

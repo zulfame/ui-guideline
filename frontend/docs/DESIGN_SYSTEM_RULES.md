@@ -116,7 +116,7 @@ Ikon: **lucide-react** (diperbolehkan). Dilarang memakai emoji sebagai ikon.
 
 **Composite Components** (`src/components/composite/`, terdaftar di halaman "Composite Component" &
 Registry 1.4): Autocomplete, Rating, Stepper, List, Cookie Banner, Preloader, Widget, Placeholder,
-Data Grid, Code Block, Markdown, Phone Input, Input Mask, Kanban, Sortable. Composite =
+Data Grid, Code Block, Markdown, Phone Input, Input Mask, Kanban, Sortable, Empty State. Composite =
 **komposisi** dari primitives di atas (+ dependency yang diizinkan R37); **bukan** primitive baru.
 
 > Catatan: Komposisi (menggabungkan beberapa komponen di atas menjadi

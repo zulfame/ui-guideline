@@ -40,6 +40,9 @@ export const navSections = [
           { title: "Forgot", to: "/design-system/blocks/forgot" },
           { title: "Profile", to: "/design-system/blocks/profile" },
           { title: "Wizard", to: "/design-system/blocks/wizard" },
+          { title: "Empty States", to: "/design-system/blocks/empty-states" },
+          { title: "Permissions", to: "/design-system/blocks/permissions" },
+          { title: "Data Display", to: "/design-system/blocks/data-display" },
         ],
       },
       {

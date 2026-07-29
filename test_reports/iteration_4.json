@@ -1,0 +1,30 @@
+{
+  "summary": "Frontend-only verification of the 3 new pages under Sample Blocks (Empty States, Permissions, Data Display) plus a light DataTable regression. All acceptance criteria from the review request pass; no console/runtime errors detected.",
+  "backend_issues": { "critical": [], "minor": [] },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "tests_executed": [
+    "EmptyStatesBlockPage: all 6 cards render (es-card-no-data, es-card-no-results, es-card-first-time, es-card-forbidden, es-card-offline, es-card-error); icons + titles + descriptions present; action buttons present with correct labels (Add item / Clear filters / Create your first item / Retry / Try again); forbidden card has no action button.",
+    "PermissionsBlockPage: default role Admin. Verified all 4 cards across Admin -> Viewer -> Member -> Admin transitions: perm-hide-action visible only for Admin (removed from DOM otherwise); perm-disable-action enabled only for Admin, disabled for Member/Viewer (wrapped in span[tabindex=0] for tooltip); perm-readonly-input editable for Admin/Member, readOnly for Viewer; perm-forbidden-content shown for Admin/Member, perm-forbidden-empty shown for Viewer.",
+    "DataDisplayBlockPage: dd-table renders 3 rows; Amount/Growth/Units columns are text-right; Row 2 negative amount (-320) and growth (-0.045) render with text-destructive class; Row 3 nil fields (amount, growth, units, created, active) render as em dash '—'; Status badges render exactly Active/Inactive/Pending.",
+    "Sidebar: 'Sample Blocks' group lists Empty States, Permissions, Data Display; links navigate correctly; breadcrumb 'Design System > Sample Blocks > <Page>' updates on each page.",
+    "Regression: /design-system/layouts/datatable filter typed 'zzzzznotfoundxxx' -> dt-empty-filtered and dt-clear-filters both render (count=1)."
+  ],
+  "console_errors": 0,
+  "test_report_links": [],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "EmptyState composite is clean, uses shadcn Empty primitive and lucide icons; testid override supported. No issues.",
+    "PermissionsBlockPage correctly wraps the disabled Button in a span[tabindex=0] so the Tooltip can still trigger for non-admins (matches note in review request).",
+    "DataDisplayBlockPage uses tabular-nums + text-right on numeric columns and delegates nil handling to lib/format helpers — good separation of concerns."
+  ],
+  "updated_files": [],
+  "success_rate": { "backend": "n/a (skipped)", "frontend": "100%" },
+  "seed_data_creation": "none",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "All 3 new pages (empty-states, permissions, data-display) verified end-to-end with data-testid selectors. Permissions covered all 3 roles. DataTable filter empty-state regression still works. If iterating further, target Sample Charts pages (not touched this iteration)."
+}

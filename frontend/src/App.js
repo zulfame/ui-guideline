@@ -16,6 +16,9 @@ import LoginBlockPage from "@/pages/blocks/LoginBlockPage";
 import ForgotBlockPage from "@/pages/blocks/ForgotBlockPage";
 import ProfileBlockPage from "@/pages/blocks/ProfileBlockPage";
 import WizardBlockPage from "@/pages/blocks/WizardBlockPage";
+import EmptyStatesBlockPage from "@/pages/blocks/EmptyStatesBlockPage";
+import PermissionsBlockPage from "@/pages/blocks/PermissionsBlockPage";
+import DataDisplayBlockPage from "@/pages/blocks/DataDisplayBlockPage";
 import AreaChartsPage from "@/pages/charts/AreaChartsPage";
 import BarChartsPage from "@/pages/charts/BarChartsPage";
 import LineChartsPage from "@/pages/charts/LineChartsPage";
@@ -78,6 +81,18 @@ function App() {
           <Route
             path="/design-system/blocks/wizard"
             element={<WizardBlockPage />}
+          />
+          <Route
+            path="/design-system/blocks/empty-states"
+            element={<EmptyStatesBlockPage />}
+          />
+          <Route
+            path="/design-system/blocks/permissions"
+            element={<PermissionsBlockPage />}
+          />
+          <Route
+            path="/design-system/blocks/data-display"
+            element={<DataDisplayBlockPage />}
           />
           <Route
             path="/design-system/charts/area"
