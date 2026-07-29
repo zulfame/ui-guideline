@@ -210,7 +210,7 @@ konten generik, monochrome-first.
 
 **2. Margin** — Hindari margin untuk ritme layout; pakai `gap`/`space-y` pada induk. Margin hanya untuk nudge lokal (mis. `-ml-1` pada `SidebarTrigger`, `mt-6` catatan auth). Jangan campur margin + gap untuk ritme yang sama.
 
-**3. Padding** — Kontainer konten `p-4` → `lg:p-6`. Card/Dialog/Sheet `p-6`. Panel auth `p-10` → `xl:p-14`. Field kecil ikut default komponen (jangan tambah padding manual).
+**3. Padding** — Kontainer konten `p-4` → `lg:p-6`. Card & Dialog memakai section `px-6 py-4` (header/body/footer; lihat 2B.8 & 2B.10). Sheet `p-6`. Panel auth `p-10` → `xl:p-14`. Field kecil ikut default komponen (jangan tambah padding manual).
 
 **4. Gap (Flex & Grid)** — Klaster kontrol inline `gap-2` (ikon+teks, header). Grid kartu/section `gap-4`. Internal Dialog/Sheet `gap-4`. Grup padat `gap-1` (menu sidebar).
 
@@ -249,7 +249,7 @@ konten generik, monochrome-first.
 **21. Density (Comfortable / Compact)** — Default = **Compact** (kontrol `h-9`, sel tabel `p-2`, `FormItem space-y-2`). Mode "Comfortable" **dicadangkan** (belum aktif). Jangan pakai spacing longgar (`space-y-8`+) di luar hero/auth.
 
 **22. Spacing Do's & Don'ts**
-- **Do:** pakai skala 4px; ritme via `gap`/`space-y` induk; `p-6` konsisten untuk Card/Dialog/Sheet; root halaman `space-y-6`.
+- **Do:** pakai skala 4px; ritme via `gap`/`space-y` induk; Sheet `p-6`, Card/Dialog section `px-6 py-4`; root halaman `space-y-6`.
 - **Don't:** nilai `px` arbitrer (kecuali konstanta terdokumentasi); campur `margin`+`gap` untuk ritme sama; padding bersarang berlebih (div ber-padding di dalam Card ber-padding); `space-y` + `gap` pada kontainer yang sama; `m-*` untuk ritme global.
 
 **Tambahan (khusus sistem ini):**
@@ -425,7 +425,8 @@ Konten UI **generik** (memperluas R25/R27/R31; ukuran teks lihat 2A):
 
 Urutan komposisi kanonik (jangan mengarang urutan lain; hanya anak terdokumentasi):
 
-- **Card:** `Card > CardHeader(CardTitle[, CardDescription]) > CardContent [> CardFooter]` (`p-6`). Konsep **header/body/footer** dipisah divider token: `border-b` pada header, `border-t` pada footer.
+- **Card:** `Card > CardHeader(CardTitle[, CardDescription]) > CardContent [> CardFooter]`. Section `px-6 py-4`. Konsep **header/body/footer** dipisah divider token: `border-b` pada header, `border-t` pada footer.
+- **Dialog:** `DialogContent(p-0) > DialogHeader(border-b) > body(px-6 py-4) > DialogFooter(border-t)`. Konsep **header/body/footer** identik Card (section `px-6 py-4`, divider token, monochrome).
 - **Form:** `Form > FormField > FormItem(FormLabel, FormControl, [helper], FormMessage) …> Button submit` (`space-y-5`).
 - **Dialog:** `Dialog > (DialogTrigger) + DialogContent(DialogHeader(DialogTitle, DialogDescription), body, [DialogFooter])`.
 - **Toolbar:** `flex items-center justify-between gap-2` (kiri: search/filter; kanan: actions).
@@ -529,3 +530,4 @@ Setiap kali membangun UI baru:
 | Update 28 | **Card → konsep header/body/footer (uji reusability).** Primitive tunggal `ui/card.jsx` diubah: `CardHeader` +`border-b border-border` (pemisah header↔body), `CardContent` `p-6 pt-0`→`p-6`, `CardFooter` +`border-t border-border` (pemisah body↔footer). Semua warna tetap **monochrome token** (referensi gambar hanya acuan struktur, bukan warna biru). Perubahan **satu file** otomatis terpropagasi ke seluruh Card di app (Login, Components, Form Elements, Form Layout, ChartCard, Widget) — **membuktikan reusability**. Docs disinkronkan: 1.1 (baris `card`), 2B.8 (Card Spacing), 2C.11 (Composition). Diverifikasi via screenshot (4 halaman render, divider tampil, 0 error). |
 | Update 29 | **Card spacing dirapatkan ke Compact.** Update 28 sempat memakai `p-6` penuh per section → batas divider jadi 48px (terlalu lega, melanggar R03 Compact). Diperbaiki: `CardHeader/Content/Footer` → **`px-6 py-4`** (horizontal 24px, vertikal 16px; keduanya kelipatan-4) sambil mempertahankan divider `border-b`/`border-t`. Docs 2B.8 disinkronkan. Typography (title `text-base`, body `text-sm`) & warna monochrome tetap sesuai. |
 | Update 30 | **Aturan keras baru: R38 — Component Modification Invariants (Non-Negotiable).** Dipicu insiden Update 28→29 (spacing sempat longgar saat modifikasi Card). Ditambah **R38** di registry aturan `DESIGN_SYSTEM.md`: setiap modifikasi komponen `ui/`/`composite` wajib menjaga Compact/2B, Typography/2A, warna token-only (R06/R29 — gambar referensi = acuan struktur, bukan warna), density, + verifikasi dampak ke semua konsumen (min. 2–3 halaman). Disinkronkan ke `DESIGN_SYSTEM_RULES.md`: **Bagian 8** (kontrak non-negotiable, merujuk R38 sebagai SSOT) + 1 item **Checklist Bagian 7**. |
+| Update 31 | **Dialog → konsep header/body/footer (selaras Card, patuh R38).** `ui/dialog.jsx`: `DialogContent` `p-6 gap-4`→`p-0 gap-0`; `DialogHeader` +`border-b border-border px-6 py-4`; `DialogFooter` +`border-t border-border px-6 py-4 gap-2`. Body dibungkus `px-6 py-4` oleh konsumen. Compact (py-4), monochrome, tanpa perubahan typography. Konsumen disesuaikan: `ComponentsPage.jsx` (wrapper body preview) & preview `Dialog` di `componentPreviews.jsx` (tambah body placeholder). `command.jsx` (CommandDialog) sudah `p-0` (aman); `alert-dialog.jsx` primitive terpisah (di luar scope). Docs disinkronkan: 2B.3/2B.4/2B.10, Do-list, 2C.11 (+baris Dialog). **Verifikasi R38 (2 konsumen):** outer preview dialog & sample dialog render header↔body↔footer ber-divider; 0 console error. |

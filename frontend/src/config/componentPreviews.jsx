@@ -513,6 +513,9 @@ export const componentPreviews = {
           <DialogTitle>Dialog Title</DialogTitle>
           <DialogDescription>Placeholder dialog description.</DialogDescription>
         </DialogHeader>
+        <div className="px-6 py-4 text-sm text-muted-foreground">
+          Placeholder dialog body content.
+        </div>
         <DialogFooter>
           <DialogClose asChild>
             <Button variant="outline">Close</Button>

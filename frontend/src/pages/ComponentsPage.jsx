@@ -189,15 +189,17 @@ export default function ComponentsPage() {
             </DialogDescription>
           </DialogHeader>
 
-          <div
-            className="flex min-h-[160px] items-center justify-center overflow-auto rounded-md border bg-background p-6"
-            data-testid="component-preview-body"
-          >
-            {previewNode ?? (
-              <p className="text-sm text-muted-foreground">
-                This component is not yet available in the design system.
-              </p>
-            )}
+          <div className="px-6 py-4">
+            <div
+              className="flex min-h-[160px] items-center justify-center overflow-auto rounded-md border bg-background p-6"
+              data-testid="component-preview-body"
+            >
+              {previewNode ?? (
+                <p className="text-sm text-muted-foreground">
+                  This component is not yet available in the design system.
+                </p>
+              )}
+            </div>
           </div>
         </DialogContent>
       </Dialog>
