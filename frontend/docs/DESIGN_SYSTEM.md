@@ -169,6 +169,7 @@ konten generik, monochrome-first.
 | R36 | **Routing** | React Router: layout route induk (`AppLayout` + `<Outlet />`) membungkus halaman; halaman auth standalone (`/login`); redirect root & fallback (`*`) terdefinisi; login sukses → `/`. Rute chart per-tipe → halaman masing-masing. |
 | R37 | **Dependency Exception** | Library non-shadcn yang **diizinkan** (dependency resmi/pendukung). **Global:** **lucide-react** (ikon, R09), **recharts@2.15.4** (chart, R33). **Terikat komponen (hanya boleh dipakai composite terkait di 1.4):** `@tanstack/react-table` (Data Table & Data Grid), `react-syntax-highlighter` (Code Block), `react-markdown`+`remark-gfm` (Markdown), `react-phone-number-input` (Phone Input), `react-imask` (Input Mask), `@dnd-kit/core`+`@dnd-kit/sortable`+`@dnd-kit/utilities` (Kanban & Sortable). Setiap dependency **tidak boleh menyebar** ke luar komponennya. Di luar daftar ini, library UI/komponen lain **dilarang** tanpa persetujuan. |
 | R38 | **Component Modification Invariants** (Non-Negotiable) | Karena komponen **reusable** (satu sumber → perubahan menyebar ke semua konsumen), setiap modifikasi pada `src/components/ui/` atau `src/components/composite/` **WAJIB** menjaga invarian berikut; melanggarnya = **regresi**: (a) **Compact/Spacing (2B)** — dilarang menambah whitespace; padding/margin tetap kelipatan-4 & seringkas mungkin; jangan menukar kepadatan demi tampilan. (b) **Typography (2A)** — skala ukuran & weight tidak berubah. (c) **Warna = token saja (R06/R29)** — gambar referensi hanya acuan **struktur/layout**, **bukan** warna; tetap monochrome, tanpa warna hardcode. (d) **Density** — ukuran kontrol (tombol/input) tetap compact. (e) **Verifikasi dampak menyeluruh** — sebelum menyatakan selesai, cek minimal 2–3 halaman konsumen (mis. Login, Components, Sample Layout). |
+| R39 | **Compact Density — Semua UI (Non-Negotiable)** | Memperluas R03/R38 agar berlaku **tidak hanya saat memodifikasi komponen**, tetapi juga saat **membuat halaman/blok/section baru**. Setiap UI baru WAJIB compact sejak awal. **Tabel keputusan `space-y` (WAJIB, lihat 2B.5):** **root halaman** (`<div data-testid="*-page">`) = `space-y-6`; **antar-section besar** = `space-y-6`; **di dalam `CardContent`** = `space-y-5` (form/section) atau `space-y-4` (umum) — **`space-y-6` DILARANG di dalam Card**; **grup field/rapat** = `space-y-2`/`space-y-3`. **Batas density lain:** avatar profil `h-12 w-12` (jangan `h-16`), grid form `gap-4` (jangan `gap-5`), Card section `px-6 py-4`. **Sebelum finish**, jalankan **guard** `docs/design-guard.sh` (2C.14) + **Checklist Compact** (`DESIGN_SYSTEM_RULES.md` §7). Nilai `px` arbitrer & whitespace berlebih = **regresi**. |
 
 ---
 
@@ -220,6 +221,18 @@ konten generik, monochrome-first.
 **4. Gap (Flex & Grid)** — Klaster kontrol inline `gap-2` (ikon+teks, header). Grid kartu/section `gap-4`. Internal Dialog/Sheet `gap-4`. Grup padat `gap-1` (menu sidebar).
 
 **5. Section Spacing** — Ritme antar-section di root halaman **`space-y-6`** (24px) — wajib di setiap page root. Hero/auth boleh `space-y-8`.
+
+> **TABEL KEPUTUSAN `space-y` (SSOT — hafalkan sebelum menulis layout, R39):**
+>
+> | Konteks | Kelas WAJIB | Contoh |
+> |---|---|---|
+> | Root halaman (`<div data-testid="*-page">`) | **`space-y-6`** | wrapper terluar setiap page |
+> | Antar-section besar di root | **`space-y-6`** | section "Layer 1" vs "Layer 2" |
+> | **Isi `CardContent`** (form/section) | **`space-y-5`** | field-stack di dalam Card |
+> | **Isi `CardContent`** (umum/non-form) | **`space-y-4`** | blok konten di dalam Card |
+> | Grup terkait / rapat | **`space-y-3`** / **`space-y-2`** | baris preferensi, label+control |
+>
+> ❌ **`space-y-6` DILARANG di dalam `CardContent`/`CardHeader`/`CardFooter`** — itu ritme **root halaman**, bukan isi Card. Salah-pakai ini = penyebab UI "tidak compact" (insiden Update 45–46).
 
 **6. Component Spacing** — Tumpukan komponen terkait `space-y-4`; grup rapat `space-y-2`.
 
@@ -473,6 +486,28 @@ baru → buat Page Specification lebih dulu**, lalu implementasi. **Template acu
 - **Temuan & perbaikan:** baris `card` sebelumnya terdaftar **dua kali** di 1.1 → **disatukan** menjadi satu baris (SSOT).
 - **Aturan:** setiap primitive/pattern **hanya satu baris** di registry. Sebelum menambah, **cek keberadaan**; jangan membuat entri ganda. Daftar ⚪ (available) dan baris ✅ tidak boleh memuat komponen yang sama.
 
+## 2C.14 Compact Guard (pemeriksaan otomatis — WAJIB sebelum finish)
+
+Untuk mencegah UI longgar lolos (insiden Update 45–46), tersedia skrip grep
+**`docs/design-guard.sh`** yang men-scan `src/` dan **gagal (exit 1)** bila menemukan
+anti-pattern. **WAJIB dijalankan & lolos sebelum menyatakan selesai** (R39).
+
+```bash
+bash frontend/docs/design-guard.sh
+```
+
+Anti-pattern yang dideteksi (semua = **regresi**):
+- `space-y-6` **di dalam** `CardHeader/CardContent/CardFooter` (harus `space-y-5`/`space-y-4`).
+- Warna hardcode Tailwind (`bg-white`, `text-black`, `bg-blue-500`, dll) & hex literal → pakai token (R05/R06).
+- Emoji sebagai ikon → pakai `lucide-react` (R09).
+- Avatar profil `h-16 w-16`+ (density; pakai `h-12 w-12`).
+- `gap-5` / `space-y-7`/`space-y-8` di luar konteks auth/hero.
+
+> Guard bersifat **heuristik** (bukan pengganti review), tetapi menangkap 90% kasus
+> "tidak compact"/warna hardcode secara cepat. Jika sebuah temuan memang disengaja &
+> terdokumentasi (mis. panel auth `p-10`), kecualikan lewat komentar & catat di Changelog.
+
+
 ---
 
 
@@ -552,3 +587,4 @@ Setiap kali membangun UI baru:
 | Update 44 | **Composite Phone Input dirombak (pola "Phone Input 1").** `PhoneInputField.jsx` dibangun ulang di atas `react-phone-number-input` low-level dgn komponen shadcn: **country selector** = `Popover`+`Command` (search "e.g. United States" + daftar scrollable **bendera + nama + kode negara** dari `react-phone-number-input/flags` & `getCountryCallingCode`, ikon `Check` untuk terpilih) yang **digabung** dgn Input nomor (`rounded-e-none`/`rounded-s-none`). Sesuai permintaan user: **trigger menampilkan KODE negara (mis. `+1`), bukan bendera**. Format input **nasional** (mis. `(201) 555-0123`) agar tak duplikat kode; nilai tersimpan tetap E.164. Dependency `react-phone-number-input` tetap terikat composite ini (R37). **Verifikasi via screenshot (dialog preview Components):** trigger `+1`, dropdown bendera+nama+kode, input format nasional; 0 console error. |
 | Update 45 | **Profile block dirapatkan ke ritme compact (R03/2B).** Feedback user: UI terasa longgar. `ProfileBlockPage.jsx`: `CardContent` `space-y-6`→**`space-y-5`**, Avatar `h-16 w-16`→**`h-12 w-12`** (fallback `text-base`→`text-sm`), grid name/email `gap-5`→**`gap-4`**. Semua tetap 4px-grid, monochrome, typography & fungsi (unsaved-changes) tak berubah. Diverifikasi via screenshot. |
 | Update 46 | **Wizard block dirapatkan + aturan compact diperketat (cegah kambuh).** Audit pemicu feedback user: `WizardBlockPage.jsx` `CardContent` masih `space-y-6` (longgar) → **`space-y-5`**. **Akar masalah:** `space-y-6` dipakai di dalam Card, padahal `space-y-6` khusus **root halaman** (2B.5). **Perbaikan aturan:** **2B.8 Card Spacing** kini memuat **INVARIAN wajib** — stacking di dalam `CardContent` = `space-y-5`/`space-y-4`, **`space-y-6` DILARANG di dalam Card**, berlaku juga untuk **halaman/blok baru**. Audit menyeluruh: seluruh `space-y-6` lain adalah **root `-page`** (benar) & 2 `<section>` di DesignTokens (tingkat page, dibiarkan). Diverifikasi via screenshot. |
+| Update 47 | **Governance diperkuat + guard otomatis (cegah insiden compact terulang).** Atas permintaan user setelah insiden Update 45–46. (a) **Aturan formal baru `R39` — "Compact Density — Semua UI (Non-Negotiable)"** di registry `DESIGN_SYSTEM.md`: memperluas R03/R38 agar berlaku untuk **halaman/blok/section baru**, bukan hanya modifikasi komponen. (b) **Tabel Keputusan `space-y` (SSOT)** ditambah di **2B.5**: root/section = `space-y-6`; isi `CardContent` = `space-y-5`/`space-y-4`; **`space-y-6` DILARANG di dalam Card**. (c) **`docs/design-guard.sh`** — skrip grep heuristik yang men-scan kode fitur (pages/composite/layout; kecualikan `ui/` primitive & file preview/katalog) untuk anti-pattern: space-y-6-di-Card, warna hardcode, hex, emoji, avatar oversize, gap-5; **gagal (exit 1)** bila ada pelanggaran. Didokumentasikan di **2C.14** (wajib lolos sebelum finish). (d) **`DESIGN_SYSTEM_RULES.md`** ditambah: 2 item Checklist §7 (COMPACT + GUARD), **Bagian 9** (Compact Density + tabel `space-y`), **Bagian 10** (Panduan Kepatuhan Agen: baca-dulu → tiru pola → tanya root/Card saat menulis → jalankan guard + checklist sebelum finish → lapor bila ragu → `// guard-allow` untuk pengecualian terdokumentasi). **Verifikasi:** `design-guard.sh` dijalankan → **clean (exit 0)** setelah perbaikan Profile & Wizard. |

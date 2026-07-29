@@ -150,6 +150,11 @@ Data Grid, Code Block, Markdown, Phone Input, Input Mask, Kanban, Sortable. Comp
 - [ ] Modifikasi komponen di `ui/`/`composite` menjaga invarian (Compact/2B,
       Typography/2A, warna token-only, density) & dampaknya sudah diverifikasi ke
       semua konsumen — **R38**.
+- [ ] **COMPACT (R39):** `space-y` sudah sesuai Tabel Keputusan (2B.5) — **`space-y-6`
+      HANYA di root halaman, DILARANG di dalam `CardContent/Header/Footer`** (pakai
+      `space-y-5`/`space-y-4`). Avatar profil `h-12 w-12`, grid form `gap-4`.
+- [ ] **GUARD:** `bash frontend/docs/design-guard.sh` sudah dijalankan & **lolos (exit 0)**
+      (2C.14). Berlaku untuk **halaman/blok baru**, bukan hanya modifikasi komponen.
 
 ---
 
@@ -163,3 +168,60 @@ Sebelum selesai, **verifikasi dampak ke semua konsumen** (min. 2–3 halaman).
 Menukar compact demi fitur visual = **pelanggaran / regresi**.
 
 > Definisi lengkap & otoritatif (SSOT): **R38** pada `DESIGN_SYSTEM.md`.
+
+---
+
+## 9. Aturan Compact Density — SEMUA UI (Non-Negotiable)
+
+Memperluas Bagian 8 (R38) agar berlaku **tidak hanya saat memodifikasi komponen**,
+tetapi juga saat **membuat halaman / blok / section baru**. Insiden Update 45–46
+(UI Profile & Wizard terasa longgar) terjadi karena `space-y-6` dipakai **di dalam
+Card** — padahal itu ritme **root halaman**.
+
+**Tabel Keputusan `space-y` (WAJIB dihafal — SSOT di 2B.5 / R39):**
+
+| Konteks | Kelas WAJIB |
+|---|---|
+| Root halaman (`<div data-testid="*-page">`) | `space-y-6` |
+| Antar-section besar di root | `space-y-6` |
+| **Isi `CardContent`** (form/section) | **`space-y-5`** |
+| **Isi `CardContent`** (umum) | **`space-y-4`** |
+| Grup terkait / rapat | `space-y-3` / `space-y-2` |
+
+❌ **`space-y-6` DILARANG di dalam `CardContent/CardHeader/CardFooter`.**
+Density lain: avatar profil `h-12 w-12` (bukan `h-16`), grid form `gap-4` (bukan `gap-5`),
+Card section `px-6 py-4`. Nilai `px` arbitrer & whitespace berlebih = **regresi**.
+
+> SSOT: **R39** + **2B.5/2B.8** pada `DESIGN_SYSTEM.md`.
+
+---
+
+## 10. Panduan Kepatuhan Agen (agar aturan dimengerti & ditaati)
+
+Alur kerja **wajib** setiap kali menyentuh UI — dirancang agar aturan tidak "lolos" lagi:
+
+1. **BACA DULU (sebelum menulis kode):**
+   - Tabel Keputusan `space-y` (Bagian 9 / 2B.5) — ini penyebab #1 insiden.
+   - Registry komponen (Bagian 5) — jangan bikin primitive baru.
+   - `DESIGN_SYSTEM.md` §2A/2B/2C untuk pola yang relevan dengan task.
+
+2. **TIRU pola yang ada (jangan mulai dari nol):** salin struktur halaman/kartu dari
+   file sejenis yang sudah patuh (mis. `FormElementsPage.jsx`, `FormLayoutPage.jsx`),
+   lalu ganti isinya. Ini otomatis membawa spacing/typography yang benar.
+
+3. **SAAT MENULIS:** untuk setiap `space-y-*`, tanyakan "ini root halaman atau isi Card?"
+   → root = `space-y-6`, isi Card = `space-y-5`/`space-y-4`. Warna hanya token. Ikon hanya
+   `lucide-react`. Konten generik.
+
+4. **SEBELUM SELESAI (Definition of Done):**
+   - Jalankan **`bash frontend/docs/design-guard.sh`** → harus **lolos (exit 0)**.
+   - Centang **Checklist Bagian 7** (termasuk item COMPACT & GUARD).
+   - Verifikasi visual via screenshot (halaman baru) atau ≥2–3 konsumen (modifikasi komponen, R38).
+
+5. **JIKA RAGU / DI LUAR REGISTRY:** BERHENTI & lapor (Bagian 4). Jangan berimprovisasi.
+
+6. **PENGECUALIAN yang disengaja:** tandai baris dengan komentar `// guard-allow` **dan**
+   catat alasannya di Changelog `DESIGN_SYSTEM.md`. Tanpa keduanya, guard menganggap regresi.
+
+> Prinsip: *"Compact by default, verify by guard."* Aturan yang tidak diperiksa otomatis
+> akan terlewat — maka **guard + checklist adalah bagian dari Definition of Done**, bukan opsional.
