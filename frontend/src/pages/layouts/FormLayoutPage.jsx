@@ -88,17 +88,17 @@ export default function FormLayoutPage() {
           <Form {...form}>
             <form
               onSubmit={form.handleSubmit(onSubmit)}
-              className="space-y-8"
+              className="space-y-6"
               noValidate
               data-testid="form-layout-form"
             >
               {/* Section One */}
-              <div className="space-y-5">
+              <div className="space-y-4">
                 <SectionHeader
                   title="Personal Information"
                   description="Basic identity details."
                 />
-                <div className="grid gap-5 sm:grid-cols-2">
+                <div className="grid gap-4 sm:grid-cols-2">
                   <FormField
                     control={form.control}
                     name="firstName"
@@ -173,7 +173,7 @@ export default function FormLayoutPage() {
               <Separator />
 
               {/* Section Two */}
-              <div className="space-y-5">
+              <div className="space-y-4">
                 <SectionHeader
                   title="Preferences"
                   description="Optional details and settings."
