@@ -55,13 +55,12 @@ Bahasa komunikasi user: **Bahasa Indonesia**.
   - **Submenu "Composite Component" diisi 15 komponen** (halaman tabel `CompositeComponentsPage.jsx` + `config/compositePreviews.jsx`; komponen di `src/components/composite/`). Semua Established, generik, monochrome:
     - **Tanpa dep (9):** Autocomplete, Rating, Stepper, List, Cookie Banner, Preloader, Widget, Placeholder, Data Grid.
     - **Dengan dep baru (6):** Code Block (`react-syntax-highlighter`), Markdown (`react-markdown`+`remark-gfm`), Phone Input (`react-phone-number-input`), Input Mask (`react-imask`), Kanban & Sortable (`@dnd-kit/*`).
-  - Compile sukses (0 error webpack). ⚠️ **Verifikasi visual (screenshot/testing_agent) TERTUNDA** karena gangguan tool platform saat sesi ini — perlu di-retest saat tool pulih.
+  - Compile sukses (0 error webpack). ✅ **Verifikasi visual selesai** — 15/15 Composite + Message Scroller render benar via screenshot (0 console error), diuji bertahap sesuai permintaan user.
 
 ## Changes in Tech Stack
 - Dependency baru terpasang (disetujui user, R37): `react-syntax-highlighter`, `react-markdown`, `remark-gfm`, `react-phone-number-input`, `react-imask`, `@dnd-kit/core`, `@dnd-kit/sortable`, `@dnd-kit/utilities`.
 
 ## Backlog / Remaining
-- **P1 (pending verifikasi)**: Uji visual + testing_agent untuk 15 Composite Components & Message Scroller (tertunda karena gangguan tool platform).
 - **P2**: Global form-level Alert untuk empty state / "No Data Available".
 - **P2**: Dark mode toggle.
 - **P3**: "Reduced Motion" accessibility handling.
