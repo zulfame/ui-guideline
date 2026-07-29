@@ -24,6 +24,9 @@ import {
   useReactTable,
 } from "@tanstack/react-table";
 import { toast } from "sonner";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 
 import { cn } from "@/lib/utils";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -37,6 +40,33 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -64,13 +94,149 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
-const DATA = Array.from({ length: 24 }).map((_, i) => ({
+const INITIAL_DATA = Array.from({ length: 24 }).map((_, i) => ({
   id: i + 1,
   name: `Item ${i + 1}`,
   email: `item${i + 1}@example.com`,
   role: ["Admin", "Member", "Viewer"][i % 3],
   status: i % 4 === 0 ? "Inactive" : "Active",
 }));
+
+const ROLES = ["Admin", "Member", "Viewer"];
+const STATUSES = ["Active", "Inactive"];
+
+// CRUD form schema (create + edit share the same shape).
+const userSchema = z.object({
+  name: z.string().min(1, "Name is required"),
+  email: z.string().min(1, "Email is required").email("Enter a valid email"),
+  role: z.string().min(1, "Please select a role"),
+  status: z.string().min(1, "Please select a status"),
+});
+
+const EMPTY_USER = { name: "", email: "", role: "", status: "Active" };
+
+// Add/Edit user dialog (header/body/footer divider pattern, rhf+zod).
+function UserFormDialog({ open, onOpenChange, mode, initialValues, onSubmit }) {
+  const form = useForm({ resolver: zodResolver(userSchema), defaultValues: initialValues });
+
+  useEffect(() => {
+    if (open) form.reset(initialValues);
+  }, [open, initialValues, form]);
+
+  const submit = (data) => {
+    onSubmit(data);
+    onOpenChange(false);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md" data-testid="user-form-dialog">
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(submit)} noValidate>
+            <DialogHeader>
+              <DialogTitle>{mode === "edit" ? "Edit User" : "Add User"}</DialogTitle>
+              <DialogDescription>
+                {mode === "edit"
+                  ? "Update the user details below."
+                  : "Create a new user account. All fields are required."}
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4 px-6 py-4">
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Full name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Jane Doe" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email</FormLabel>
+                    <FormControl>
+                      <Input type="email" placeholder="name@example.com" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <div className="grid gap-4 sm:grid-cols-2">
+                <FormField
+                  control={form.control}
+                  name="role"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Role</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select role" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {ROLES.map((r) => (
+                            <SelectItem key={r} value={r}>
+                              {r}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="status"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Status</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select status" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {STATUSES.map((s) => (
+                            <SelectItem key={s} value={s}>
+                              {s}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            </div>
+
+            <DialogFooter>
+              <DialogClose asChild>
+                <Button type="button" variant="outline" data-testid="user-form-cancel">
+                  Cancel
+                </Button>
+              </DialogClose>
+              <Button type="submit" data-testid="user-form-submit">
+                {mode === "edit" ? "Save changes" : "Save user"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </Form>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 // Row density presets (Data Table 1 pattern). Default = compact (R39).
 const DENSITY = {
@@ -201,7 +367,7 @@ const columns = [
   {
     id: "actions",
     header: () => <span className="sr-only">Actions</span>,
-    cell: ({ row }) => (
+    cell: ({ row, table }) => (
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
@@ -214,16 +380,16 @@ const columns = [
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuItem onClick={() => toast("View", { description: row.original.name })}>
+          <DropdownMenuItem onClick={() => table.options.meta.onView(row.original)}>
             <Eye className="size-4" /> View
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => toast("Edit", { description: row.original.name })}>
+          <DropdownMenuItem onClick={() => table.options.meta.onEdit(row.original)}>
             <Pencil className="size-4" /> Edit
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem
             className="text-destructive focus:text-destructive"
-            onClick={() => toast("Delete", { description: row.original.name })}
+            onClick={() => table.options.meta.onDelete(row.original)}
           >
             <Trash2 className="size-4" /> Delete
           </DropdownMenuItem>
@@ -243,14 +409,41 @@ export default function DataTableLayoutPage() {
     () => localStorage.getItem("dt-density") || "compact",
   );
 
+  // CRUD state (local only — no backend persistence).
+  const [rows, setRows] = useState(INITIAL_DATA);
+  const [dialog, setDialog] = useState({ open: false, mode: "add", user: EMPTY_USER });
+  const [deleteTarget, setDeleteTarget] = useState(null);
+
   useEffect(() => {
     localStorage.setItem("dt-density", density);
   }, [density]);
 
+  const openAdd = () => setDialog({ open: true, mode: "add", user: EMPTY_USER });
+  const openEdit = (user) => setDialog({ open: true, mode: "edit", user });
+
+  const handleSubmit = (data) => {
+    if (dialog.mode === "add") {
+      setRows((prev) => [{ id: Date.now(), ...data }, ...prev]);
+      toast.success("User created", { description: data.email });
+    } else {
+      setRows((prev) =>
+        prev.map((u) => (u.id === dialog.user.id ? { ...u, ...data } : u)),
+      );
+      toast.success("User updated", { description: data.email });
+    }
+  };
+
+  const confirmDelete = () => {
+    setRows((prev) => prev.filter((u) => u.id !== deleteTarget.id));
+    toast.success("User deleted", { description: deleteTarget.name });
+    setDeleteTarget(null);
+  };
+
   const table = useReactTable({
-    data: DATA,
+    data: rows,
     columns,
     state: { sorting, globalFilter, columnFilters, rowSelection },
+    getRowId: (row) => String(row.id),
     onSortingChange: setSorting,
     onGlobalFilterChange: setGlobalFilter,
     onColumnFiltersChange: setColumnFilters,
@@ -260,6 +453,11 @@ export default function DataTableLayoutPage() {
     getFilteredRowModel: getFilteredRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     initialState: { pagination: { pageSize: 8 } },
+    meta: {
+      onView: (u) => toast("View user", { description: `${u.name} · ${u.email}` }),
+      onEdit: openEdit,
+      onDelete: (u) => setDeleteTarget(u),
+    },
   });
 
   const selectedCount = table.getFilteredSelectedRowModel().rows.length;
@@ -278,7 +476,7 @@ export default function DataTableLayoutPage() {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0">
           <CardTitle className="text-base">Users</CardTitle>
-          <Button size="sm" onClick={() => toast("Add item")} data-testid="dt-add">
+          <Button size="sm" onClick={openAdd} data-testid="dt-add">
             <Plus className="size-4" /> Add
           </Button>
         </CardHeader>
@@ -442,6 +640,44 @@ export default function DataTableLayoutPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Create / Edit dialog */}
+      <UserFormDialog
+        open={dialog.open}
+        onOpenChange={(v) => setDialog((d) => ({ ...d, open: v }))}
+        mode={dialog.mode}
+        initialValues={dialog.user}
+        onSubmit={handleSubmit}
+      />
+
+      {/* Delete confirmation */}
+      <AlertDialog
+        open={!!deleteTarget}
+        onOpenChange={(v) => !v && setDeleteTarget(null)}
+      >
+        <AlertDialogContent data-testid="dt-delete-dialog">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete user?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently remove{" "}
+              <span className="font-medium text-foreground">
+                {deleteTarget?.name}
+              </span>
+              . This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-testid="dt-delete-cancel">Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              data-testid="dt-delete-confirm"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
