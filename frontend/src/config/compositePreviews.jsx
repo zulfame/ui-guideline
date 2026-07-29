@@ -13,6 +13,7 @@ import { PhoneInputField } from "@/components/composite/PhoneInputField";
 import { MaskedInput } from "@/components/composite/MaskedInput";
 import { KanbanBoard } from "@/components/composite/KanbanBoard";
 import { SortableList } from "@/components/composite/SortableList";
+import { PasswordInput } from "@/components/composite/PasswordInput";
 
 /**
  * Live previews per composite component. Keyed by the exact `name` used in the
@@ -34,4 +35,9 @@ export const compositePreviews = {
   "Input Mask": <MaskedInput />,
   Kanban: <KanbanBoard />,
   Sortable: <SortableList />,
+  "Password Input": (
+    <div className="w-full max-w-xs">
+      <PasswordInput placeholder="Enter your password" defaultValue="secret123" />
+    </div>
+  ),
 };

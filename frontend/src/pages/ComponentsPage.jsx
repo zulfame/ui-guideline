@@ -50,7 +50,7 @@ const BASE_NAMES = [
 const COMPOSITE_NAMES = [
   "Autocomplete", "Rating", "Stepper", "List", "Cookie Banner", "Preloader",
   "Widget", "Placeholder", "Data Grid", "Code Block", "Markdown", "Phone Input",
-  "Input Mask", "Kanban", "Sortable",
+  "Input Mask", "Kanban", "Sortable", "Password Input",
 ];
 
 const components = [

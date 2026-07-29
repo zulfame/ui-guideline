@@ -28,6 +28,7 @@ import {
   InputOTPSlot,
 } from "@/components/ui/input-otp";
 import { ComboboxPreview, DatePickerPreview } from "@/components/previews/AdvancedPreviews";
+import { PasswordInput } from "@/components/composite/PasswordInput";
 
 function Field({ title, children, testid }) {
   return (
@@ -61,7 +62,7 @@ export default function FormElementsPage() {
         <Field title="Password" testid="fe-password">
           <div className="space-y-2">
             <Label htmlFor="fe-pass">Password</Label>
-            <Input id="fe-pass" type="password" placeholder="••••••••" />
+            <PasswordInput id="fe-pass" placeholder="••••••••" />
           </div>
         </Field>
 

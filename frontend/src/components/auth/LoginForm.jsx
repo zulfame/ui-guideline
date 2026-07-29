@@ -2,11 +2,12 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { AlertCircle, Eye, EyeOff, Loader2 } from "lucide-react";
+import { AlertCircle, Loader2 } from "lucide-react";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/composite/PasswordInput";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Form,
@@ -32,7 +33,6 @@ const DEMO_CREDENTIALS = { email: "user@example.com", password: "password" };
  */
 export const LoginForm = () => {
   const navigate = useNavigate();
-  const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState("");
 
@@ -120,31 +120,13 @@ export const LoginForm = () => {
                   Forgot password?
                 </Button>
               </div>
-              <div className="relative">
-                <FormControl>
-                  <Input
-                    type={showPassword ? "text" : "password"}
-                    autoComplete="current-password"
-                    placeholder="Enter your password"
-                    className="pr-10"
-                    {...field}
-                  />
-                </FormControl>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="absolute right-1 top-1/2 h-7 w-7 -translate-y-1/2 text-muted-foreground hover:bg-transparent hover:text-foreground"
-                  onClick={() => setShowPassword((prev) => !prev)}
-                  aria-label={showPassword ? "Hide password" : "Show password"}
-                >
-                  {showPassword ? (
-                    <EyeOff className="h-4 w-4" aria-hidden="true" />
-                  ) : (
-                    <Eye className="h-4 w-4" aria-hidden="true" />
-                  )}
-                </Button>
-              </div>
+              <FormControl>
+                <PasswordInput
+                  autoComplete="current-password"
+                  placeholder="Enter your password"
+                  {...field}
+                />
+              </FormControl>
               <FormMessage />
             </FormItem>
           )}
