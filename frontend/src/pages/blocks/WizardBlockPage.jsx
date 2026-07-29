@@ -78,7 +78,7 @@ function WizardCard() {
       </CardHeader>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(() => toast.success("Setup complete"))} noValidate>
-          <CardContent className="space-y-6">
+          <CardContent className="space-y-5">
             <div className="mx-auto w-full max-w-md">
               <StepIndicator steps={WIZARD_STEPS} current={step} />
             </div>
