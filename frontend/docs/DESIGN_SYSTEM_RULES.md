@@ -22,9 +22,15 @@
 - ❌ **JANGAN** memodifikasi struktur/perilaku/gaya bawaan komponen shadcn/ui
   (file di `src/components/ui/`) tanpa persetujuan.
 - ❌ **JANGAN** memakai library UI lain (MUI, Ant, Chakra, Bootstrap, Flowbite, dll).
-  - ✅ **Pengecualian yang diizinkan** (dependency resmi/pendukung shadcn): **lucide-react**
-    (ikon) dan **recharts@2.15.4** (data-viz untuk komponen `chart`). Di luar ini,
-    library baru wajib disetujui dulu.
+  - ✅ **Pengecualian yang diizinkan** (dependency resmi/pendukung — SSOT: **R37** di `DESIGN_SYSTEM.md`):
+    - **Global:** `lucide-react` (ikon), `recharts@2.15.4` (chart).
+    - **Terikat komponen** (hanya boleh dipakai composite terkait di Registry 1.4):
+      `@tanstack/react-table` (Data Table & Data Grid), `react-syntax-highlighter` (Code Block),
+      `react-markdown`+`remark-gfm` (Markdown), `react-phone-number-input` (Phone Input),
+      `react-imask` (Input Mask), `@dnd-kit/core`+`@dnd-kit/sortable`+`@dnd-kit/utilities`
+      (Kanban & Sortable).
+    - Setiap dependency **tidak boleh menyebar** ke luar komponennya. Di luar daftar ini,
+      library baru **wajib disetujui** dulu.
 - ❌ **JANGAN** memakai elemen HTML mentah untuk hal yang sudah punya komponen
   (mis. `<button>`, `<input>`, `<select>` mentah) — pakai komponen shadcn/ui.
 - ✅ Elemen HTML semantik **boleh** dipakai hanya untuk struktur/layout
@@ -97,14 +103,24 @@ Dokumentasi resmi acuan: https://ui.shadcn.com/docs/components
 Sumber: `src/components/ui/`. Hanya komponen di bawah ini yang dianggap
 "tersedia" di design system:
 
-accordion, alert, alert-dialog, aspect-ratio, avatar, badge, breadcrumb, button,
-calendar, card, carousel, checkbox, collapsible, command, context-menu, dialog,
-drawer, dropdown-menu, form, hover-card, input, input-otp, label, menubar,
-navigation-menu, pagination, popover, progress, radio-group, resizable,
-scroll-area, select, separator, sheet, skeleton, slider, sonner (toast), switch,
-table, tabs, textarea, toast, toaster, toggle, toggle-group, tooltip.
+accordion, alert, alert-dialog, aspect-ratio, attachment, avatar, badge, breadcrumb,
+bubble, button, button-group, calendar, card, carousel, chart, checkbox, collapsible,
+command, context-menu, dialog, drawer, dropdown-menu, empty, field, form, hover-card,
+input, input-group, input-otp, item, kbd, label, marker, menubar, message,
+message-scroller, native-select, navigation-menu, pagination, popover, progress,
+radio-group, resizable, scroll-area, select, separator, sheet, sidebar, skeleton,
+slider, sonner (toast), spinner, switch, table, tabs, textarea, toast, toaster,
+toggle, toggle-group, tooltip, typography.
+
+**Base Components: 61/61 Established** — semua primitive punya preview live di halaman
+"Base Components".
 
 Ikon: **lucide-react** (diperbolehkan). Dilarang memakai emoji sebagai ikon.
+
+**Composite Components** (`src/components/composite/`, terdaftar di halaman "Composite Component" &
+Registry 1.4): Autocomplete, Rating, Stepper, List, Cookie Banner, Preloader, Widget, Placeholder,
+Data Grid, Code Block, Markdown, Phone Input, Input Mask, Kanban, Sortable. Composite =
+**komposisi** dari primitives di atas (+ dependency yang diizinkan R37); **bukan** primitive baru.
 
 > Catatan: Komposisi (menggabungkan beberapa komponen di atas menjadi
 > `LoginForm`, `AuthLayout`, halaman, dsb.) **diperbolehkan** dan dianjurkan

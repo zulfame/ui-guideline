@@ -52,7 +52,12 @@ pembuatan primitive baru **dilarang**.
 | accordion | ✅ | Didemokan di preview dialog halaman Components (single, collapsible). |
 | alert-dialog | ✅ | Didemokan di preview dialog halaman Components (nested trigger + confirm/cancel). |
 | aspect-ratio | ✅ | Didemokan di preview dialog halaman Components (rasio 16/9 + surface `bg-muted`). |
-| calendar, carousel, command, context-menu, drawer, hover-card, input-otp, menubar, navigation-menu, pagination, popover, progress, radio-group, resizable, select, slider, switch, tabs, textarea, toggle, toggle-group | ⚪ | Tersedia; daftarkan sebagai ✅ saat pertama kali dipakai. |
+| calendar, carousel, command, context-menu, drawer, hover-card, input-otp, menubar, navigation-menu, pagination, popover, progress, radio-group, resizable, select, slider, switch, tabs, textarea, toggle, toggle-group | ✅ | Established — semua punya preview live di halaman Base Components. |
+| spinner, kbd, empty, button-group, input-group, field, item, native-select, typography | ✅ | Diport & Established (Update 23) dengan preview live. |
+| attachment, bubble, marker, message | ✅ | Chat/AI kit presentational (100% Tailwind + cva, pola shadcn base). Established dengan preview (Update 24). |
+| message-scroller | ✅ | Versi **styled** (tanpa engine `@shadcn/react`): Context lokal + auto-scroll-to-bottom + tombol jump-to-latest. Established (Update 25). |
+
+> **Base Components: 61/61 Established.** Semua primitive shadcn/ui resmi kini diport ke `src/components/ui/` dan memiliki preview live.
 
 Ikon: **lucide-react** — **WAJIB** & satu-satunya sumber ikon (`h-4 w-4` default, `aria-hidden` bila dekoratif). Emoji / SVG kustom / library ikon lain dilarang (Aturan R09).
 
@@ -74,6 +79,7 @@ Ikon: **lucide-react** — **WAJIB** & satu-satunya sumber ikon (`h-4 w-4` defau
 | Background grid decoration | ✅ | overlay `aria-hidden` + radial mask (token) | `AuthLayout` | Panel/hero gelap |
 | Data Table (card-wrapped) + empty state | ✅ | Card + Table (Header/Body/Row/Head/Cell) + kolom No/Name/Action + tombol preview ikon (Eye) + fallback empty-state `colSpan` "No Data Available" | `pages/ComponentsPage.jsx` | Semua tampilan tabular; kolom action `text-right` (ghost icon button) |
 | Component Preview Dialog | ✅ | Dialog + judul (nama + Badge status) + body preview live (`config/componentPreviews.jsx`); fallback "not available"/"not implemented" | `pages/ComponentsPage.jsx` + `config/componentPreviews.jsx` | Preview komponen dari tabel (tombol Eye) |
+| Composite Components Table + Dialog | ✅ | Card + Table (kolom No/Name/**Dependency**/Status/Action) + Dialog preview live (`config/compositePreviews.jsx`) | `pages/CompositeComponentsPage.jsx` + `config/compositePreviews.jsx` | Katalog composite (submenu "Composite Component") |
 
 ## 1.3 Elemen Konten (placeholder generik)
 
@@ -83,6 +89,33 @@ Ikon: **lucide-react** — **WAJIB** & satu-satunya sumber ikon (`h-4 w-4` defau
 | Judul / Deskripsi | `CardTitle` + `CardDescription` (muted) |
 | Footer | teks `text-xs text-muted-foreground` |
 | Pesan validasi | `FormMessage` (`text-destructive`) |
+
+## 1.4 Composite Components (`src/components/composite/`)
+
+Pola pakai-ulang yang **disusun dari primitives Bagian 1.1** (+ dependency yang diizinkan R37).
+Bukan primitive baru. Terdaftar & dipreview di halaman **"Composite Component"**. Semua **✅ Established**,
+konten generik, monochrome-first.
+
+| Composite | Tersusun dari (base) | Dependency (R37) | File |
+|-----------|----------------------|------------------|------|
+| Autocomplete | Command + Popover + Button | — | `Autocomplete.jsx` |
+| Rating | (Tailwind + ikon `Star`) | — | `Rating.jsx` |
+| Stepper | Button + ikon `Check` | — | `Stepper.jsx` |
+| List | Item(+Group) + Separator + Button | — | `ListView.jsx` |
+| Cookie Banner | Card + Button + ikon | — | `CookieBanner.jsx` |
+| Preloader | Spinner + Skeleton + Button | — | `Preloader.jsx` |
+| Widget | Card + Badge + ikon | — | `Widget.jsx` |
+| Placeholder | Empty (+Header/Media/Title/Description/Content) + Button | — | `PlaceholderState.jsx` |
+| Data Grid | Table + Input + Badge + Button (filter/sort/pagination) | `@tanstack/react-table` | `DataGrid.jsx` |
+| Code Block | Button + ikon (Copy/Check) | `react-syntax-highlighter` (Prism `oneLight`) | `CodeBlock.jsx` |
+| Markdown | (child-selector styling) | `react-markdown` + `remark-gfm` | `MarkdownRenderer.jsx` |
+| Phone Input | Input (via `inputComponent`) | `react-phone-number-input` | `PhoneInputField.jsx` |
+| Input Mask | Label (+ input bermask) | `react-imask` | `MaskedInput.jsx` |
+| Kanban | Card + Badge + ikon (drag) | `@dnd-kit/core` + `sortable` + `utilities` | `KanbanBoard.jsx` |
+| Sortable | (Tailwind + ikon `GripVertical`) | `@dnd-kit/sortable` + `core` + `utilities` | `SortableList.jsx` |
+
+> **Aturan composite:** (a) tiap dependency HANYA dipakai oleh composite terkait — jangan menyebar;
+> (b) tidak boleh membuat primitive UI baru — komposisi saja; (c) konten wajib placeholder generik (R31).
 
 ---
 
@@ -126,7 +159,7 @@ Ikon: **lucide-react** — **WAJIB** & satu-satunya sumber ikon (`h-4 w-4` defau
 | R34 | **App Shell & Scroll** | Shell dashboard: sidebar + header **fixed/diam**. Layout dikunci `h-svh`; hanya area konten (`overflow-y-auto`) yang scroll. Header konten `h-[65px]` agar garis bawahnya sejajar dengan header sidebar (auto 64px + 1px border) → satu garis menerus. Layering z-index konsisten (`z-10`). |
 | R35 | **Navigation** | Config nav **terpusat** (`config/navigation.js` → `navSections`), grup ber-label, submenu **collapsible** (`children`), deteksi active-state (exact/prefix), breadcrumb trail diturunkan dari config (`getBreadcrumb`). Sidebar collapse-to-icon + tooltip label saat ringkas; shortcut **Ctrl/Cmd+B**. Link internal via React Router (`Link`/`SidebarMenuButton asChild`). |
 | R36 | **Routing** | React Router: layout route induk (`AppLayout` + `<Outlet />`) membungkus halaman; halaman auth standalone (`/login`); redirect root & fallback (`*`) terdefinisi; login sukses → `/`. Rute chart per-tipe → halaman masing-masing. |
-| R37 | **Dependency Exception** | Library non-shadcn yang **diizinkan** (dependency resmi/pendukung): **lucide-react** (ikon, R09) & **recharts@2.15.4** (data-viz untuk komponen `chart`, R33). Di luar ini, **dilarang** library UI/komponen lain tanpa persetujuan. |
+| R37 | **Dependency Exception** | Library non-shadcn yang **diizinkan** (dependency resmi/pendukung). **Global:** **lucide-react** (ikon, R09), **recharts@2.15.4** (chart, R33). **Terikat komponen (hanya boleh dipakai composite terkait di 1.4):** `@tanstack/react-table` (Data Table & Data Grid), `react-syntax-highlighter` (Code Block), `react-markdown`+`remark-gfm` (Markdown), `react-phone-number-input` (Phone Input), `react-imask` (Input Mask), `@dnd-kit/core`+`@dnd-kit/sortable`+`@dnd-kit/utilities` (Kanban & Sortable). Setiap dependency **tidak boleh menyebar** ke luar komponennya. Di luar daftar ini, library UI/komponen lain **dilarang** tanpa persetujuan. |
 
 ---
 
@@ -439,8 +472,9 @@ Item yang ditunda dipindahkan ke **`BACKLOG.md`** (parkir resmi). Ringkasan:
 | ID | Item | Status | Keterangan |
 |----|------|--------|------------|
 | ~~P1~~ | Alert form-level | ✅ Done | Diaktifkan di `LoginForm` (variant `destructive`). |
+| ~~P2~~ | Message Scroller | ✅ Done | Diport versi **styled** tanpa engine `@shadcn/react` (Update 25). **Base Components kini 61/61 Established.** |
 | B1 | Dark mode toggle | 🔒 Deferred | Fokus Light Mode dulu → lihat `BACKLOG.md`. |
-| B2 | Empty State pattern | ⏳ Deferred | Dibuat saat halaman data → lihat `BACKLOG.md`. |
+| B2 | Empty State pattern | ✅ Done | Composite **Placeholder** (`Empty`) di halaman Composite Component (Update 25). |
 
 ---
 
@@ -485,3 +519,4 @@ Setiap kali membangun UI baru:
 | Update 13 | **Kolom Status ditambahkan di tabel Components.** Tiap komponen shadcn dipetakan ke legenda design system via Badge: **Established** (`default`, sudah dipakai), **Available** (`secondary`, tersedia di `ui/`, belum dipakai), **Pending** (`outline`, belum diport ke `ui/` — mis. Attachment/Bubble/Combobox/Data Table/Date Picker/Field/Spinner/Typography). Primitive ✅ **badge** diaktifkan (dipakai untuk status). |
 | Update 24 | **`Direction` dihapus total + 3 komponen chat diport → Established.** (a) Komponen **`Direction` (RTL)** dihapus tuntas dari kode & seluruh dokumentasi (atas perintah user). (b) Diport primitive JSX baru presentational (100% Tailwind + cva, pola `message.jsx`): **`attachment.jsx`** (Attachment/Media/Content/Title/Description/Actions/Action/Trigger/Group; state idle→done, 3 size, orientation, shimmer via `animate-pulse`), **`bubble.jsx`** (7 varian via cva + align start/end, BubbleGroup, BubbleContent context, BubbleReactions), **`marker.jsx`** (varian default/border/separator + MarkerIcon/MarkerContent). Ketiganya + **Message** (diport lebih dulu) kini **Established** dgn preview live di `componentPreviews.jsx`. (c) **Tetap Pending (1):** `Message Scroller` — bukan primitive styling, melainkan **engine headless streaming `@shadcn/react`** (MessageScrollerProvider + hooks imperatif untuk anchoring/auto-scroll/prepend). Menunggu keputusan user untuk menambah dependency berat tsb. **Base Components: 60/61 Established.** Diverifikasi via screenshot (3 preview render, 0 error). |
 | Update 25 | **Message Scroller diport (versi styled) + submenu Composite Component diisi 15 komponen.** (a) **`message-scroller.jsx`** dibuat sebagai versi *styled sederhana tanpa engine `@shadcn/react`* (Context lokal: viewportRef + auto-scroll-to-bottom saat di dasar + tombol "jump to latest" muncul saat scroll ke atas). Parts: MessageScroller/Viewport/Content/Item/Button. Status → **Established** dgn preview live. **Base Components: 61/61 Established (tuntas).** (b) **Submenu "Composite Component"** (sebelumnya PlaceholderPage) kini halaman tabel `CompositeComponentsPage.jsx` (kolom: No, Name, **Dependency**, Status, Action/Eye→Dialog) + config `config/compositePreviews.jsx`. Berisi **15 composite** (semua Established, generik, monochrome): **Tanpa dep (9):** Autocomplete (Command+Popover), Rating, Stepper, List (Item), Cookie Banner, Preloader (Spinner+Skeleton), Widget (Card+Badge), Placeholder (Empty), Data Grid (`@tanstack/react-table` — sudah ada). **Dengan dep baru (6):** Code Block (`react-syntax-highlighter`, Prism oneLight), Markdown (`react-markdown`+`remark-gfm`), Phone Input (`react-phone-number-input`), Input Mask (`react-imask`), Kanban (`@dnd-kit/core`+`sortable`+`utilities`, multi-kolom drag), Sortable (`@dnd-kit/sortable`, reorder vertikal). Semua composite disimpan di `src/components/composite/`. **R37 (Dependency Exception) diperluas** untuk mengizinkan lib di atas. Compile sukses (0 error webpack). *Catatan: verifikasi visual screenshot tertunda karena gangguan tool platform; kode ter-compile bersih.* |
+| Update 26 | **Sinkronisasi Governance (siap review).** Registry & aturan diselaraskan penuh dgn kode: (a) **1.1 Primitives** diperbarui → semua ✅ (tambah baris: chat kit `attachment/bubble/marker/message`, `message-scroller` styled, serta `spinner/kbd/empty/button-group/input-group/field/item/native-select/typography`), ditandai **61/61 Established**. (b) **1.2** ditambah pattern **Composite Components Table + Dialog**. (c) **Baru: 1.4 Composite Components** — tabel 15 composite (base penyusun + dependency + file). (d) **R37** diperluas + aturan "dependency terikat komponen, tidak boleh menyebar". (e) **Bagian 3 Pending** dimutakhirkan: Message Scroller ✅ Done, Empty State pattern ✅ Done (composite Placeholder). (f) `DESIGN_SYSTEM_RULES.md` disinkronkan (Bagian 1 pengecualian dependency + Bagian 5 inventaris 61 primitive + daftar composite). Semua verifikasi visual composite (15/15) render 0-error. |
