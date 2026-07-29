@@ -51,7 +51,8 @@ import {
   InputOTPGroup,
   InputOTPSlot,
 } from "@/components/ui/input-otp";
-import { ComboboxPreview, DatePickerPreview } from "@/components/previews/AdvancedPreviews";
+import { Combobox } from "@/components/composite/Combobox";
+import { DatePicker } from "@/components/composite/DatePicker";
 import { PasswordInput } from "@/components/composite/PasswordInput";
 
 function Field({ title, children, testid }) {
@@ -175,8 +176,16 @@ function AddUserDialog() {
   );
 }
 
+const FRAMEWORK_OPTIONS = [
+  { value: "next", label: "Next.js" },
+  { value: "remix", label: "Remix" },
+  { value: "astro", label: "Astro" },
+];
+
 export default function FormElementsPage() {
   const [slider, setSlider] = useState([40]);
+  const [framework, setFramework] = useState("");
+  const [date, setDate] = useState();
 
   return (
     <div className="space-y-6" data-testid="form-elements-page">
@@ -237,14 +246,25 @@ export default function FormElementsPage() {
         <Field title="Combobox" testid="fe-combobox">
           <div className="space-y-2">
             <Label>Framework</Label>
-            <ComboboxPreview />
+            <Combobox
+              options={FRAMEWORK_OPTIONS}
+              value={framework}
+              onChange={setFramework}
+              placeholder="Select framework..."
+              searchPlaceholder="Search framework..."
+              data-testid="fe-combobox-trigger"
+            />
           </div>
         </Field>
 
         <Field title="Date Picker" testid="fe-datepicker">
           <div className="space-y-2">
             <Label>Date</Label>
-            <DatePickerPreview />
+            <DatePicker
+              value={date}
+              onChange={setDate}
+              data-testid="fe-datepicker-trigger"
+            />
           </div>
         </Field>
 
