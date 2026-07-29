@@ -22,15 +22,12 @@
 - ❌ **JANGAN** memodifikasi struktur/perilaku/gaya bawaan komponen shadcn/ui
   (file di `src/components/ui/`) tanpa persetujuan.
 - ❌ **JANGAN** memakai library UI lain (MUI, Ant, Chakra, Bootstrap, Flowbite, dll).
-  - ✅ **Pengecualian yang diizinkan** (dependency resmi/pendukung — SSOT: **R37** di `DESIGN_SYSTEM.md`):
-    - **Global:** `lucide-react` (ikon), `recharts@2.15.4` (chart).
-    - **Terikat komponen** (hanya boleh dipakai composite terkait di Registry 1.4):
-      `@tanstack/react-table` (Data Table & Data Grid), `react-syntax-highlighter` (Code Block),
-      `react-markdown`+`remark-gfm` (Markdown), `react-phone-number-input` (Phone Input),
-      `react-imask` (Input Mask), `@dnd-kit/core`+`@dnd-kit/sortable`+`@dnd-kit/utilities`
-      (Kanban & Sortable).
-    - Setiap dependency **tidak boleh menyebar** ke luar komponennya. Di luar daftar ini,
-      library baru **wajib disetujui** dulu.
+  - ✅ **Pengecualian yang diizinkan** (dependency resmi/pendukung): **lucide-react** (ikon) &
+    **recharts@2.15.4** (chart) untuk global; ditambah dependency yang **terikat komponen**
+    (mis. Data Grid, Code Block, Markdown, Phone Input, Input Mask, Kanban, Sortable).
+    **Daftar lengkap & otoritatif (SSOT) ada di R37** pada `DESIGN_SYSTEM.md` — jangan
+    menduplikasi di sini. Di luar daftar itu, library baru **wajib disetujui** dulu, dan
+    setiap dependency **tidak boleh menyebar** ke luar komponennya.
 - ❌ **JANGAN** memakai elemen HTML mentah untuk hal yang sudah punya komponen
   (mis. `<button>`, `<input>`, `<select>` mentah) — pakai komponen shadcn/ui.
 - ✅ Elemen HTML semantik **boleh** dipakai hanya untuk struktur/layout
