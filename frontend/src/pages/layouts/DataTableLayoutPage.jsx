@@ -341,6 +341,13 @@ export default function DataTableLayoutPage() {
                     {hg.headers.map((h) => (
                       <TableHead
                         key={h.id}
+                        aria-sort={
+                          h.column.getCanSort()
+                            ? { asc: "ascending", desc: "descending" }[
+                                h.column.getIsSorted()
+                              ] || "none"
+                            : undefined
+                        }
                         className={cn(
                           DENSITY[density].head,
                           h.column.getCanSort() && "p-0",
