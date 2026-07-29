@@ -7,6 +7,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Eye,
+  FilterX,
   ListFilter,
   MoreHorizontal,
   Pencil,
@@ -477,6 +478,12 @@ export default function DataTableLayoutPage() {
   const firstRow = totalRows === 0 ? 0 : pageIndex * pageSize + 1;
   const lastRow = Math.min((pageIndex + 1) * pageSize, totalRows);
 
+  const hasActiveFilters = globalFilter.trim().length > 0 || columnFilters.length > 0;
+  const clearFilters = () => {
+    setGlobalFilter("");
+    setColumnFilters([]);
+  };
+
   return (
     <div className="space-y-6" data-testid="datatable-layout-page">
       <PageHeader
@@ -598,7 +605,24 @@ export default function DataTableLayoutPage() {
                       colSpan={columns.length}
                       className="h-24 text-center text-muted-foreground"
                     >
-                      No Data Available
+                      {hasActiveFilters ? (
+                        <div
+                          className="flex flex-col items-center gap-2"
+                          data-testid="dt-empty-filtered"
+                        >
+                          <span>No users match your filters.</span>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={clearFilters}
+                            data-testid="dt-clear-filters"
+                          >
+                            <FilterX className="size-4" /> Clear filters
+                          </Button>
+                        </div>
+                      ) : (
+                        "No Data Available"
+                      )}
                     </TableCell>
                   </TableRow>
                 )}

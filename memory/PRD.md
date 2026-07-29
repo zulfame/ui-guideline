@@ -22,6 +22,7 @@ Membangun template **UI Guidelines / Design System** generik sebagai fondasi apl
 - **R38**: Modifikasi primitive/composite harus jaga compact spacing (`px-6 py-4`), grid 4px, token monochrome (`border-border`), typography tepat. Verifikasi semua consumer via screenshot sebelum selesai.
 
 ## Sudah Diimplementasikan
+- (2026-06) **Audit UI site-wide + sinkron dokumentasi (pra Save-to-GitHub)**: fix `DesignTokensPage` H2 `text-lg`→`text-base` (patuh skala 2A); **DataTable empty-state filter-aware** ("No users match your filters." + tombol Clear filters/`FilterX`) selain generik `No Data Available`. Docs 2C.7 & 1.2 + Changelog Update 56 disinkronkan. Guard clean (exit 0).
 - (2026-07-29) **Phone Input dirombak** (pola "Phone Input 1"): country selector Popover+Command (search + bendera/nama/kode), **trigger tampilkan kode negara** (bukan bendera), input format nasional. Diverifikasi screenshot.
 - (2026-07-29) **Wizard & Profile dipindah ke Sample Blocks**: submenu baru **Profile** (`/design-system/blocks/profile`, dgn unsaved-changes: Save/Cancel disabled sampai dirty + indikator) & **Wizard** (`/design-system/blocks/wizard`). Form Layout kembali ke 6 form dasar. Diverifikasi screenshot.
 - (2026-07-29) **Form Layout diperkaya** (kemudian dipindah): Multi-step Wizard (StepIndicator + validasi per-langkah) & Profile/Settings. `Stepper` composite direfactor → ekstrak `StepIndicator` reusable.

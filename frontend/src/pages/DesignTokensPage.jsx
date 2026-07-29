@@ -155,7 +155,7 @@ export default function DesignTokensPage() {
       <section className="space-y-6">
         <div className="flex items-center gap-2">
           <Badge>Layer 1</Badge>
-          <h2 className="text-lg font-semibold">Primitives / Reference</h2>
+          <h2 className="text-base font-semibold">Primitives / Reference</h2>
         </div>
         <div className="grid gap-6 lg:grid-cols-2">
           <PrimitiveGroup
@@ -182,7 +182,7 @@ export default function DesignTokensPage() {
       <section className="space-y-6">
         <div className="flex items-center gap-2">
           <Badge>Layer 2</Badge>
-          <h2 className="text-lg font-semibold">Semantic / Alias</h2>
+          <h2 className="text-base font-semibold">Semantic / Alias</h2>
         </div>
         <SemanticGroup
           title="Surfaces & structure"

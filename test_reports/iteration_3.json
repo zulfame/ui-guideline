@@ -1,0 +1,28 @@
+{
+  "summary": "Frontend-only regression + new-feature audit for the DataTable filter-aware empty state and related pages (login, tokens, form-elements, form-layout, profile, wizard). All required flows pass. Mock login (user@example.com / password) succeeds and redirects to '/'. DataTable: typing 'zzzznomatch' shows [data-testid=dt-empty-filtered] with text 'No users match your filters.' and a [data-testid=dt-clear-filters] button; clicking it clears the search input (verified empty) and restores rows to 8/24. Faceted filter (dt-filter-role -> 'Admin') opens a menu, selecting an option filters rows; combining with a non-matching search still shows the filter-aware empty state; Clear filters resets both. CRUD works: Add opens UserFormDialog, empty submit shows 6 validation errors (name/email/role) and 'Please select a role', filling Name+Email+Role saves and total goes 24 -> 25 with success toast; row Edit prefills the current name and saves; single Delete via row-action -> [data-testid=dt-delete-confirm] removes the row (25 -> 24). Bulk delete: iterative dt-select-all + dt-bulk-delete + dt-bulk-delete-confirm empties the table; final tbody renders the generic 'No Data Available' text and dt-empty-filtered is NOT rendered (correct branch, no active filters). Design Tokens page renders 2 H2 sections ('Primitives / Reference', 'Semantic / Alias'), both with class including 'text-base'. Theme toggle exists as [data-testid=theme-toggle-trigger] (NOT 'mode-toggle' as the spec wording suggested) with menu items [data-testid=theme-option-light|dark|system]; clicking Dark flips documentElement.className from 'light' to 'dark' and swatches remap. Form Elements: Add User dialog opens; empty submit shows 6 field errors; cancel closes. Form Elements + Form Layout render with no console errors. Profile block: profile-save-btn is disabled at load (all default values empty), enables on any input change and 'Unsaved changes' indicator appears; saving with ALL required fields filled (fullName, email, role) triggers 'Changes saved' toast and resets isDirty (button becomes disabled again). Wizard block: empty Next on step 1 shows validation (Email required + Minimum 8 characters); after valid fill step advances to Profile; empty Next on step 2 blocks; after fullName + role select step advances to Review which displays entered email/name/role and shows a Finish button; Back preserves entered values; Finish fires 'Setup complete' toast. Zero console errors or pageerrors observed on any of the audited pages.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "/design-system/blocks/profile", "issues": ["ProfileSettingsCard defaultValues are all empty strings (fullName/email/role). A settings block is normally seeded with the current user's mock data so Save is exercised without the user first having to fill three required fields. First-time testers may perceive 'Save doesn't reset dirty state' when in reality zod validation is silently blocking submit because role/email are empty. Consider seeding realistic mock values (e.g., 'John Doe' / 'john.doe@example.com' / role='admin')."]}
+    ]
+  },
+  "test_report_links": [],
+  "action_items": [
+    "Optional: rename [data-testid=theme-toggle-trigger] to [data-testid=mode-toggle] (or add both) to match the wording in the review spec / other docs. Purely a testid alignment; component works.",
+    "Optional: seed ProfileSettingsCard defaultValues with a mock user so Save can be tested by editing a single field."
+  ],
+  "critical_code_review_comments": [
+    "ProfileBlockPage.jsx: defaultValues has empty required fields (fullName/email/role) — validation will silently block submit until all are filled. Seed with mock values for a better demo/testing experience.",
+    "Wizard onSubmit is wired to the form but Finish button's actual submit path was not code-inspected here; 'Setup complete' toast did fire during interactive testing.",
+    "DataTableLayoutPage.jsx dt-select-all only selects the current page (tanstack default). Iterating bulk delete across pages worked, but a 'select all rows across pages' affordance may be worth adding for UX parity with typical enterprise tables."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "N/A (frontend-only per request)", "frontend": "100%"},
+  "test_credentials": "user@example.com / password (mock frontend auth, per /app/memory/test_credentials.md if present)",
+  "seed_data_creation": "None (DataTable state is per-tab local React state; each test navigation started with the default 24 users).",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Iteration_3 focused on the DataTable filter-aware empty state (dt-empty-filtered / dt-clear-filters / dt-filter-role / dt-filter-status) plus regressions for Tokens/Form Elements/Form Layout/Profile/Wizard. All PASS. Note the theme-toggle testid is 'theme-toggle-trigger' not 'mode-toggle'. Profile defaultValues are empty; testers must fill fullName+email+role before Save actually fires (otherwise isDirty reset appears broken but is actually a silent zod failure). Iterations 1 & 2 already covered the Base Components previews (29 + 12 established + pending fallbacks). No functional bugs remaining known."
+}
