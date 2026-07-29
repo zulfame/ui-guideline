@@ -7,6 +7,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Eye,
+  ListFilter,
   MoreHorizontal,
   Pencil,
   Plus,
@@ -24,6 +25,7 @@ import {
 } from "@tanstack/react-table";
 import { toast } from "sonner";
 
+import { cn } from "@/lib/utils";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -37,12 +39,13 @@ import {
 } from "@/components/ui/card";
 import {
   DropdownMenu,
+  DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
   DropdownMenuSeparator,
-  DropdownMenuLabel,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
@@ -76,16 +79,15 @@ const DENSITY = {
   comfortable: { label: "Comfortable", cell: "py-3", head: "h-12" },
 };
 
-// Consistent sortable header — matches TableHead text style (muted, font-medium).
+// Consistent sortable header — fills the whole th cell (hover covers full block).
 function SortableHeader({ column, children }) {
   const sorted = column.getIsSorted();
   const Icon = sorted === "asc" ? ArrowUp : sorted === "desc" ? ArrowDown : ArrowUpDown;
   return (
     <Button
       variant="ghost"
-      size="sm"
       onClick={() => column.toggleSorting(sorted === "asc")}
-      className="-ml-2 h-8 px-2 font-medium text-muted-foreground hover:text-foreground data-[state=active]:text-foreground"
+      className="h-full w-full justify-start gap-1 rounded-none px-2 font-medium text-muted-foreground hover:text-foreground"
       data-testid={`dt-sort-${column.id}`}
     >
       {children}
@@ -93,6 +95,61 @@ function SortableHeader({ column, children }) {
     </Button>
   );
 }
+
+// Faceted multi-select filter for a column (toolbar).
+function FacetedFilter({ column, title, options }) {
+  const selected = new Set(column?.getFilterValue() ?? []);
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          variant="outline"
+          size="sm"
+          className="border-dashed"
+          data-testid={`dt-filter-${title.toLowerCase()}`}
+        >
+          <ListFilter className="size-4" /> {title}
+          {selected.size > 0 && (
+            <Badge variant="secondary" className="ml-1 rounded-sm px-1 font-normal">
+              {selected.size}
+            </Badge>
+          )}
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" className="w-40">
+        <DropdownMenuLabel>{title}</DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        {options.map((opt) => (
+          <DropdownMenuCheckboxItem
+            key={opt}
+            checked={selected.has(opt)}
+            onCheckedChange={(v) => {
+              const next = new Set(selected);
+              v ? next.add(opt) : next.delete(opt);
+              column?.setFilterValue(next.size ? Array.from(next) : undefined);
+            }}
+            data-testid={`dt-filter-${title.toLowerCase()}-${opt.toLowerCase()}`}
+          >
+            {opt}
+          </DropdownMenuCheckboxItem>
+        ))}
+        {selected.size > 0 && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              onClick={() => column?.setFilterValue(undefined)}
+              className="justify-center text-xs"
+            >
+              Clear
+            </DropdownMenuItem>
+          </>
+        )}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+const multiSelectFilter = (row, id, value) => value.includes(row.getValue(id));
 
 const columns = [
   {
@@ -129,10 +186,12 @@ const columns = [
   {
     accessorKey: "role",
     header: ({ column }) => <SortableHeader column={column}>Role</SortableHeader>,
+    filterFn: multiSelectFilter,
   },
   {
     accessorKey: "status",
     header: ({ column }) => <SortableHeader column={column}>Status</SortableHeader>,
+    filterFn: multiSelectFilter,
     cell: ({ getValue }) => (
       <Badge variant={getValue() === "Active" ? "default" : "outline"}>
         {getValue()}
@@ -178,6 +237,7 @@ const columns = [
 export default function DataTableLayoutPage() {
   const [sorting, setSorting] = useState([]);
   const [globalFilter, setGlobalFilter] = useState("");
+  const [columnFilters, setColumnFilters] = useState([]);
   const [rowSelection, setRowSelection] = useState({});
   const [density, setDensity] = useState(
     () => localStorage.getItem("dt-density") || "compact",
@@ -190,9 +250,10 @@ export default function DataTableLayoutPage() {
   const table = useReactTable({
     data: DATA,
     columns,
-    state: { sorting, globalFilter, rowSelection },
+    state: { sorting, globalFilter, columnFilters, rowSelection },
     onSortingChange: setSorting,
     onGlobalFilterChange: setGlobalFilter,
+    onColumnFiltersChange: setColumnFilters,
     onRowSelectionChange: setRowSelection,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
@@ -234,29 +295,41 @@ export default function DataTableLayoutPage() {
                 data-testid="dt-search"
               />
             </div>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" data-testid="dt-density">
-                  <Rows3 className="size-4" /> Density
-                  <ChevronDown className="size-3.5 opacity-50" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuLabel>Row density</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuRadioGroup value={density} onValueChange={setDensity}>
-                  {Object.entries(DENSITY).map(([key, { label }]) => (
-                    <DropdownMenuRadioItem
-                      key={key}
-                      value={key}
-                      data-testid={`dt-density-${key}`}
-                    >
-                      {label}
-                    </DropdownMenuRadioItem>
-                  ))}
-                </DropdownMenuRadioGroup>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <div className="flex flex-wrap items-center gap-2">
+              <FacetedFilter
+                column={table.getColumn("role")}
+                title="Role"
+                options={["Admin", "Member", "Viewer"]}
+              />
+              <FacetedFilter
+                column={table.getColumn("status")}
+                title="Status"
+                options={["Active", "Inactive"]}
+              />
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" data-testid="dt-density">
+                    <Rows3 className="size-4" /> Density
+                    <ChevronDown className="size-3.5 opacity-50" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuLabel>Row density</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuRadioGroup value={density} onValueChange={setDensity}>
+                    {Object.entries(DENSITY).map(([key, { label }]) => (
+                      <DropdownMenuRadioItem
+                        key={key}
+                        value={key}
+                        data-testid={`dt-density-${key}`}
+                      >
+                        {label}
+                      </DropdownMenuRadioItem>
+                    ))}
+                  </DropdownMenuRadioGroup>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           </div>
 
           {/* Table */}
@@ -266,7 +339,13 @@ export default function DataTableLayoutPage() {
                 {table.getHeaderGroups().map((hg) => (
                   <TableRow key={hg.id} className="bg-muted/50 hover:bg-muted/50">
                     {hg.headers.map((h) => (
-                      <TableHead key={h.id} className={DENSITY[density].head}>
+                      <TableHead
+                        key={h.id}
+                        className={cn(
+                          DENSITY[density].head,
+                          h.column.getCanSort() && "p-0",
+                        )}
+                      >
                         {h.isPlaceholder
                           ? null
                           : flexRender(h.column.columnDef.header, h.getContext())}
