@@ -57,6 +57,10 @@ report "Avatar terlalu besar (pakai h-12 w-12) — R39 density" \
 report "gap-5 off-scale (pakai gap-4/gap-6) — 2B.4 / R39" \
   "$(scan 'className=\"[^\"]*\bgap-5\b')"
 
+# 7) Leftover console.log/debug/info in authored feature code (logging hygiene).
+report "console.log/debug/info tersisa (bersihkan sebelum finish; console.error diizinkan) — logging hygiene" \
+  "$(scan '\bconsole\.(log|debug|info)\s*\(')"
+
 echo ""
 if [ "$fail" -eq 0 ]; then
   echo "✓ design-guard: clean — tidak ada anti-pattern terdeteksi."

@@ -94,17 +94,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-
-const INITIAL_DATA = Array.from({ length: 24 }).map((_, i) => ({
-  id: i + 1,
-  name: `Item ${i + 1}`,
-  email: `item${i + 1}@example.com`,
-  role: ["Admin", "Member", "Viewer"][i % 3],
-  status: i % 4 === 0 ? "Inactive" : "Active",
-}));
-
-const ROLES = ["Admin", "Member", "Viewer"];
-const STATUSES = ["Active", "Inactive"];
+import { SAMPLE_USERS, USER_ROLES, USER_STATUSES } from "@/config/sampleData";
 
 // CRUD form schema (create + edit share the same shape).
 const userSchema = z.object({
@@ -184,7 +174,7 @@ function UserFormDialog({ open, onOpenChange, mode, initialValues, onSubmit }) {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {ROLES.map((r) => (
+                          {USER_ROLES.map((r) => (
                             <SelectItem key={r} value={r}>
                               {r}
                             </SelectItem>
@@ -208,7 +198,7 @@ function UserFormDialog({ open, onOpenChange, mode, initialValues, onSubmit }) {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {STATUSES.map((s) => (
+                          {USER_STATUSES.map((s) => (
                             <SelectItem key={s} value={s}>
                               {s}
                             </SelectItem>
@@ -411,7 +401,7 @@ export default function DataTableLayoutPage() {
   );
 
   // CRUD state (local only — no backend persistence).
-  const [rows, setRows] = useState(INITIAL_DATA);
+  const [rows, setRows] = useState(SAMPLE_USERS);
   const [dialog, setDialog] = useState({ open: false, mode: "add", user: EMPTY_USER });
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
@@ -524,12 +514,12 @@ export default function DataTableLayoutPage() {
               <FacetedFilter
                 column={table.getColumn("role")}
                 title="Role"
-                options={["Admin", "Member", "Viewer"]}
+                options={USER_ROLES}
               />
               <FacetedFilter
                 column={table.getColumn("status")}
                 title="Status"
-                options={["Active", "Inactive"]}
+                options={USER_STATUSES}
               />
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>

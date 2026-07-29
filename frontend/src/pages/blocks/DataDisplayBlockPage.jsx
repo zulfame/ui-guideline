@@ -24,39 +24,7 @@ import {
   formatRelative,
   statusBadgeVariant,
 } from "@/lib/format";
-
-const ROWS = [
-  {
-    id: 1,
-    name: "Item 1",
-    amount: 1250.5,
-    growth: 0.128,
-    units: 3420,
-    created: "2026-01-14",
-    active: "2026-06-02T09:24:00",
-    status: "Active",
-  },
-  {
-    id: 2,
-    name: "Item 2",
-    amount: -320,
-    growth: -0.045,
-    units: 0,
-    created: "2025-11-30",
-    active: "2026-05-28T17:03:00",
-    status: "Inactive",
-  },
-  {
-    id: 3,
-    name: "Item 3",
-    amount: null,
-    growth: null,
-    units: null,
-    created: null,
-    active: null,
-    status: "Pending",
-  },
-];
+import { SAMPLE_DISPLAY_ROWS as ROWS } from "@/config/sampleData";
 
 export default function DataDisplayBlockPage() {
   return (
