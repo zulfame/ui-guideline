@@ -225,3 +225,21 @@ Alur kerja **wajib** setiap kali menyentuh UI — dirancang agar aturan tidak "l
 
 > Prinsip: *"Compact by default, verify by guard."* Aturan yang tidak diperiksa otomatis
 > akan terlewat — maka **guard + checklist adalah bagian dari Definition of Done**, bukan opsional.
+
+---
+
+## 11. Governance Lanjutan (rujukan — SSOT di `DESIGN_SYSTEM.md`)
+
+Bagian ini hanya **penunjuk**; definisi lengkap & otoritatif ada di `DESIGN_SYSTEM.md`:
+
+- **Versioning & Release** (SemVer, Breaking Change, Deprecation, Migration, Changelog policy) → **2C.15**.
+- **Component Lifecycle** (Experimental/Available/Established/Deprecated/Pending/Removed) → **2C.16**.
+- **Feedback Pattern** (kapan Toast vs Inline vs Alert vs Dialog) → **2C.17**.
+- **Empty State Registry** (No Data / No Search Result / First-Time / Permission Denied / Offline / Error) → **2C.18**.
+- **Search, Filter & Sort** (global; Saved Filter = Deferred) → **2C.19**.
+- **Data Display & Formatting** (Number/Currency/Percentage/Date/Time/Status/null) → **2C.20**.
+- **Permission Pattern** (Hide/Disable/Read-only/Forbidden) → **2C.21**.
+- **Testing Standard** (Visual/A11y/Interaction/Responsive — aturan saja) → **2C.22**.
+- **Performance Guideline** (Lazy/Memo/Virtualization/Bundle/Chart/Large Table) → **2C.23**.
+
+> Setiap perubahan komponen/pattern **wajib** tunduk pada Versioning (2C.15) & tercatat di Changelog.

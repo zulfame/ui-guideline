@@ -12,9 +12,11 @@
 > **Prinsip:** 100% shadcn/ui · token-first · monochrome-first · tanpa improvisasi.
 > Jika butuh sesuatu di luar registry → lapor & tunggu persetujuan (lihat governance).
 
-Status:
-- ✅ **Established** — sudah dipakai & distandarkan.
+Status (lihat lifecycle lengkap di **2C.16**):
+- 🧪 **Experimental** — dalam eksplorasi/uji coba, API belum stabil, **jangan** dipakai di produksi.
 - ⚪ **Available** — komponen shadcn tersedia, belum dipakai (aktifkan saat perlu).
+- ✅ **Established** — sudah dipakai & distandarkan (stabil).
+- ⚠️ **Deprecated** — masih ada tapi akan dihapus; sediakan pengganti + migration note.
 - 🔒 **Pending** — menunggu keputusan/persetujuan.
 
 ---
@@ -511,6 +513,146 @@ Anti-pattern yang dideteksi (semua = **regresi**):
 
 > Guard bersifat **heuristik** (bukan pengganti review), tetapi menangkap 90% kasus
 > "tidak compact"/warna hardcode secara cepat. Jika sebuah temuan memang disengaja &
+---
+
+## 2C.15 Versioning & Release Policy (governance — #1)
+
+Design System diperlakukan sebagai **satu paket berversi** (bukan per-komponen) memakai
+**SemVer**: `MAJOR.MINOR.PATCH`. Perubahan kecil pada primitive (Button/Input) menyebar ke
+banyak halaman, jadi setiap rilis **wajib** diklasifikasikan.
+
+| Bagian | Aturan |
+|--------|--------|
+| **SemVer** | **MAJOR** = perubahan breaking (lihat bawah). **MINOR** = penambahan backward-compatible (komponen/variant/token baru, pattern baru). **PATCH** = bug fix, penyesuaian gaya non-breaking, dokumentasi. |
+| **Breaking Change** | Hapus/rename komponen, prop, atau token; ubah default behavior/appearance yang memaksa konsumen menyesuaikan; ubah struktur komposisi wajib (mis. header/body/footer). Contoh **bukan** breaking: menambah variant baru, menambah prop opsional dgn default aman. |
+| **Deprecation** | Tandai item **⚠️ Deprecated** (2C.16) + catat pengganti. Wajib bertahan **≥ 1 siklus MINOR** sebelum dihapus. Dihapus **hanya** pada rilis **MAJOR**. Setiap Deprecated **wajib** punya rekomendasi migrasi. |
+| **Migration Guide** | **Wajib** untuk tiap rilis **MAJOR**. Format: *Apa yang berubah · Alasan · Sebelum→Sesudah (kode) · Langkah migrasi · Deadline penghapusan*. Simpan di Changelog (Bagian 5) atau dokumen `MIGRATION.md` bila panjang. |
+| **Changelog Policy** | Setiap perubahan **wajib** tercatat di **Bagian 5**. Gunakan tag tipe (gaya *Keep a Changelog*): **Added / Changed / Deprecated / Removed / Fixed**, plus dampak versi ([MAJOR]/[MINOR]/[PATCH]). Tidak ada perubahan yang boleh masuk tanpa entri Changelog. |
+
+> **Baseline versi saat ini:** perlakukan state sekarang sebagai `0.x` (pra-1.0, API masih
+> bisa berubah). Naik ke `1.0.0` saat design system dinyatakan stabil untuk konsumsi luas.
+
+## 2C.16 Component Lifecycle (governance — #2)
+
+Memperluas legenda status di header file. Setiap komponen/pattern menempati **satu** fase
+lifecycle. Transisi wajib dicatat di Changelog (2C.15).
+
+| Fase | Makna | Boleh dipakai di produksi? |
+|------|-------|----------------------------|
+| 🧪 **Experimental** | Eksplorasi/uji coba; API & gaya belum stabil, bisa berubah/hilang tanpa MAJOR. | ❌ Tidak (hanya demo/eksperimen) |
+| ⚪ **Available** | Tersedia (mis. primitive shadcn ter-port) tetapi belum distandarkan/dipakai. | ⚠️ Boleh, aktifkan → jadikan Established |
+| ✅ **Established** | Stabil, distandarkan, dipakai konsumen. Perubahan tunduk SemVer. | ✅ Ya |
+| ⚠️ **Deprecated** | Masih ada demi kompatibilitas, tetapi akan dihapus; ada pengganti + migration note. | ⚠️ Hindari untuk fitur baru |
+| 🔒 **Pending** | Menunggu keputusan/persetujuan (mis. dependency berat). | ❌ Belum |
+| 🗑️ **Removed** | Dihapus (hanya pada MAJOR). Tercatat di Changelog + Migration Guide. | — |
+
+**Alur transisi normal:** `Experimental → Available → Established → Deprecated → Removed`.
+Item juga bisa langsung `Pending → Available/Established` setelah disetujui.
+
+## 2C.17 Feedback Pattern (kapan pakai apa — #7)
+
+Komponen feedback sudah tersedia (Sonner, Alert, Dialog/AlertDialog, `FormMessage`).
+**Matriks keputusan (WAJIB)** — pilih berdasarkan *blocking-ness* & *lifespan* pesan:
+
+| Mekanisme | Kapan dipakai | Sifat | Komponen |
+|-----------|---------------|-------|----------|
+| **Toast** | Konfirmasi hasil aksi async yang **tidak butuh keputusan** (saved/created/deleted/copied). | Transien, non-blocking, auto-dismiss. | `sonner` (`toast.success/error`) |
+| **Inline Validation** | Kesalahan/masukan **per-field** dalam form. | Kontekstual di field, muncul saat submit/blur. | `FormMessage` + `aria-invalid` (R15) |
+| **Alert (inline block)** | Pesan **tingkat halaman/form** yang persisten sampai diatasi (error global, info penting, sukses reset). | Blok tetap dalam layout, tidak menutup konten. | `alert` (variant `destructive`/default) |
+| **Dialog / AlertDialog** | Aksi yang **memblokir & butuh keputusan** (konfirmasi hapus, aksi destruktif, review sebelum lanjut). | Modal, interupsi, fokus-trap. | `dialog` / `alert-dialog` (pola R38) |
+
+**Prinsip:** semakin permanen/berbahaya dampaknya, semakin "berat" mekanismenya
+(Toast → Inline → Alert → Dialog). **Jangan** pakai Dialog untuk sekadar notifikasi sukses,
+dan **jangan** pakai Toast untuk error yang butuh tindakan pengguna.
+
+## 2C.18 Empty State Registry (klasifikasi — #5)
+
+Memperluas R26 & 2C.7. Bedakan **jenis** kekosongan; jangan pakai satu teks generik untuk semua.
+
+| Jenis | Kapan | Pola tampilan | Copy contoh (generik) |
+|-------|-------|---------------|------------------------|
+| **No Data** | Dataset memang kosong (belum ada isi). | Teks netral `text-muted-foreground` (tabel: cell `colSpan h-24`). | `No Data Available` |
+| **No Search/Filter Result** ✅ | Ada query/filter aktif tetapi 0 hasil. | Pesan spesifik + tombol **Clear filters** (`FilterX`). *(Sudah diimplementasi di DataTable.)* | `No users match your filters.` |
+| **First-Time / Onboarding** | Pengguna baru, belum membuat apa pun. | Composite **Placeholder** (`Empty`) + judul + deskripsi + **CTA primer** (mis. "Create your first item"). | `Get started by creating…` |
+| **Permission Denied / Forbidden** | Tidak punya akses (lihat 2C.21). | Empty state tanpa CTA aksi (opsional "Request access"); ikon `Lock`/`ShieldOff`. | `You don't have access to this.` |
+| **Offline / Connection** | Jaringan terputus. | Pesan + tombol **Retry**; ikon `WifiOff`. | `You're offline. Check your connection.` |
+| **Error / Failed to load** | Gagal memuat data (bukan kosong). | Pesan error non-teknis + tombol **Retry**; ikon `AlertTriangle`. | `Something went wrong. Try again.` |
+
+Semua memakai token monochrome, ikon `lucide-react`, copy generik & solutif (2C.9).
+
+## 2C.19 Search, Filter & Sort Pattern (global — #9)
+
+Mengangkat aturan tabel (2C.7) menjadi **pola global** (berlaku di list, tabel, katalog, dsb).
+
+| Aspek | Standar | Status |
+|-------|---------|--------|
+| **Search** | `Input` ikon leading (`Search`), placeholder `Search...`; tanstack **global filter** lintas kolom (untuk tabel). Debounce opsional bila sumber data mahal. | ✅ |
+| **Filter** | **Faceted** multi-pilih per kolom kategorikal (`FacetedFilter` = `Button` border-dashed + checkbox items + Badge jumlah + Clear). Hanya untuk kolom kategorikal (Role/Status). | ✅ |
+| **Sort** | `SortableHeader` full-cell + wajib `aria-sort` (`ascending`/`descending`/`none`). Ikon `ArrowUp/ArrowDown/ArrowUpDown`. | ✅ |
+| **Reset Filter** | Tombol **Clear filters** (`outline sm`, ikon `FilterX`) yang reset `globalFilter` **dan** `columnFilters`. Muncul saat ada filter aktif (mis. via empty-state No-Result, 2C.18). | ✅ |
+| **Saved Filter** | Simpan kombinasi filter (nama + persist ke `localStorage`/backend) untuk dipakai ulang. | ⚪ **Deferred** (butuh persistensi; ajukan bila diperlukan) |
+| **Placement** | Toolbar: **kiri** = search/filter, **kanan** = actions (`flex items-center justify-between gap-2`). | ✅ |
+
+## 2C.20 Data Display & Formatting Pattern (#10)
+
+Konvensi menampilkan nilai data (tetap generik, tanpa konteks bisnis). Formatter aktual
+(locale/currency) diserahkan ke konsumen; di sini **aturan tampilan**-nya.
+
+| Tipe | Aturan tampilan |
+|------|-----------------|
+| **Number** | Rata **kanan** (`text-right`); gunakan `tabular-nums` agar sejajar; pemisah ribuan sesuai locale. |
+| **Currency** | Rata **kanan**, `tabular-nums`; simbol/kode konsisten (mis. `1,250.00`); negatif via `text-destructive` (accent, hemat). |
+| **Percentage** | Rata **kanan**; 0–2 desimal konsisten; sufiks `%`. |
+| **Date** | Format konsisten satu gaya (disarankan `YYYY-MM-DD` atau `MMM D, YYYY`); teks `text-muted-foreground` bila sekunder. |
+| **Time / Relative** | 24-jam konsisten; relative time ("2h ago") untuk aktivitas, absolute pada tooltip. |
+| **Status** | **`Badge`** dengan mapping variant tetap: `default` (aktif/utama), `secondary` (netral), `outline` (idle/pending), `destructive` (error/critical). Jangan pakai warna hardcode. |
+| **Boolean** | Ikon `Check`/`X` atau Badge; hindari teks "true/false" mentah. |
+| **Empty / null** | Tampilkan **em dash** `—` (`text-muted-foreground`), bukan string kosong. |
+
+**Alignment aturan umum:** teks kiri, angka/mata-uang/persen kanan, status/badge kiri,
+actions kanan (selaras 2C.7).
+
+## 2C.21 Permission Pattern (generik enterprise — #6)
+
+Pola menangani elemen/halaman yang bergantung hak akses. Tetap generik (tanpa model RBAC nyata).
+
+| Strategi | Kapan dipakai | Implementasi |
+|----------|---------------|--------------|
+| **Hide** | Pengguna **tidak boleh tahu** fitur itu ada. | Jangan render elemen (conditional). Tanpa jejak DOM. |
+| **Disable** | Fitur terlihat tetapi tak boleh dipakai **saat ini** (konteks/izin). | `disabled` (`opacity-50 pointer-events-none`, R14) + **Tooltip** alasan singkat. |
+| **Read-only** | Nilai boleh **dibaca**, tidak boleh diubah. | `readOnly` + `bg-muted/50 cursor-default` (2C.1 Readonly), tanpa `opacity-50`. |
+| **Forbidden** | Seluruh **halaman/section** tak boleh diakses. | Empty state **Permission Denied** (2C.18) / pola halaman 403; tanpa data sensitif. |
+
+**Panduan Hide vs Disable:** *Hide* bila keberadaan fitur bersifat rahasia/tak relevan bagi peran;
+*Disable* bila fitur relevan tapi terkunci sementara (beri konteks agar tidak membingungkan).
+
+## 2C.22 Testing Standard (aturan, bukan implementasi — #3)
+
+Standar minimum verifikasi setiap UI (melengkapi Definition of Done di `DESIGN_SYSTEM_RULES.md` §10).
+
+| Jenis | Standar |
+|-------|---------|
+| **Visual** | Jalankan `docs/design-guard.sh` (lolos exit 0) + review screenshot pada ≥2–3 halaman konsumen saat memodifikasi komponen (R38). Konsistensi token/spacing/typography. |
+| **Accessibility (A11y)** | Label terkait input, `aria-*` untuk kontrol ikon, `aria-hidden` dekoratif, focus-visible terlihat, kontras **WCAG AA**, `aria-sort` pada header sortable (R17, 2C.7/2C.8). |
+| **Interaction** | Cakup semua state relevan (2C.1: default/hover/focus/active/disabled/loading/error/success/readonly); alur form (validasi kosong, sukses, error global); keyboard (Tab/Enter/Esc, 2C.5). |
+| **Responsive** | Verifikasi breakpoint `sm/md/lg/xl` (2C.3), mobile-first; tabel `overflow-x-auto`; sidebar → Sheet di `<md`. |
+
+> Cukup **aturan**; automasi penuh (mis. Playwright/axe/Chromatic) bersifat opsional & diajukan bila diperlukan.
+
+## 2C.23 Performance Guideline (#4)
+
+Panduan agar tetap ringan saat data/halaman bertambah (formalisasi; sebagian sudah dipraktikkan).
+
+| Aspek | Standar |
+|-------|---------|
+| **Lazy Loading** | Halaman berat / rute jarang dipakai di-`React.lazy` + `Suspense` (code-splitting). Chart & editor besar dimuat saat dibutuhkan. |
+| **Memoization** | `React.memo`/`useMemo`/`useCallback` untuk list/tabel & handler mahal; `getRowId` stabil (tanstack) untuk hindari re-render tak perlu. |
+| **Virtualization** | Untuk daftar/tabel **besar** (> ~100–200 baris terlihat), gunakan virtualization. *(Butuh dependency → ajukan persetujuan R37; saat ini ⚪ Deferred.)* |
+| **Bundle Size** | Hindari dependency berat; setiap dependency lewat **R37** (tidak menyebar). Impor ikon `lucide-react` per-nama (tree-shakeable). |
+| **Chart Performance** | `recharts@2.15.4` (pinned); `isAnimationActive={false}` (R33); batasi jumlah titik data; hindari re-compute config tiap render. |
+| **Large Table** | Skala di luar mock → **server-side pagination/sort/filter** (jangan muat semua baris ke klien). Default sistem = client-side (mock kecil). |
+
+
 > terdokumentasi (mis. panel auth `p-10`), kecualikan lewat komentar & catat di Changelog.
 
 
@@ -603,3 +745,4 @@ Setiap kali membangun UI baru:
 | Update 54 | **Fix primitive `AlertDialog` → pola header/body/footer (root cause) + Bulk Delete.** **Akar masalah (dijawab ke user):** pola divider Update 31 hanya menyentuh primitive `Dialog`; **`AlertDialog` tak pernah diselaraskan** → dialog Delete tampil tanpa divider. **Fix di level primitive** (`ui/alert-dialog.jsx`, R38): `AlertDialogContent` `p-0 gap-0`, `AlertDialogHeader` `border-b px-6 py-4 space-y-1.5`, `AlertDialogFooter` `border-t px-6 py-4 gap-2 sm:justify-end`, `AlertDialogCancel` buang `mt-2` (pakai gap footer) → **semua AlertDialog otomatis patuh** (prevention by default). Konsumen diverifikasi: `DataTableLayoutPage` (delete) & `componentPreviews` (katalog). **Pencegahan doc:** 2B.10 diperluas jadi "Dialog & AlertDialog" (kedua primitive wajib konsisten). **Fitur (Potential improvement): Bulk Delete** — tombol **"Delete (n)"** (`text-destructive`) muncul di toolbar saat ada baris terpilih → `AlertDialog` konfirmasi → hapus baris terpilih (`getFilteredSelectedRowModel`) + clear selection + toast. Docs 1.2 (baris DataTable) disinkronkan. **Verifikasi via screenshot/automation:** dialog Delete kini ber-divider header/footer; pilih 2 baris → Delete(2) → konfirmasi → 24→22 baris; guard clean; 0 console error. |
 | Update 55 | **AlertDialog: deskripsi dipindah ke BODY (3 seksi terlihat).** Atas permintaan user. Pada `DataTableLayoutPage` (dialog Delete tunggal & Bulk), `AlertDialogDescription` dikeluarkan dari `AlertDialogHeader` ke **wrapper body `px-6 py-4`** tersendiri → struktur jelas **Header (judul, border-b) · Body (deskripsi) · Footer (tombol, border-t)**. Doc 2B.10 diperbarui: header hanya judul; taruh `AlertDialogDescription` di body untuk konfirmasi. **Verifikasi via screenshot:** dialog Delete menampilkan 3 seksi terpisah divider; guard clean; 0 console error. |
 | Update 56 | **Sinkronisasi dokumentasi menyeluruh + audit UI site-wide (pra Save-to-GitHub) + Empty-state filter DataTable.** Atas permintaan user (finalisasi sebelum review ahli). **(Audit)** Ditelusuri seluruh halaman utama (Components, Form Elements, Form Layout, DataTable, Profile, Wizard, Design Tokens) terhadap R38 (header/body/footer + divider), R39/2B.5 (`space-y` compact), token monochrome, ikon lucide. **Temuan & fix:** `DesignTokensPage` H2 section memakai `text-lg` (di luar skala 2A yang mendokumentasikan `text-lg` sengaja tak dipakai) → dibetulkan ke **`text-base font-semibold`** (H3 section). **(Fitur backlog) DataTable empty-state filter-aware:** saat search/faceted-filter aktif tetapi 0 baris cocok, tampil pesan **"No users match your filters."** + tombol **Clear filters** (`outline sm`, ikon `FilterX`) yang reset `globalFilter`+`columnFilters`; empty-state generik `No Data Available` tetap dipakai saat data memang kosong. Docs 2C.7 (Empty State) & 1.2 (baris DataTable) disinkronkan. **Verifikasi:** guard clean (exit 0); testing agent frontend. |
+| Update 57 | **Governance maturity — 9 section baru dari review ahli (doc-only).** Atas permintaan user (menindaklanjuti 10 catatan ahli pra-review GitHub). Ditambah **2C.15 Versioning & Release Policy** (SemVer, Breaking Change, Deprecation, Migration Guide, Changelog Policy gaya *Keep a Changelog*; baseline `0.x`), **2C.16 Component Lifecycle** (fase 🧪 Experimental / ⚪ Available / ✅ Established / ⚠️ Deprecated / 🔒 Pending / 🗑️ Removed + alur transisi; legenda status header diperluas), **2C.17 Feedback Pattern** (matriks Toast vs Inline vs Alert vs Dialog), **2C.18 Empty State Registry** (klasifikasi: No Data / No Search Result ✅ / First-Time / Permission Denied / Offline / Error), **2C.19 Search, Filter & Sort Pattern** (global: search/filter/sort/reset ✅; Saved Filter ⚪ Deferred), **2C.20 Data Display & Formatting** (Number/Currency/Percentage/Date/Time/Status/Boolean/null), **2C.21 Permission Pattern** (Hide/Disable/Read-only/Forbidden + panduan Hide vs Disable), **2C.22 Testing Standard** (Visual/A11y/Interaction/Responsive — aturan saja), **2C.23 Performance Guideline** (Lazy Loading/Memoization/Virtualization/Bundle/Chart/Large Table). Catatan ahli **#8 Navigation** dinilai sudah tercakup (R35/2B.15/2C.3) → tidak ada section duplikat. **Tanpa perubahan kode UI** (semua governance/dokumentasi); guard tetap clean. |
