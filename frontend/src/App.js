@@ -7,6 +7,7 @@ import ForgotPasswordPage from "@/pages/ForgotPasswordPage";
 import DashboardPage from "@/pages/DashboardPage";
 import PlaceholderPage from "@/pages/PlaceholderPage";
 import ComponentsPage from "@/pages/ComponentsPage";
+import CompositeComponentsPage from "@/pages/CompositeComponentsPage";
 import SidebarBlockPage from "@/pages/blocks/SidebarBlockPage";
 import LoginBlockPage from "@/pages/blocks/LoginBlockPage";
 import ForgotBlockPage from "@/pages/blocks/ForgotBlockPage";
@@ -35,7 +36,7 @@ function App() {
           />
           <Route
             path="/design-system/components/composite"
-            element={<PlaceholderPage />}
+            element={<CompositeComponentsPage />}
           />
           <Route
             path="/design-system/blocks/sidebar"

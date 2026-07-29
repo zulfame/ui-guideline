@@ -255,6 +255,13 @@ import {
 } from "@/components/ui/bubble";
 import { Marker, MarkerIcon, MarkerContent } from "@/components/ui/marker";
 import {
+  MessageScroller,
+  MessageScrollerViewport,
+  MessageScrollerContent,
+  MessageScrollerItem,
+  MessageScrollerButton,
+} from "@/components/ui/message-scroller";
+import {
   Attachment,
   AttachmentMedia,
   AttachmentContent,
@@ -1104,6 +1111,40 @@ export const componentPreviews = {
           </MessageContent>
         </Message>
       </MessageGroup>
+    </div>
+  ),
+
+  "Message Scroller": (
+    <div className="h-[280px] w-full max-w-sm">
+      <MessageScroller>
+        <MessageScrollerViewport>
+          <MessageScrollerContent>
+            {[
+              "Placeholder message one.",
+              "Placeholder reply two.",
+              "Placeholder message three.",
+              "Placeholder reply four.",
+              "Placeholder message five.",
+              "Placeholder reply six.",
+              "Placeholder message seven.",
+              "Placeholder reply eight.",
+            ].map((text, i) => (
+              <MessageScrollerItem key={i}>
+                <div
+                  className={
+                    i % 2 === 0
+                      ? "w-fit max-w-[80%] rounded-lg bg-muted px-3 py-2 text-sm"
+                      : "ml-auto w-fit max-w-[80%] rounded-lg bg-primary px-3 py-2 text-sm text-primary-foreground"
+                  }
+                >
+                  {text}
+                </div>
+              </MessageScrollerItem>
+            ))}
+          </MessageScrollerContent>
+        </MessageScrollerViewport>
+        <MessageScrollerButton />
+      </MessageScroller>
     </div>
   ),
 

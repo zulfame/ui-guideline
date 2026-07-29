@@ -73,7 +73,7 @@ const components = [
   { name: "Marker", status: "established" },
   { name: "Menubar", status: "established" },
   { name: "Message", status: "established" },
-  { name: "Message Scroller", status: "pending" },
+  { name: "Message Scroller", status: "established" },
   { name: "Native Select", status: "established" },
   { name: "Navigation Menu", status: "established" },
   { name: "Pagination", status: "established" },
