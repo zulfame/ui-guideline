@@ -36,6 +36,9 @@ function App() {
         {/* App shell + nested pages */}
         <Route element={<AppLayout />}>
           <Route path="/" element={<DashboardPage />} />
+          <Route path="/users" element={<PlaceholderPage />} />
+          <Route path="/roles" element={<PlaceholderPage />} />
+          <Route path="/offices" element={<PlaceholderPage />} />
           <Route
             path="/design-system/components"
             element={<ComponentsPage />}

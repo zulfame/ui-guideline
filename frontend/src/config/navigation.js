@@ -7,6 +7,9 @@ import {
   Palette,
   LayoutGrid,
   Shapes,
+  Users,
+  ShieldCheck,
+  Building2,
 } from "lucide-react";
 
 /**
@@ -25,6 +28,14 @@ export const navAreas = [
         label: "General",
         items: [
           { title: "Dashboard", to: "/", icon: LayoutDashboard, end: true },
+        ],
+      },
+      {
+        label: "Management",
+        items: [
+          { title: "Users", to: "/users", icon: Users },
+          { title: "Roles", to: "/roles", icon: ShieldCheck },
+          { title: "Offices", to: "/offices", icon: Building2 },
         ],
       },
     ],
