@@ -3,6 +3,7 @@ import {
   GalleryVerticalEnd,
   ChevronRight,
   ChevronsUpDown,
+  Check,
   BadgeCheck,
   Settings,
   LogOut,
@@ -39,20 +40,25 @@ import {
   SidebarRail,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { navSections } from "@/config/navigation";
+import { navAreas, getAreaIdForPath, getArea, getAreaDefaultPath } from "@/config/navigation";
 
 // Generic placeholder user (frontend prototype only).
 const currentUser = { name: "User", email: "user@example.com", initials: "U" };
 
 /**
  * AppSidebar
- * shadcn sidebar-07 pattern (collapse-to-icons) with grouped sections and
- * collapsible submenus, wired to React Router navigation.
+ * shadcn sidebar-07 pattern (collapse-to-icons) with an area-switcher header
+ * (Application / Design System). The active area is derived from the current
+ * route; switching navigates to the area's default page. Grouped sections and
+ * collapsible submenus are wired to React Router navigation.
  */
 export const AppSidebar = (props) => {
   const location = useLocation();
   const navigate = useNavigate();
   const { isMobile } = useSidebar();
+
+  const activeAreaId = getAreaIdForPath(location.pathname);
+  const activeArea = getArea(activeAreaId);
 
   const isActive = (to, end) =>
     end ? location.pathname === to : location.pathname.startsWith(to);
@@ -65,25 +71,61 @@ export const AppSidebar = (props) => {
       <SidebarHeader className="sticky top-0 z-10 border-b border-sidebar-border bg-sidebar">
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton size="lg" asChild>
-              <Link to="/">
-                <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-                  <GalleryVerticalEnd className="size-4" aria-hidden="true" />
-                </div>
-                <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-semibold">UI Guidelines</span>
-                  <span className="truncate text-xs text-sidebar-foreground/70">
-                    Enterprise
-                  </span>
-                </div>
-              </Link>
-            </SidebarMenuButton>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <SidebarMenuButton
+                  size="lg"
+                  className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+                  data-testid="area-switcher-trigger"
+                >
+                  <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+                    <GalleryVerticalEnd className="size-4" aria-hidden="true" />
+                  </div>
+                  <div className="grid flex-1 text-left text-sm leading-tight">
+                    <span className="truncate font-semibold">UI Guidelines</span>
+                    <span className="truncate text-xs text-sidebar-foreground/70">
+                      Enterprise
+                    </span>
+                  </div>
+                  <ChevronsUpDown className="ml-auto size-4" aria-hidden="true" />
+                </SidebarMenuButton>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                className="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-lg"
+                align="start"
+                side={isMobile ? "bottom" : "right"}
+                sideOffset={4}
+              >
+                <DropdownMenuLabel className="text-xs text-muted-foreground">
+                  Areas
+                </DropdownMenuLabel>
+                {navAreas.map((area) => {
+                  const AreaIcon = area.icon;
+                  return (
+                    <DropdownMenuItem
+                      key={area.id}
+                      className="gap-2 p-2"
+                      onClick={() => navigate(getAreaDefaultPath(area.id))}
+                      data-testid={`area-switcher-${area.id}`}
+                    >
+                      <div className="flex size-6 items-center justify-center rounded-md border">
+                        <AreaIcon className="size-3.5 shrink-0" aria-hidden="true" />
+                      </div>
+                      <span className="flex-1">{area.label}</span>
+                      {area.id === activeAreaId ? (
+                        <Check className="size-4" aria-hidden="true" />
+                      ) : null}
+                    </DropdownMenuItem>
+                  );
+                })}
+              </DropdownMenuContent>
+            </DropdownMenu>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
 
       <SidebarContent>
-        {navSections.map((section) => (
+        {activeArea.sections.map((section) => (
           <SidebarGroup key={section.label}>
             <SidebarGroupLabel>{section.label}</SidebarGroupLabel>
             <SidebarMenu>
