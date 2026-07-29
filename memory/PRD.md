@@ -1,76 +1,38 @@
 # PRD — UI Guidelines / Design System Template
 
 ## Problem Statement
-Membangun **template UI Guidelines / Design System** generik yang menjadi fondasi
-untuk berbagai aplikasi masa depan (ERP, CRM, HRIS, Banking, dll). **BUKAN** aplikasi
-bisnis spesifik. Semua konten memakai **placeholder generik** ("Application Name",
-"Welcome Back", "Feature One", dst).
+Membangun template **UI Guidelines / Design System** generik sebagai fondasi aplikasi enterprise masa depan.
+- 100% komponen resmi shadcn/ui (tidak ada primitive custom kecuali disetujui).
+- Placeholder generik ("Application Name", "Feature One"), TANPA logika bisnis spesifik.
+- Gaya visual monochrome-first, minimal, modern enterprise.
+- Font: Geist (primary). Ikon: lucide-react saja.
+- Reusable patterns, compact design (grid 4px), design tokens (HSL).
 
-Bahasa komunikasi user: **Bahasa Indonesia**.
+**Bahasa komunikasi: Indonesia (Bahasa Indonesia).**
 
-## Core Requirements (static)
-- 100% komponen resmi **shadcn/ui**. Dilarang membuat primitive UI baru / library lain
-  tanpa izin eksplisit (pengecualian yang disetujui: `lucide-react`, `recharts@2.15.4`).
-- Visual: monochrome-first, clean, minimal, modern, enterprise. Warna hanya untuk
-  aksen/status.
-- Font primary **Geist**; ikon hanya **lucide-react**.
-- Token desain HSL di `index.css`; komponen memakai variabel semantik shadcn
-  (`bg-primary`, `text-muted-foreground`) — tanpa warna hardcoded.
-- Governance ketat: `docs/DESIGN_SYSTEM.md` (registry), `docs/DESIGN_SYSTEM_RULES.md`
-  (kontrak), `docs/BACKLOG.md` (parked).
+## Arsitektur (Frontend-only)
+- `/app/frontend/docs/DESIGN_SYSTEM.md` & `DESIGN_SYSTEM_RULES.md` — SSOT aturan UI (termasuk R38).
+- `src/components/composite/` — PasswordInput, Autocomplete, Kanban, DataGrid, CodeBlock, dll.
+- `src/components/ui/` — Shadcn primitives (dimodifikasi untuk compact UI).
+- `src/config/` — navigation.js, componentPreviews.jsx, compositePreviews.jsx.
+- `src/pages/layouts/` — DataTableLayoutPage, FormElementsPage, FormLayoutPage.
+- `src/pages/ComponentsPage.jsx` — data table gabungan Base + Composite (A-Z).
 
-## Architecture
-- Frontend-only React (CRA) + React Router v7. Autentikasi & data chart = MOCK.
-- `src/config/navigation.js` = sumber tunggal sidebar + breadcrumb.
-- App shell: `AppLayout` + `AppSidebar` (shadcn sidebar-07, collapse-to-icon, sticky header 65px).
+## Rule Kunci
+- **R38**: Modifikasi primitive/composite harus jaga compact spacing (`px-6 py-4`), grid 4px, token monochrome (`border-border`), typography tepat. Verifikasi semua consumer via screenshot sebelum selesai.
 
-## Implemented
-- (Sesi sebelumnya) Login generik, App shell, 7 halaman Sample Charts (Recharts 2.15.4),
-  docs governance, font Geist, ikon lucide.
-- **2026-06 (sesi ini):**
-  - Sidebar block preview di-wire ke `/design-system/blocks/sidebar`; breadcrumb
-    dinetralkan ke placeholder generik.
-  - Halaman standalone **Forgot Password** (`/forgot-password`) + `ForgotPasswordForm`
-    (schema `resetSchema`); link "Forgot password?" di LoginForm kini navigate ke sana.
-  - **Login & Forgot block preview** (`/design-system/blocks/login`, `/blocks/forgot`)
-    via iframe berbingkai (mirror showcase shadcn).
-  - **Components showcase page** (`/design-system/components`): Buttons, Badges, Inputs,
-    Selection controls, Tabs, Feedback, Avatar+Tooltip, Table.
-  - Semua 4 halaman diverifikasi via screenshot (render OK).
+## Sudah Diimplementasikan
+- (2026-07-29) FormLayoutPage: tata letak dipisah per ukuran — 3 form kecil (Login, Reset, OTP) di grid `md:grid-cols-2 lg:grid-cols-3`; 3 form besar (Register, Change Password, Contact) di grid `md:grid-cols-2`. Diverifikasi via screenshot.
+- 78 komponen (Base + Composite) dalam satu data table A-Z.
+- Sample Layout: DataTable, Form Elements, Form Layout.
+- Pola Header/Body/Footer pada Card & Dialog (compact `px-6 py-4`).
+- `autoComplete="off"` global untuk Input; composite PasswordInput dengan ikon mata.
+- Audit spacing global (Command & Empty state dirapatkan).
 
-- **2026-06 (lanjutan):**
-  - Menu Components → grup (Base Components + Composite Component).
-  - **Base Components: SEMUA 45 preview komponen non-pending selesai** (dialog Eye → live preview via `config/componentPreviews.jsx`); 18 pending → "not yet available". Diverifikasi testing_agent (frontend 100%).
-  - Docs governance diperluas: Typography (2A), Spacing (2B), Extended Registries & Rules (2C: State/Size/Responsive/Density/Interaction/Form/Table/Icon/Content/Naming/Composition/Page Template/Registry Audit), `PAGE_SPEC_TEMPLATE.md`, `DESIGN_SYSTEM_PROPOSAL.md`.
-  - Roadmap: Page Specifications DITUNDA hingga fondasi matang.
+## Backlog
+- P1: Layout Patterns tambahan bila diminta (mis. Dashboard Layout).
+- P2: Page Specifications (Dashboard, Master Data) via PAGE_SPEC_TEMPLATE.md — SETELAH Layout Patterns matang.
+- P3: Arsitektur 2-layer Design Token + Dark Mode.
 
-- **2026-06 (Base Components finalisasi):**
-  - Komponen **`Direction` (RTL)** dihapus total dari kode & seluruh dokumentasi (perintah user).
-  - 12 komponen "pending" sebelumnya diport → Established (spinner, kbd, empty, button-group, input-group, field, item, native-select, typography, Combobox, Date Picker, Data Table + `@tanstack/react-table@8.21.3`).
-  - **4 komponen chat/AI diport → Established:** `message.jsx`, `attachment.jsx`, `bubble.jsx`, `marker.jsx` (semua presentational, 100% Tailwind + cva, pola shadcn base). Preview live di `componentPreviews.jsx`. Diverifikasi via screenshot (0 error).
-  - **Base Components: 60/61 Established.** Sisa 1 **Pending: `Message Scroller`** — bukan primitive styling, tapi engine headless streaming `@shadcn/react` (provider + hooks imperatif). Menunggu keputusan user apakah menambah dependency berat tsb.
-
-- **2026-06 (Message Scroller + Composite Components):**
-  - **`message-scroller.jsx`** diport versi *styled sederhana tanpa engine* (Context lokal + auto-scroll + tombol jump-to-latest). **Base Components: 61/61 Established (tuntas).**
-  - **Submenu "Composite Component" diisi 15 komponen** (halaman tabel `CompositeComponentsPage.jsx` + `config/compositePreviews.jsx`; komponen di `src/components/composite/`). Semua Established, generik, monochrome:
-    - **Tanpa dep (9):** Autocomplete, Rating, Stepper, List, Cookie Banner, Preloader, Widget, Placeholder, Data Grid.
-    - **Dengan dep baru (6):** Code Block (`react-syntax-highlighter`), Markdown (`react-markdown`+`remark-gfm`), Phone Input (`react-phone-number-input`), Input Mask (`react-imask`), Kanban & Sortable (`@dnd-kit/*`).
-  - Compile sukses (0 error webpack). ✅ **Verifikasi visual selesai** — 15/15 Composite + Message Scroller render benar via screenshot (0 console error), diuji bertahap sesuai permintaan user.
-
-- **2026-06 (Menu Components digabung + Sample Layout):**
-  - **Menu "Components" → single** (`/design-system/components`); route lama `/base` & `/composite` redirect ke sana. `ComponentsPage.jsx` kini gabungan **Base (62) + Composite (15) = 77**, urut **A–Z**, kolom baru **Type** (Base/Composite). Preview di-resolve per-kind (`componentPreviews`/`compositePreviews`). `CompositeComponentsPage.jsx` jadi orphan (tak dirute).
-  - **Menu baru "Sample Layout" (grup)** + 3 halaman di `pages/layouts/`: **DataTable** (tanstack: toolbar/selection/sort/pagination/row-actions), **Form Elements** (galeri semua elemen form), **Form Layout** (form rhf+zod bersection). Route `/design-system/layouts/{datatable, form-elements, form-layout}`.
-  - ✅ Diverifikasi via screenshot: 77 baris A–Z, preview Composite resolve benar, 3 halaman render, validasi form jalan (0 console error).
-
-## Changes in Tech Stack
-- Dependency baru terpasang (disetujui user, R37): `react-syntax-highlighter`, `react-markdown`, `remark-gfm`, `react-phone-number-input`, `react-imask`, `@dnd-kit/core`, `@dnd-kit/sortable`, `@dnd-kit/utilities`.
-
-## Backlog / Remaining
-- **P2**: Global form-level Alert untuk empty state / "No Data Available".
-- **P2**: Dark mode toggle.
-- **P3**: "Reduced Motion" accessibility handling.
-- **P3**: Layout Patterns (langkah roadmap berikutnya setelah Composite).
-(Detail parked di `frontend/docs/BACKLOG.md`.)
-
-## Credentials (mock)
-- Login: `user@example.com` / `password` (lihat `/app/memory/test_credentials.md`).
+## Kredensial (mock auth)
+- Email: `user@example.com` / Password: `password`
