@@ -22,7 +22,8 @@ Membangun template **UI Guidelines / Design System** generik sebagai fondasi apl
 - **R38**: Modifikasi primitive/composite harus jaga compact spacing (`px-6 py-4`), grid 4px, token monochrome (`border-border`), typography tepat. Verifikasi semua consumer via screenshot sebelum selesai.
 
 ## Sudah Diimplementasikan
-- (2026-07-29) **Form Layout diperkaya**: Multi-step Wizard (StepIndicator + validasi per-langkah) & Profile/Settings (Avatar, Role Select, Bio, preferensi Switch) sebagai section full-width. `Stepper` composite direfactor → ekstrak `StepIndicator` reusable. Diverifikasi screenshot.
+- (2026-07-29) **Wizard & Profile dipindah ke Sample Blocks**: submenu baru **Profile** (`/design-system/blocks/profile`, dgn unsaved-changes: Save/Cancel disabled sampai dirty + indikator) & **Wizard** (`/design-system/blocks/wizard`). Form Layout kembali ke 6 form dasar. Diverifikasi screenshot.
+- (2026-07-29) **Form Layout diperkaya** (kemudian dipindah): Multi-step Wizard (StepIndicator + validasi per-langkah) & Profile/Settings. `Stepper` composite direfactor → ekstrak `StepIndicator` reusable.
 - (2026-07-29) **Hibrida full-width**: Combobox/Date Picker/Input OTP default `w-full` + opt-out lebar tetap (primitive `input-otp.jsx` slot `flex-1`). Diverifikasi 3 konsumen.
 - (2026-07-29) **P3 — Design Token 2-layer + Dark Mode**: `index.css` direfaktor jadi 2-layer (Layer 1 primitives `--neutral-*`/`--red-*`/`--hue-chart-*` → Layer 2 semantic via `var()`). `ThemeProvider` (Light/Dark/System, localStorage `ui-theme`, matchMedia) + `ModeToggle` di header. Halaman baru **Design Tokens** (`/design-system/tokens`). Diverifikasi screenshot (light & dark).
 - (2026-07-29) FormLayoutPage: tata letak dipisah per ukuran — 3 form kecil (Login, Reset, OTP) di grid `md:grid-cols-2 lg:grid-cols-3`; 3 form besar (Register, Change Password, Contact) di grid `md:grid-cols-2`. Diverifikasi via screenshot.

@@ -14,6 +14,8 @@ import FormLayoutPage from "@/pages/layouts/FormLayoutPage";
 import SidebarBlockPage from "@/pages/blocks/SidebarBlockPage";
 import LoginBlockPage from "@/pages/blocks/LoginBlockPage";
 import ForgotBlockPage from "@/pages/blocks/ForgotBlockPage";
+import ProfileBlockPage from "@/pages/blocks/ProfileBlockPage";
+import WizardBlockPage from "@/pages/blocks/WizardBlockPage";
 import AreaChartsPage from "@/pages/charts/AreaChartsPage";
 import BarChartsPage from "@/pages/charts/BarChartsPage";
 import LineChartsPage from "@/pages/charts/LineChartsPage";
@@ -68,6 +70,14 @@ function App() {
           <Route
             path="/design-system/blocks/forgot"
             element={<ForgotBlockPage />}
+          />
+          <Route
+            path="/design-system/blocks/profile"
+            element={<ProfileBlockPage />}
+          />
+          <Route
+            path="/design-system/blocks/wizard"
+            element={<WizardBlockPage />}
           />
           <Route
             path="/design-system/charts/area"

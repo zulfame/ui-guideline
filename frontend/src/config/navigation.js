@@ -38,6 +38,8 @@ export const navSections = [
           { title: "Sidebar", to: "/design-system/blocks/sidebar" },
           { title: "Login", to: "/design-system/blocks/login" },
           { title: "Forgot", to: "/design-system/blocks/forgot" },
+          { title: "Profile", to: "/design-system/blocks/profile" },
+          { title: "Wizard", to: "/design-system/blocks/wizard" },
         ],
       },
       {
