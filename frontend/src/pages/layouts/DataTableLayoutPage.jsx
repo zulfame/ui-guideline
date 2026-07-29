@@ -1,10 +1,12 @@
 import { useState } from "react";
 import {
   ArrowUpDown,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   MoreHorizontal,
   Plus,
+  Rows3,
   Search,
 } from "lucide-react";
 import {
@@ -34,6 +36,8 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -53,6 +57,13 @@ const DATA = Array.from({ length: 24 }).map((_, i) => ({
   role: ["Admin", "Member", "Viewer"][i % 3],
   status: i % 4 === 0 ? "Inactive" : "Active",
 }));
+
+// Row density presets (Data Table 1 pattern). Default = compact (R39).
+const DENSITY = {
+  compact: { label: "Compact", cell: "py-1", head: "h-8" },
+  standard: { label: "Standard", cell: "py-2", head: "h-10" },
+  comfortable: { label: "Comfortable", cell: "py-3", head: "h-12" },
+};
 
 const columns = [
   {
@@ -144,6 +155,7 @@ export default function DataTableLayoutPage() {
   const [globalFilter, setGlobalFilter] = useState("");
   const [rowSelection, setRowSelection] = useState({});
   const [columnVisibility, setColumnVisibility] = useState({});
+  const [density, setDensity] = useState("compact");
 
   const table = useReactTable({
     data: DATA,
@@ -189,6 +201,29 @@ export default function DataTableLayoutPage() {
             <div className="flex items-center gap-2">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" data-testid="dt-density">
+                    <Rows3 className="size-4" /> Density
+                    <ChevronDown className="size-3.5 opacity-50" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuLabel>Row density</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuRadioGroup value={density} onValueChange={setDensity}>
+                    {Object.entries(DENSITY).map(([key, { label }]) => (
+                      <DropdownMenuRadioItem
+                        key={key}
+                        value={key}
+                        data-testid={`dt-density-${key}`}
+                      >
+                        {label}
+                      </DropdownMenuRadioItem>
+                    ))}
+                  </DropdownMenuRadioGroup>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
                   <Button variant="outline" size="sm" data-testid="dt-columns">
                     Columns
                   </Button>
@@ -222,7 +257,7 @@ export default function DataTableLayoutPage() {
                 {table.getHeaderGroups().map((hg) => (
                   <TableRow key={hg.id}>
                     {hg.headers.map((h) => (
-                      <TableHead key={h.id}>
+                      <TableHead key={h.id} className={DENSITY[density].head}>
                         {h.isPlaceholder
                           ? null
                           : flexRender(h.column.columnDef.header, h.getContext())}
@@ -236,7 +271,7 @@ export default function DataTableLayoutPage() {
                   table.getRowModel().rows.map((r) => (
                     <TableRow key={r.id} data-state={r.getIsSelected() && "selected"}>
                       {r.getVisibleCells().map((c) => (
-                        <TableCell key={c.id}>
+                        <TableCell key={c.id} className={DENSITY[density].cell}>
                           {flexRender(c.column.columnDef.cell, c.getContext())}
                         </TableCell>
                       ))}
