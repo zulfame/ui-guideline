@@ -82,7 +82,7 @@ Ikon: **lucide-react** — **WAJIB** & satu-satunya sumber ikon (`h-4 w-4` defau
 | Composite Components Table + Dialog | ✅ | Card + Table (kolom No/Name/**Dependency**/Status/Action) + Dialog preview live (`config/compositePreviews.jsx`) | `pages/CompositeComponentsPage.jsx` + `config/compositePreviews.jsx` | Katalog composite (kini digabung ke halaman Components — lihat Update 27) |
 | DataTable layout | ✅ | Toolbar (search + Columns + Add) + Table + row-selection (Checkbox + select-all) + sortable header + status Badge + row actions (DropdownMenu) + pagination | `pages/layouts/DataTableLayoutPage.jsx` | Halaman list/tabel data |
 | Form Elements gallery | ✅ | Grid Card per elemen form (Input/Textarea/Select/Native Select/Combobox/Date Picker/Checkbox/Radio Group/Switch/Slider/Input OTP) + Label | `pages/layouts/FormElementsPage.jsx` | Referensi elemen form |
-| Form Layout (auth forms) | ✅ | 4 card auth — **Login, Register, Reset Password, Change Password** (Card header/body/footer + `react-hook-form`+`zod` + `PasswordInput` + submit `w-full` di footer) | `pages/layouts/FormLayoutPage.jsx` | Kumpulan sample form dasar |
+| Form Layout (sample forms) | ✅ | Grid 2-kolom (`items-start`, tinggi natural) berisi 6 card: **Login, Register, Reset Password, Change Password, OTP Verification, Contact** (Card header/body/footer + `react-hook-form`+`zod` + `PasswordInput`/`InputOTP`/`Textarea` + submit `w-full` di footer) | `pages/layouts/FormLayoutPage.jsx` | Kumpulan sample form dasar |
 
 ## 1.3 Elemen Konten (placeholder generik)
 

@@ -4,9 +4,16 @@ import { z } from "zod";
 import { toast } from "sonner";
 
 import { PageHeader } from "@/components/layout/PageHeader";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  InputOTP,
+  InputOTPGroup,
+  InputOTPSlot,
+} from "@/components/ui/input-otp";
 import { PasswordInput } from "@/components/composite/PasswordInput";
 import {
   Card,
@@ -26,9 +33,9 @@ import {
 } from "@/components/ui/form";
 
 /** Shared card shell: header (title/desc) + form (body + footer w/ submit). */
-function FormCard({ title, description, form, onSubmit, submitLabel, children, testid }) {
+function FormCard({ title, description, form, onSubmit, submitLabel, children, testid, className }) {
   return (
-    <Card data-testid={testid}>
+    <Card data-testid={testid} className={cn(className)}>
       <CardHeader>
         <CardTitle className="text-base">{title}</CardTitle>
         <CardDescription>{description}</CardDescription>
@@ -298,18 +305,126 @@ function ChangePasswordCard() {
   );
 }
 
+/* ------------------------- OTP Verification ------------------------- */
+const otpSchema = z.object({
+  code: z.string().min(6, "Enter the 6-digit code"),
+});
+
+function OtpVerificationCard() {
+  const form = useForm({
+    resolver: zodResolver(otpSchema),
+    defaultValues: { code: "" },
+  });
+  return (
+    <FormCard
+      testid="otp-card"
+      title="OTP Verification"
+      description="Enter the 6-digit code sent to your email."
+      form={form}
+      submitLabel="Verify"
+      onSubmit={() => toast.success("Code verified")}
+    >
+      <FormField
+        control={form.control}
+        name="code"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Verification code</FormLabel>
+            <FormControl>
+              <InputOTP maxLength={6} value={field.value} onChange={field.onChange}>
+                <InputOTPGroup>
+                  {Array.from({ length: 6 }).map((_, i) => (
+                    <InputOTPSlot key={i} index={i} />
+                  ))}
+                </InputOTPGroup>
+              </InputOTP>
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+    </FormCard>
+  );
+}
+
+/* ------------------------------ Contact ------------------------------ */
+const contactSchema = z.object({
+  name: z.string().min(1, "Name is required"),
+  email: z.string().min(1, "Email is required").email("Enter a valid email"),
+  message: z.string().min(1, "Message is required").max(500, "Keep it under 500 characters"),
+});
+
+function ContactCard() {
+  const form = useForm({
+    resolver: zodResolver(contactSchema),
+    defaultValues: { name: "", email: "", message: "" },
+  });
+  return (
+    <FormCard
+      testid="contact-card"
+      title="Contact"
+      description="Send us a message and we'll get back to you."
+      form={form}
+      submitLabel="Send Message"
+      onSubmit={() => toast.success("Message sent")}
+    >
+      <FormField
+        control={form.control}
+        name="name"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Name</FormLabel>
+            <FormControl>
+              <Input placeholder="Jane Doe" {...field} />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+      <FormField
+        control={form.control}
+        name="email"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Email</FormLabel>
+            <FormControl>
+              <Input type="email" placeholder="name@example.com" {...field} />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+      <FormField
+        control={form.control}
+        name="message"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Message</FormLabel>
+            <FormControl>
+              <Textarea placeholder="Type your message..." {...field} />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+    </FormCard>
+  );
+}
+
 export default function FormLayoutPage() {
   return (
     <div className="space-y-6" data-testid="form-layout-page">
       <PageHeader
         title="Form Layout"
-        description="Basic form layouts composed from the design system — login, register, reset & change password."
+        description="Basic form layouts composed from the design system — auth, verification & contact."
       />
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid items-start gap-6 lg:grid-cols-2">
         <LoginCard />
         <RegisterCard />
         <ResetPasswordCard />
         <ChangePasswordCard />
+        <OtpVerificationCard />
+        <ContactCard />
       </div>
     </div>
   );
