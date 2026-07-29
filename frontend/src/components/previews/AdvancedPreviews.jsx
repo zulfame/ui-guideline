@@ -38,9 +38,10 @@ const comboItems = [
   { value: "three", label: "Option Three" },
 ];
 
-export function ComboboxPreview() {
+export function ComboboxPreview({ className }) {
   const [open, setOpen] = useState(false);
   const [value, setValue] = useState("");
+  const fullWidth = Boolean(className);
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
@@ -48,7 +49,7 @@ export function ComboboxPreview() {
           variant="outline"
           role="combobox"
           aria-expanded={open}
-          className="w-[220px] justify-between"
+          className={cn("justify-between", fullWidth ? className : "w-[220px]")}
         >
           {value
             ? comboItems.find((i) => i.value === value)?.label
@@ -56,7 +57,12 @@ export function ComboboxPreview() {
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[220px] p-0">
+      <PopoverContent
+        className={cn(
+          "p-0",
+          fullWidth ? "w-[--radix-popover-trigger-width]" : "w-[220px]",
+        )}
+      >
         <Command>
           <CommandInput placeholder="Search..." />
           <CommandList>
@@ -88,7 +94,7 @@ export function ComboboxPreview() {
   );
 }
 
-export function DatePickerPreview() {
+export function DatePickerPreview({ className }) {
   const [date, setDate] = useState();
   const [open, setOpen] = useState(false);
   return (
@@ -97,7 +103,8 @@ export function DatePickerPreview() {
         <Button
           variant="outline"
           className={cn(
-            "w-[240px] justify-start text-left font-normal",
+            "justify-start text-left font-normal",
+            className ?? "w-[240px]",
             !date && "text-muted-foreground",
           )}
         >

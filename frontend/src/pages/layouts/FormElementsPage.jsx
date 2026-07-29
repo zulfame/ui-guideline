@@ -103,14 +103,14 @@ export default function FormElementsPage() {
         <Field title="Combobox" testid="fe-combobox">
           <div className="space-y-2">
             <Label>Framework</Label>
-            <ComboboxPreview />
+            <ComboboxPreview className="w-full" />
           </div>
         </Field>
 
         <Field title="Date Picker" testid="fe-datepicker">
           <div className="space-y-2">
             <Label>Date</Label>
-            <DatePickerPreview />
+            <DatePickerPreview className="w-full" />
           </div>
         </Field>
 
