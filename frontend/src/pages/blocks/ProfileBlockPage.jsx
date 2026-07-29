@@ -71,11 +71,11 @@ function ProfileSettingsCard() {
       </CardHeader>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} noValidate>
-          <CardContent className="space-y-6">
+          <CardContent className="space-y-5">
             {/* Avatar */}
             <div className="flex items-center gap-4">
-              <Avatar className="h-16 w-16">
-                <AvatarFallback className="text-base">JD</AvatarFallback>
+              <Avatar className="h-12 w-12">
+                <AvatarFallback className="text-sm">JD</AvatarFallback>
               </Avatar>
               <div className="space-y-1">
                 <Button type="button" variant="outline" size="sm">
@@ -89,7 +89,7 @@ function ProfileSettingsCard() {
 
             <Separator />
 
-            <div className="grid gap-5 md:grid-cols-2">
+            <div className="grid gap-4 md:grid-cols-2">
               <FormField
                 control={form.control}
                 name="fullName"
