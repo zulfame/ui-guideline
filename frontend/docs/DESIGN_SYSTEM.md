@@ -5,7 +5,7 @@
 > baru dari halaman apa pun **WAJIB didaftarkan di sini**.
 >
 > Hubungan antar dokumen:
-> - `DESIGN_SYSTEM.md` (file ini) → **registry pusat** Komponen + Aturan (global).
+> - `DESIGN_SYSTEM.md` (file ini) → **Master Registry** Komponen + Aturan (global).
 > - `DESIGN_SYSTEM_RULES.md` → **kontrak/governance** (larangan improvisasi, prosedur).
 > - `ARCHITECTURE.md` → **arsitektur teknis** (stack, folder, routing, state, build, code standards).
 > - `LOGIN_PAGE_SPEC.md` → contoh ekstraksi per-halaman (Login) — bersifat historis.
@@ -23,6 +23,36 @@ Status (lihat lifecycle lengkap di **2C.16**):
 ---
 
 # BAGIAN 1 — COMPONENT REGISTRY
+
+## 1.0 Panduan Registry (navigasi, konvensi, template)
+
+### 1.0.1 Konvensi Penulisan (glossary — #5)
+Untuk konsistensi istilah lintas dokumen:
+- **Master Registry** = sebutan baku untuk `DESIGN_SYSTEM.md` (hindari varian "registry pusat"/"central registry").
+- **WAJIB** (huruf besar) = penanda aturan **non-negotiable**. "wajib" dalam kalimat biasa bermakna sama; huruf besar hanya untuk penekanan pada aturan inti.
+- **Primitive** = komponen shadcn di `src/components/ui/`. **Composite** = komposisi reusable di `src/components/composite/`. **Pattern** = pola gabungan (di 1.2).
+- **Status** memakai enum lifecycle 2C.16 (🧪/⚪/✅/⚠️/🔒/🗑️).
+
+### 1.0.2 Category Index (navigasi — #1)
+Peta kategori untuk menavigasi registry (konsep tidak dipecah; ini hanya indeks). Komponen dapat masuk >1 kategori.
+- **Form & Input:** button, input, label, textarea, checkbox, radio-group, switch, slider, select, native-select, input-otp, form, field, input-group, button-group, combobox, date picker · composite: PasswordInput, Autocomplete, Phone Input, Input Mask, Rating.
+- **Data Display:** table, badge, avatar, typography, chart, empty, skeleton, kbd, item · composite: Data Grid, Data Display (format), Widget, List, Code Block, Markdown · pattern: DataTable layout, Data Display block.
+- **Navigation:** sidebar, breadcrumb, navigation-menu, menubar, pagination, tabs, command · pattern: AppSidebar, PageHeader, navigation config (R35).
+- **Feedback:** alert, sonner (toast), progress, spinner · composite: Preloader, Placeholder/EmptyState · pattern: Error Boundary, Feedback matrix (2C.17), Empty States (2C.18).
+- **Overlay:** dialog, alert-dialog, sheet, drawer, popover, tooltip, hover-card, dropdown-menu, context-menu, collapsible, accordion, carousel, resizable, aspect-ratio, scroll-area, calendar, toggle, toggle-group.
+- **AI / Chat kit:** attachment, bubble, marker, message, message-scroller.
+- **Layout & Shell:** card, separator, AppLayout, AuthLayout, ChartCard · pattern: Profile/Wizard/Permissions blocks, Form layouts.
+
+### 1.0.3 Template Dokumentasi Komponen (keseragaman — #2/#8)
+Standar minimum field untuk **setiap** entri komponen (terapkan bertahap; prioritaskan ✅ Established & yang sering dipakai). Bila field tidak relevan, tulis `—`:
+- **Purpose** — untuk apa (1 baris).
+- **Status** — enum lifecycle (2C.16).
+- **Standard Usage** — pola pakai kanonik / lokasi (rujuk 2C.11 Composition bila ada).
+- **Constraint** — batasan wajib (spacing/typography/token/density; rujuk R38/R39/2B).
+- **Dependency** — library non-shadcn (rujuk **2C.24** & R37) bila ada.
+
+> Tabel ringkas di 1.1–1.4 tetap dipertahankan sebagai indeks cepat; kolom "Catatan standar"/"Tersusun dari" berperan sebagai Standard Usage + Constraint. Entri baru **WAJIB** mengisi field template ini.
+
 
 ## 1.1 Primitives (shadcn/ui — `src/components/ui/`)
 Hanya komponen berikut yang dianggap "ada" di design system. Komposisi boleh,
@@ -466,6 +496,39 @@ Urutan komposisi kanonik (jangan mengarang urutan lain; hanya anak terdokumentas
 - **Table:** `[Toolbar] + div.rounded-md.border > Table(TableHeader>TableRow>TableHead ; TableBody>TableRow>TableCell) + [Pagination]`.
 - **Sidebar:** `Sidebar > SidebarHeader(brand) + SidebarContent(SidebarGroup>SidebarGroupLabel+SidebarMenu…) + SidebarFooter(user) + SidebarRail`.
 
+**Contoh (#7) — Card & Dialog header/body/footer (R38, divider token):**
+
+```jsx
+// Card
+<Card>
+  <CardHeader>                       {/* border-b, px-6 py-4 */}
+    <CardTitle className="text-base">Title</CardTitle>
+    <CardDescription>Muted description.</CardDescription>
+  </CardHeader>
+  <CardContent className="space-y-5"> {/* px-6 py-4 · space-y-5/4 (JANGAN space-y-6) */}
+    {/* fields / content */}
+  </CardContent>
+  <CardFooter className="justify-end gap-2"> {/* border-t, px-6 py-4 */}
+    <Button variant="outline">Cancel</Button>
+    <Button>Save</Button>
+  </CardFooter>
+</Card>
+
+// Dialog (DialogContent p-0; body dibungkus konsumen)
+<DialogContent className="sm:max-w-md">
+  <DialogHeader> {/* border-b px-6 py-4 */}
+    <DialogTitle>Add User</DialogTitle>
+    <DialogDescription>All fields are required.</DialogDescription>
+  </DialogHeader>
+  <div className="space-y-4 px-6 py-4">{/* body */}</div>
+  <DialogFooter> {/* border-t px-6 py-4 */}
+    <Button variant="outline">Cancel</Button>
+    <Button type="submit">Save</Button>
+  </DialogFooter>
+</DialogContent>
+```
+
+
 ## 2C.12 Page Template Registry
 
 **Semua halaman WAJIB memiliki Page Specification** (mengikuti format `LOGIN_PAGE_SPEC.md`).
@@ -499,6 +562,7 @@ baru → buat Page Specification lebih dulu**, lalu implementasi. **Template acu
 
 - **Temuan & perbaikan:** baris `card` sebelumnya terdaftar **dua kali** di 1.1 → **disatukan** menjadi satu baris (SSOT).
 - **Aturan:** setiap primitive/pattern **hanya satu baris** di registry. Sebelum menambah, **cek keberadaan**; jangan membuat entri ganda. Daftar ⚪ (available) dan baris ✅ tidak boleh memuat komponen yang sama.
+- **Audit penomoran (#6, 2026-06):** referensi `R01–R39` & `2C.1–2C.24` diverifikasi — semua **terdefinisi & tereferensi tanpa dangling**; semua rujukan file `.md` (LOGIN/DASHBOARD/MASTER_DATA/PAGE_SPEC_TEMPLATE/PROPOSAL/ARCHITECTURE/BACKLOG) valid. Ulangi audit ini setiap kali aturan dipindah/ditambah.
 
 ## 2C.14 Compact Guard (pemeriksaan otomatis — WAJIB sebelum finish)
 
@@ -523,6 +587,10 @@ Anti-pattern yang dideteksi (semua = **regresi**):
 ---
 
 ## 2C.15 Versioning & Release Policy (governance — #1)
+
+> 🔵 **Forward-looking (belum wajib di scope saat ini).** Kebijakan ini relevan penuh
+> saat Design System dipakai **lintas-tim** atau **dipublikasikan**. Untuk sekarang cukup
+> jadi acuan; penerapan ketat (rilis bertag SemVer) diaktifkan saat trigger tersebut tercapai.
 
 Design System diperlakukan sebagai **satu paket berversi** (bukan per-komponen) memakai
 **SemVer**: `MAJOR.MINOR.PATCH`. Perubahan kecil pada primitive (Button/Input) menyebar ke
@@ -641,6 +709,10 @@ Pola menangani elemen/halaman yang bergantung hak akses. Tetap generik (tanpa mo
 
 ## 2C.22 Testing Standard (aturan, bukan implementasi — #3)
 
+> 🔵 **Forward-looking (belum wajib di scope saat ini).** Standar minimum ini menjadi acuan;
+> automasi penuh & kewajiban formal relevan saat lintas-tim/publikasi. Guard + review manual
+> tetap jadi DoD sekarang.
+
 Standar minimum verifikasi setiap UI (melengkapi Definition of Done di `DESIGN_SYSTEM_RULES.md` §10).
 
 | Jenis | Standar |
@@ -653,6 +725,9 @@ Standar minimum verifikasi setiap UI (melengkapi Definition of Done di `DESIGN_S
 > Cukup **aturan**; automasi penuh (mis. Playwright/axe/Chromatic) bersifat opsional & diajukan bila diperlukan.
 
 ## 2C.23 Performance Guideline (#4)
+
+> 🔵 **Forward-looking (belum wajib di scope saat ini).** Panduan ini penting saat data/halaman
+> membesar atau saat backend nyata masuk; untuk mock frontend sekarang cukup sebagai acuan.
 
 Panduan agar tetap ringan saat data/halaman bertambah (formalisasi; sebagian sudah dipraktikkan).
 
@@ -667,6 +742,29 @@ Panduan agar tetap ringan saat data/halaman bertambah (formalisasi; sebagian sud
 
 
 > terdokumentasi (mis. panel auth `p-10`), kecualikan lewat komentar & catat di Changelog.
+
+
+## 2C.24 Dependency Registry (SSOT dependency — #3)
+
+Konsolidasi semua library non-shadcn yang diizinkan (memperluas R37 — tak lagi tersebar).
+Setiap dependency **wajib** punya: alasan, batas pemakaian (scope), & komponen pemakai.
+Menambah dependency baru = **butuh persetujuan** (R32) lalu daftarkan di sini.
+
+| Dependency | Versi | Alasan | Batas pemakaian (scope) | Dipakai oleh |
+|------------|-------|--------|--------------------------|--------------|
+| **lucide-react** | latest | Satu-satunya sumber ikon (R09) | **Global** (semua UI); dilarang emoji/SVG kustom/ikon lain | Semua komponen |
+| **recharts** | `2.15.4` (pinned) | Engine chart resmi shadcn (R33); 3.x menyebabkan render parsial | **Global** untuk chart; elemen wajib anak langsung `ChartContainer` | `ui/chart`, Sample Charts, ChartCard |
+| **@tanstack/react-table** | `8.21.3` | Tabel data (sort/filter/pagination/selection) | Terikat: **Data Table & Data Grid saja** | `DataTableLayoutPage`, composite Data Grid |
+| **react-hook-form** + **zod** + **@hookform/resolvers** | latest | Form state & validasi skematik (R15/R22) | **Global** untuk form | Semua form/dialog form, Wizard |
+| **react-syntax-highlighter** | latest | Highlight kode (Prism `oneLight`) | Terikat: **Code Block** saja | composite Code Block |
+| **react-markdown** + **remark-gfm** | latest | Render markdown + GFM | Terikat: **Markdown** saja | composite Markdown |
+| **react-phone-number-input** | latest | Input telepon internasional + bendera | Terikat: **Phone Input** saja | composite Phone Input |
+| **react-imask** | latest | Masking input | Terikat: **Input Mask** saja | composite Input Mask |
+| **@dnd-kit/core** + **/sortable** + **/utilities** | latest | Drag & drop | Terikat: **Kanban & Sortable** saja | composite Kanban, Sortable |
+
+> **Aturan (dari R37):** dependency **terikat komponen tidak boleh menyebar** ke luar komponennya.
+> Versi `latest` mengikuti `package.json` (SSOT versi sebenarnya); hanya **recharts** & **@tanstack/react-table** yang di-pin di dokumen karena sensitif versi.
+
 
 
 ---
@@ -763,3 +861,4 @@ Setiap kali membangun UI baru:
 | Update 59 | **Polish footer DataTable.** Atas permintaan user. `DataTableLayoutPage.jsx`: hapus teks **"n of N row(s) selected."** (`dt-selected`) di kiri-bawah; **"Rows per page"** dipindah ke **pojok kiri-bawah**; kanan-bawah tetap "{first}–{last} of {total}" · "Page x of y" · prev/next. (Variabel `selectedCount` tetap dipakai untuk tombol Bulk Delete.) **Verifikasi via screenshot:** footer sesuai; guard clean; 0 console error. |
 | Update 60 | **Footer DataTable disesuaikan ke pola referensi UI** (atas gambar acuan user; UI saja, konten tetap). `DataTableLayoutPage.jsx`: grup rows-per-page kiri jadi **`Rows per page [Select] of {total} rows`** (total menyatu inline dgn selector). Teks rentang **`{first}–{last} of {total}`** yang berdiri sendiri dihapus (redundan) — total kini di kiri; kanan menyisakan **`Page x of y`** + prev/next. Variabel `firstRow`/`lastRow` yang tak terpakai dibersihkan. 2C.7 (Rows-per-page) disinkronkan. **Verifikasi via screenshot:** footer sesuai referensi; guard clean; 0 console error. |
 | Update 61 | **Code-quality & docs (review ahli, batch A→C).** Atas permintaan user (frontend-only). **(A) Exception Handling:** `components/ErrorBoundary.jsx` — React class boundary (`getDerivedStateFromError`/`componentDidCatch`) membungkus app di `App.js`; fallback `EmptyState error` + Reload; `componentDidCatch` siap untuk pelaporan error. Terdaftar di 1.2. **(B) Code Readability + Architecture:** tambah `.prettierrc` + `.prettierignore` (2 spasi, double quote, trailing comma all, printWidth 88); buat **`docs/ARCHITECTURE.md`** (stack, folder, routing, state, token, error handling, code standards, build, DoD, rencana fase backend). **(C) Separation of Concerns + Logging:** mock data dipindah ke **`config/sampleData.js`** (`SAMPLE_USERS`/`USER_ROLES`/`USER_STATUSES`/`SAMPLE_DISPLAY_ROWS`) — dipakai `DataTableLayoutPage` & `DataDisplayBlockPage` (hapus inline data/const usang); `design-guard.sh` kini mendeteksi **`console.log/debug/info` tersisa** (`console.error` diizinkan) + 2C.14 disinkronkan. **Item tidak relevan (frontend-only):** Database & API Documentation ditunda ke fase backend (dicatat di ARCHITECTURE.md §11). **Verifikasi:** guard clean (exit 0); compile sukses; screenshot DataTable 8 baris + footer benar, ErrorBoundary tidak ter-trigger. |
+| Update 62 | **Maintainability & konsistensi dokumentasi (review ahli, 9 catatan, doc-only).** Atas permintaan user. **#1 Category Index** + **#2/#8 Template Dokumentasi Komponen** + **#5 Konvensi Penulisan/glossary** ditambah di **1.0** (Panduan Registry) tanpa memecah konsep. **#3 Dependency Registry** dikonsolidasi jadi **2C.24** (alasan + batas pakai + pemakai; memperluas R37). **#4 BACKLOG.md** dirombak berkolom (Alasan ditunda · Trigger aktivasi · Status implementasi) + item usang (Dark Mode/Empty State) dipindah ke "Done"; tambah item nyata (Reduced Motion, Comfortable density, Saved Filter, Virtualization) & bagian "Sengaja tidak ditambahkan". **#5** istilah dibakukan (Master Registry). **#6 Audit penomoran** dijalankan → `R01–R39` & `2C.1–2C.24` bersih tanpa dangling (dicatat di 2C.13). **#7 Contoh implementasi** Card/Dialog (R38) ditambah di 2C.11. **#9** item forward-looking (**2C.15 Versioning, 2C.22 Testing, 2C.23 Performance**) ditandai **🔵 Forward-looking** (aktif saat lintas-tim/publikasi) & dicatat di BACKLOG §2 — dipertahankan, tidak dihapus (opsi a). Yang memang belum ada (i18n/token baru/prinsip baru/a11y guide terpisah) **tidak ditambahkan**. **Verifikasi:** guard clean; audit referensi lolos. |
