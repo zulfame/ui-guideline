@@ -1,13 +1,18 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
+  ArrowDown,
+  ArrowUp,
   ArrowUpDown,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
+  Eye,
   MoreHorizontal,
+  Pencil,
   Plus,
   Rows3,
   Search,
+  Trash2,
 } from "lucide-react";
 import {
   flexRender,
@@ -32,15 +37,21 @@ import {
 } from "@/components/ui/card";
 import {
   DropdownMenu,
-  DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
   DropdownMenuSeparator,
+  DropdownMenuLabel,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -64,6 +75,24 @@ const DENSITY = {
   standard: { label: "Standard", cell: "py-2", head: "h-10" },
   comfortable: { label: "Comfortable", cell: "py-3", head: "h-12" },
 };
+
+// Consistent sortable header — matches TableHead text style (muted, font-medium).
+function SortableHeader({ column, children }) {
+  const sorted = column.getIsSorted();
+  const Icon = sorted === "asc" ? ArrowUp : sorted === "desc" ? ArrowDown : ArrowUpDown;
+  return (
+    <Button
+      variant="ghost"
+      size="sm"
+      onClick={() => column.toggleSorting(sorted === "asc")}
+      className="-ml-2 h-8 px-2 font-medium text-muted-foreground hover:text-foreground data-[state=active]:text-foreground"
+      data-testid={`dt-sort-${column.id}`}
+    >
+      {children}
+      <Icon className="ml-1 size-3.5" />
+    </Button>
+  );
+}
 
 const columns = [
   {
@@ -90,23 +119,20 @@ const columns = [
   },
   {
     accessorKey: "name",
-    header: ({ column }) => (
-      <Button
-        variant="ghost"
-        size="sm"
-        className="-ml-2 h-8"
-        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-      >
-        Name <ArrowUpDown className="ml-1 size-3.5" />
-      </Button>
-    ),
+    header: ({ column }) => <SortableHeader column={column}>Name</SortableHeader>,
     cell: ({ row }) => <span className="font-medium">{row.original.name}</span>,
   },
-  { accessorKey: "email", header: "Email" },
-  { accessorKey: "role", header: "Role" },
+  {
+    accessorKey: "email",
+    header: ({ column }) => <SortableHeader column={column}>Email</SortableHeader>,
+  },
+  {
+    accessorKey: "role",
+    header: ({ column }) => <SortableHeader column={column}>Role</SortableHeader>,
+  },
   {
     accessorKey: "status",
-    header: "Status",
+    header: ({ column }) => <SortableHeader column={column}>Status</SortableHeader>,
     cell: ({ getValue }) => (
       <Badge variant={getValue() === "Active" ? "default" : "outline"}>
         {getValue()}
@@ -129,19 +155,18 @@ const columns = [
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuLabel>Actions</DropdownMenuLabel>
           <DropdownMenuItem onClick={() => toast("View", { description: row.original.name })}>
-            View
+            <Eye className="size-4" /> View
           </DropdownMenuItem>
           <DropdownMenuItem onClick={() => toast("Edit", { description: row.original.name })}>
-            Edit
+            <Pencil className="size-4" /> Edit
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem
-            className="text-destructive"
+            className="text-destructive focus:text-destructive"
             onClick={() => toast("Delete", { description: row.original.name })}
           >
-            Delete
+            <Trash2 className="size-4" /> Delete
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
@@ -154,17 +179,21 @@ export default function DataTableLayoutPage() {
   const [sorting, setSorting] = useState([]);
   const [globalFilter, setGlobalFilter] = useState("");
   const [rowSelection, setRowSelection] = useState({});
-  const [columnVisibility, setColumnVisibility] = useState({});
-  const [density, setDensity] = useState("compact");
+  const [density, setDensity] = useState(
+    () => localStorage.getItem("dt-density") || "compact",
+  );
+
+  useEffect(() => {
+    localStorage.setItem("dt-density", density);
+  }, [density]);
 
   const table = useReactTable({
     data: DATA,
     columns,
-    state: { sorting, globalFilter, rowSelection, columnVisibility },
+    state: { sorting, globalFilter, rowSelection },
     onSortingChange: setSorting,
     onGlobalFilterChange: setGlobalFilter,
     onRowSelectionChange: setRowSelection,
-    onColumnVisibilityChange: setColumnVisibility,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
@@ -173,6 +202,10 @@ export default function DataTableLayoutPage() {
   });
 
   const selectedCount = table.getFilteredSelectedRowModel().rows.length;
+  const { pageIndex, pageSize } = table.getState().pagination;
+  const totalRows = table.getFilteredRowModel().rows.length;
+  const firstRow = totalRows === 0 ? 0 : pageIndex * pageSize + 1;
+  const lastRow = Math.min((pageIndex + 1) * pageSize, totalRows);
 
   return (
     <div className="space-y-6" data-testid="datatable-layout-page">
@@ -182,8 +215,11 @@ export default function DataTableLayoutPage() {
       />
 
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0">
           <CardTitle className="text-base">Users</CardTitle>
+          <Button size="sm" onClick={() => toast("Add item")} data-testid="dt-add">
+            <Plus className="size-4" /> Add
+          </Button>
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Toolbar */}
@@ -198,56 +234,29 @@ export default function DataTableLayoutPage() {
                 data-testid="dt-search"
               />
             </div>
-            <div className="flex items-center gap-2">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm" data-testid="dt-density">
-                    <Rows3 className="size-4" /> Density
-                    <ChevronDown className="size-3.5 opacity-50" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuLabel>Row density</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuRadioGroup value={density} onValueChange={setDensity}>
-                    {Object.entries(DENSITY).map(([key, { label }]) => (
-                      <DropdownMenuRadioItem
-                        key={key}
-                        value={key}
-                        data-testid={`dt-density-${key}`}
-                      >
-                        {label}
-                      </DropdownMenuRadioItem>
-                    ))}
-                  </DropdownMenuRadioGroup>
-                </DropdownMenuContent>
-              </DropdownMenu>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm" data-testid="dt-columns">
-                    Columns
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  {table
-                    .getAllColumns()
-                    .filter((c) => c.getCanHide())
-                    .map((c) => (
-                      <DropdownMenuCheckboxItem
-                        key={c.id}
-                        className="capitalize"
-                        checked={c.getIsVisible()}
-                        onCheckedChange={(v) => c.toggleVisibility(!!v)}
-                      >
-                        {c.id}
-                      </DropdownMenuCheckboxItem>
-                    ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
-              <Button size="sm" onClick={() => toast("Add item")} data-testid="dt-add">
-                <Plus className="size-4" /> Add
-              </Button>
-            </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" data-testid="dt-density">
+                  <Rows3 className="size-4" /> Density
+                  <ChevronDown className="size-3.5 opacity-50" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>Row density</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuRadioGroup value={density} onValueChange={setDensity}>
+                  {Object.entries(DENSITY).map(([key, { label }]) => (
+                    <DropdownMenuRadioItem
+                      key={key}
+                      value={key}
+                      data-testid={`dt-density-${key}`}
+                    >
+                      {label}
+                    </DropdownMenuRadioItem>
+                  ))}
+                </DropdownMenuRadioGroup>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
 
           {/* Table */}
@@ -255,7 +264,7 @@ export default function DataTableLayoutPage() {
             <Table data-testid="dt-table">
               <TableHeader>
                 {table.getHeaderGroups().map((hg) => (
-                  <TableRow key={hg.id}>
+                  <TableRow key={hg.id} className="bg-muted/50 hover:bg-muted/50">
                     {hg.headers.map((h) => (
                       <TableHead key={h.id} className={DENSITY[density].head}>
                         {h.isPlaceholder
@@ -292,15 +301,34 @@ export default function DataTableLayoutPage() {
           </div>
 
           {/* Footer */}
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <span className="text-xs text-muted-foreground" data-testid="dt-selected">
-              {selectedCount} of {table.getFilteredRowModel().rows.length} row(s)
-              selected.
+              {selectedCount} of {totalRows} row(s) selected.
             </span>
-            <div className="flex items-center gap-4">
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground">Rows per page</span>
+                <Select
+                  value={String(pageSize)}
+                  onValueChange={(v) => table.setPageSize(Number(v))}
+                >
+                  <SelectTrigger className="h-8 w-[70px]" data-testid="dt-page-size">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {[8, 16, 24].map((n) => (
+                      <SelectItem key={n} value={String(n)}>
+                        {n}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <span className="text-xs text-muted-foreground" data-testid="dt-showing">
+                {firstRow}–{lastRow} of {totalRows}
+              </span>
               <span className="text-xs text-muted-foreground">
-                Page {table.getState().pagination.pageIndex + 1} of{" "}
-                {table.getPageCount()}
+                Page {pageIndex + 1} of {table.getPageCount()}
               </span>
               <div className="flex gap-2">
                 <Button
