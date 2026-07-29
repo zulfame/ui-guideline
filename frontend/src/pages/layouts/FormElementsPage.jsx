@@ -162,10 +162,10 @@ export default function FormElementsPage() {
         <Field title="Input OTP" testid="fe-otp">
           <div className="space-y-2">
             <Label>Verification code</Label>
-            <InputOTP maxLength={6}>
-              <InputOTPGroup>
+            <InputOTP maxLength={6} containerClassName="w-full">
+              <InputOTPGroup className="w-full">
                 {Array.from({ length: 6 }).map((_, i) => (
-                  <InputOTPSlot key={i} index={i} />
+                  <InputOTPSlot key={i} index={i} className="flex-1" />
                 ))}
               </InputOTPGroup>
             </InputOTP>
