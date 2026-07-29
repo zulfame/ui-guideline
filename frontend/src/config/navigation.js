@@ -3,6 +3,7 @@ import {
   Component,
   Blocks,
   BarChart3,
+  LayoutTemplate,
 } from "lucide-react";
 
 /**
@@ -21,14 +22,8 @@ export const navSections = [
     items: [
       {
         title: "Components",
+        to: "/design-system/components",
         icon: Component,
-        children: [
-          { title: "Base Components", to: "/design-system/components/base" },
-          {
-            title: "Composite Component",
-            to: "/design-system/components/composite",
-          },
-        ],
       },
       {
         title: "Sample Blocks",
@@ -50,6 +45,15 @@ export const navSections = [
           { title: "Radar Charts", to: "/design-system/charts/radar" },
           { title: "Radial Charts", to: "/design-system/charts/radial" },
           { title: "Tooltips", to: "/design-system/charts/tooltips" },
+        ],
+      },
+      {
+        title: "Sample Layout",
+        icon: LayoutTemplate,
+        children: [
+          { title: "DataTable", to: "/design-system/layouts/datatable" },
+          { title: "Form Elements", to: "/design-system/layouts/form-elements" },
+          { title: "Form Layout", to: "/design-system/layouts/form-layout" },
         ],
       },
     ],

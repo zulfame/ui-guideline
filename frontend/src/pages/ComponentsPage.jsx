@@ -19,6 +19,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { componentPreviews } from "@/config/componentPreviews";
+import { compositePreviews } from "@/config/compositePreviews";
 import {
   Table,
   TableBody,
@@ -29,76 +30,33 @@ import {
 } from "@/components/ui/table";
 
 /**
- * shadcn/ui "All Components" (source: https://ui.shadcn.com/docs/components).
- * `status` mengikuti legenda Design System:
- *  - "established" ✅ : sudah dipakai & distandarkan di sistem ini.
- *  - "available"   ⚪ : primitive tersedia di `components/ui/`, belum dipakai.
- *  - "pending"     🔒 : belum diport ke `components/ui/` (butuh keputusan/persetujuan).
+ * Unified component catalog: Base (shadcn/ui primitives) + Composite (reusable
+ * patterns), merged and sorted A–Z. `kind` marks the source; `status` follows the
+ * Design System legend (established ✅ / available ⚪ / pending 🔒).
  */
-const components = [
-  { name: "Accordion", status: "established" },
-  { name: "Alert", status: "established" },
-  { name: "Alert Dialog", status: "established" },
-  { name: "Aspect Ratio", status: "established" },
-  { name: "Attachment", status: "established" },
-  { name: "Avatar", status: "established" },
-  { name: "Badge", status: "established" },
-  { name: "Breadcrumb", status: "established" },
-  { name: "Bubble", status: "established" },
-  { name: "Button", status: "established" },
-  { name: "Button Group", status: "established" },
-  { name: "Calendar", status: "established" },
-  { name: "Card", status: "established" },
-  { name: "Carousel", status: "established" },
-  { name: "Chart", status: "established" },
-  { name: "Checkbox", status: "established" },
-  { name: "Collapsible", status: "established" },
-  { name: "Combobox", status: "established" },
-  { name: "Command", status: "established" },
-  { name: "Context Menu", status: "established" },
-  { name: "Data Table", status: "established" },
-  { name: "Date Picker", status: "established" },
-  { name: "Dialog", status: "established" },
-  { name: "Drawer", status: "established" },
-  { name: "Dropdown Menu", status: "established" },
-  { name: "Empty", status: "established" },
-  { name: "Field", status: "established" },
-  { name: "Hover Card", status: "established" },
-  { name: "Input", status: "established" },
-  { name: "Input Group", status: "established" },
-  { name: "Input OTP", status: "established" },
-  { name: "Item", status: "established" },
-  { name: "Kbd", status: "established" },
-  { name: "Label", status: "established" },
-  { name: "Marker", status: "established" },
-  { name: "Menubar", status: "established" },
-  { name: "Message", status: "established" },
-  { name: "Message Scroller", status: "established" },
-  { name: "Native Select", status: "established" },
-  { name: "Navigation Menu", status: "established" },
-  { name: "Pagination", status: "established" },
-  { name: "Popover", status: "established" },
-  { name: "Progress", status: "established" },
-  { name: "Radio Group", status: "established" },
-  { name: "Resizable", status: "established" },
-  { name: "Scroll Area", status: "established" },
-  { name: "Select", status: "established" },
-  { name: "Separator", status: "established" },
-  { name: "Sheet", status: "established" },
-  { name: "Sidebar", status: "established" },
-  { name: "Skeleton", status: "established" },
-  { name: "Slider", status: "established" },
-  { name: "Spinner", status: "established" },
-  { name: "Switch", status: "established" },
-  { name: "Table", status: "established" },
-  { name: "Tabs", status: "established" },
-  { name: "Textarea", status: "established" },
-  { name: "Toast", status: "established" },
-  { name: "Toggle", status: "established" },
-  { name: "Toggle Group", status: "established" },
-  { name: "Tooltip", status: "established" },
-  { name: "Typography", status: "established" },
+const BASE_NAMES = [
+  "Accordion", "Alert", "Alert Dialog", "Aspect Ratio", "Attachment", "Avatar",
+  "Badge", "Breadcrumb", "Bubble", "Button", "Button Group", "Calendar", "Card",
+  "Carousel", "Chart", "Checkbox", "Collapsible", "Combobox", "Command",
+  "Context Menu", "Data Table", "Date Picker", "Dialog", "Drawer",
+  "Dropdown Menu", "Empty", "Field", "Hover Card", "Input", "Input Group",
+  "Input OTP", "Item", "Kbd", "Label", "Marker", "Menubar", "Message",
+  "Message Scroller", "Native Select", "Navigation Menu", "Pagination", "Popover",
+  "Progress", "Radio Group", "Resizable", "Scroll Area", "Select", "Separator",
+  "Sheet", "Sidebar", "Skeleton", "Slider", "Spinner", "Switch", "Table", "Tabs",
+  "Textarea", "Toast", "Toggle", "Toggle Group", "Tooltip", "Typography",
 ];
+
+const COMPOSITE_NAMES = [
+  "Autocomplete", "Rating", "Stepper", "List", "Cookie Banner", "Preloader",
+  "Widget", "Placeholder", "Data Grid", "Code Block", "Markdown", "Phone Input",
+  "Input Mask", "Kanban", "Sortable",
+];
+
+const components = [
+  ...BASE_NAMES.map((name) => ({ name, status: "established", kind: "Base" })),
+  ...COMPOSITE_NAMES.map((name) => ({ name, status: "established", kind: "Composite" })),
+].sort((a, b) => a.name.localeCompare(b.name));
 
 const STATUS_META = {
   established: { label: "Established", variant: "default" },
@@ -106,23 +64,30 @@ const STATUS_META = {
   pending: { label: "Pending", variant: "outline" },
 };
 
+function getPreview(item) {
+  if (!item) return null;
+  return item.kind === "Composite"
+    ? compositePreviews[item.name]
+    : componentPreviews[item.name];
+}
+
 export default function ComponentsPage() {
   const [preview, setPreview] = useState(null);
-  const previewNode = preview ? componentPreviews[preview.name] : null;
+  const previewNode = getPreview(preview);
 
   return (
     <div className="space-y-6" data-testid="components-page">
       <PageHeader
-        title="Base Components"
-        description="Base components from shadcn/ui, adjusted to this design system."
+        title="Components"
+        description="All design-system components — Base (shadcn/ui) and Composite patterns, sorted A–Z."
       />
 
       <Card data-testid="table-card">
         <CardHeader>
           <CardTitle className="text-base">Table</CardTitle>
           <CardDescription>
-            A data table wrapped in a card, listing all shadcn/ui components with
-            their design-system availability status.
+            A data table wrapped in a card, listing every component with its type
+            and design-system status. Total: {components.length}.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -132,6 +97,7 @@ export default function ComponentsPage() {
                 <TableRow>
                   <TableHead className="w-16">No</TableHead>
                   <TableHead>Name</TableHead>
+                  <TableHead className="w-32">Type</TableHead>
                   <TableHead className="w-40">Status</TableHead>
                   <TableHead className="w-24 text-right">Action</TableHead>
                 </TableRow>
@@ -140,7 +106,7 @@ export default function ComponentsPage() {
                 {components.length === 0 ? (
                   <TableRow>
                     <TableCell
-                      colSpan={4}
+                      colSpan={5}
                       className="h-24 text-center text-sm text-muted-foreground"
                       data-testid="table-empty-state"
                     >
@@ -152,7 +118,7 @@ export default function ComponentsPage() {
                     const meta = STATUS_META[item.status];
                     return (
                       <TableRow
-                        key={item.name}
+                        key={`${item.kind}-${item.name}`}
                         data-testid={`table-row-${index + 1}`}
                       >
                         <TableCell className="text-muted-foreground">
@@ -160,6 +126,14 @@ export default function ComponentsPage() {
                         </TableCell>
                         <TableCell className="font-medium">
                           {item.name}
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            variant={item.kind === "Composite" ? "outline" : "secondary"}
+                            data-testid={`type-badge-${index + 1}`}
+                          >
+                            {item.kind}
+                          </Badge>
                         </TableCell>
                         <TableCell>
                           <Badge
@@ -200,19 +174,23 @@ export default function ComponentsPage() {
             <DialogTitle className="flex items-center gap-2">
               {preview?.name}
               {preview ? (
-                <Badge variant={STATUS_META[preview.status].variant}>
-                  {STATUS_META[preview.status].label}
-                </Badge>
+                <>
+                  <Badge variant={preview.kind === "Composite" ? "outline" : "secondary"}>
+                    {preview.kind}
+                  </Badge>
+                  <Badge variant={STATUS_META[preview.status].variant}>
+                    {STATUS_META[preview.status].label}
+                  </Badge>
+                </>
               ) : null}
             </DialogTitle>
             <DialogDescription>
-              Live preview of the shadcn/ui component as used in this design
-              system.
+              Live preview of the component as used in this design system.
             </DialogDescription>
           </DialogHeader>
 
           <div
-            className="flex min-h-[160px] items-center justify-center rounded-md border bg-background p-6"
+            className="flex min-h-[160px] items-center justify-center overflow-auto rounded-md border bg-background p-6"
             data-testid="component-preview-body"
           >
             {previewNode ?? (

@@ -57,6 +57,11 @@ Bahasa komunikasi user: **Bahasa Indonesia**.
     - **Dengan dep baru (6):** Code Block (`react-syntax-highlighter`), Markdown (`react-markdown`+`remark-gfm`), Phone Input (`react-phone-number-input`), Input Mask (`react-imask`), Kanban & Sortable (`@dnd-kit/*`).
   - Compile sukses (0 error webpack). ✅ **Verifikasi visual selesai** — 15/15 Composite + Message Scroller render benar via screenshot (0 console error), diuji bertahap sesuai permintaan user.
 
+- **2026-06 (Menu Components digabung + Sample Layout):**
+  - **Menu "Components" → single** (`/design-system/components`); route lama `/base` & `/composite` redirect ke sana. `ComponentsPage.jsx` kini gabungan **Base (62) + Composite (15) = 77**, urut **A–Z**, kolom baru **Type** (Base/Composite). Preview di-resolve per-kind (`componentPreviews`/`compositePreviews`). `CompositeComponentsPage.jsx` jadi orphan (tak dirute).
+  - **Menu baru "Sample Layout" (grup)** + 3 halaman di `pages/layouts/`: **DataTable** (tanstack: toolbar/selection/sort/pagination/row-actions), **Form Elements** (galeri semua elemen form), **Form Layout** (form rhf+zod bersection). Route `/design-system/layouts/{datatable, form-elements, form-layout}`.
+  - ✅ Diverifikasi via screenshot: 77 baris A–Z, preview Composite resolve benar, 3 halaman render, validasi form jalan (0 console error).
+
 ## Changes in Tech Stack
 - Dependency baru terpasang (disetujui user, R37): `react-syntax-highlighter`, `react-markdown`, `remark-gfm`, `react-phone-number-input`, `react-imask`, `@dnd-kit/core`, `@dnd-kit/sortable`, `@dnd-kit/utilities`.
 

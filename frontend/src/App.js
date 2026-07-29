@@ -7,7 +7,9 @@ import ForgotPasswordPage from "@/pages/ForgotPasswordPage";
 import DashboardPage from "@/pages/DashboardPage";
 import PlaceholderPage from "@/pages/PlaceholderPage";
 import ComponentsPage from "@/pages/ComponentsPage";
-import CompositeComponentsPage from "@/pages/CompositeComponentsPage";
+import DataTableLayoutPage from "@/pages/layouts/DataTableLayoutPage";
+import FormElementsPage from "@/pages/layouts/FormElementsPage";
+import FormLayoutPage from "@/pages/layouts/FormLayoutPage";
 import SidebarBlockPage from "@/pages/blocks/SidebarBlockPage";
 import LoginBlockPage from "@/pages/blocks/LoginBlockPage";
 import ForgotBlockPage from "@/pages/blocks/ForgotBlockPage";
@@ -28,15 +30,27 @@ function App() {
           <Route path="/" element={<DashboardPage />} />
           <Route
             path="/design-system/components"
-            element={<Navigate to="/design-system/components/base" replace />}
-          />
-          <Route
-            path="/design-system/components/base"
             element={<ComponentsPage />}
           />
           <Route
+            path="/design-system/components/base"
+            element={<Navigate to="/design-system/components" replace />}
+          />
+          <Route
             path="/design-system/components/composite"
-            element={<CompositeComponentsPage />}
+            element={<Navigate to="/design-system/components" replace />}
+          />
+          <Route
+            path="/design-system/layouts/datatable"
+            element={<DataTableLayoutPage />}
+          />
+          <Route
+            path="/design-system/layouts/form-elements"
+            element={<FormElementsPage />}
+          />
+          <Route
+            path="/design-system/layouts/form-layout"
+            element={<FormLayoutPage />}
           />
           <Route
             path="/design-system/blocks/sidebar"
