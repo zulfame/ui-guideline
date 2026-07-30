@@ -82,6 +82,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { EmptyState } from "@/components/composite/EmptyState";
+import { DensityToggle } from "@/components/density-toggle";
 
 const emptyToUndef = (v) => (v === "" || v === null ? undefined : v);
 
@@ -211,7 +212,7 @@ function OfficeFormDialog({ open, onOpenChange, mode, initialValues, onSaved }) 
               </DialogDescription>
             </DialogHeader>
 
-            <div className="space-y-3 px-6 py-4">
+            <div className="space-y-[var(--field-gap)] px-6 py-4">
               <div className="grid gap-4 sm:grid-cols-2">
                 <FormField
                   control={form.control}
@@ -470,7 +471,7 @@ export default function OfficesPage() {
         accessorKey: "address",
         header: "Address",
         cell: ({ row }) => (
-          <span className="line-clamp-1 max-w-[240px] text-muted-foreground">
+          <span className="text-muted-foreground">
             {row.original.address || "—"}
           </span>
         ),
@@ -548,7 +549,11 @@ export default function OfficesPage() {
       <PageHeader
         title="Offices"
         description="Manage office locations, contacts and geofence radius."
-      />
+      >
+        <Button onClick={openCreate} data-testid="offices-add">
+          <Plus className="size-4" /> Add Office
+        </Button>
+      </PageHeader>
 
       {/* Toolbar */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -573,9 +578,7 @@ export default function OfficesPage() {
               <Trash2 className="size-4" /> Delete ({selectedCount})
             </Button>
           )}
-          <Button size="sm" onClick={openCreate} data-testid="offices-add">
-            <Plus className="size-4" /> Add Office
-          </Button>
+          <DensityToggle />
         </div>
       </div>
 
@@ -609,7 +612,7 @@ export default function OfficesPage() {
           />
         ) : (
           <>
-            <Table data-testid="offices-table">
+            <Table data-testid="offices-table" className="[&_td]:whitespace-nowrap [&_th]:whitespace-nowrap">
               <TableHeader>
                 {table.getHeaderGroups().map((hg) => (
                   <TableRow key={hg.id} className="bg-muted/50 hover:bg-muted/50">

@@ -77,6 +77,13 @@ code {
         --ring: var(--neutral-950);
         --radius: 0.5rem;
 
+        /* ── Density (Dense = default) ── */
+        --ctl-h: 2rem;        /* control height · h-8 */
+        --ctl-h-sm: 1.75rem;  /* small control · h-7 */
+        --ctl-h-lg: 2.25rem;  /* large control · h-9 */
+        --field-gap: 0.75rem; /* form field-stack · space-y-3 */
+        --item-gap: 0.375rem; /* label→control · space-y-1.5 */
+
         --chart-1: var(--hue-chart-1);
         --chart-2: var(--hue-chart-2);
         --chart-3: var(--hue-chart-3);
@@ -131,6 +138,14 @@ code {
         --sidebar-accent-foreground: var(--neutral-100);
         --sidebar-border: var(--neutral-800);
         --sidebar-ring: var(--neutral-300);
+    }
+
+    :root[data-density="comfortable"] {
+        --ctl-h: 2.5rem;      /* control height · h-10 */
+        --ctl-h-sm: 2.25rem;  /* small control · h-9 */
+        --ctl-h-lg: 2.75rem;  /* large control · h-11 */
+        --field-gap: 1.25rem; /* form field-stack · space-y-5 */
+        --item-gap: 0.5rem;   /* label→control · space-y-2 */
     }
 }
 

@@ -78,13 +78,13 @@ function WizardCard() {
       </CardHeader>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(() => toast.success("Setup complete"))} noValidate>
-          <CardContent className="space-y-3">
+          <CardContent className="space-y-[var(--field-gap)]">
             <div className="mx-auto w-full max-w-md">
               <StepIndicator steps={WIZARD_STEPS} current={step} />
             </div>
 
             {step === 0 && (
-              <div className="mx-auto w-full max-w-md space-y-3" data-testid="wizard-step-account">
+              <div className="mx-auto w-full max-w-md space-y-[var(--field-gap)]" data-testid="wizard-step-account">
                 <FormField
                   control={form.control}
                   name="email"
@@ -115,7 +115,7 @@ function WizardCard() {
             )}
 
             {step === 1 && (
-              <div className="mx-auto w-full max-w-md space-y-3" data-testid="wizard-step-profile">
+              <div className="mx-auto w-full max-w-md space-y-[var(--field-gap)]" data-testid="wizard-step-profile">
                 <FormField
                   control={form.control}
                   name="fullName"
