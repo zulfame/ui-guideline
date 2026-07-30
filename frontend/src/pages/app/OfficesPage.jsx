@@ -130,16 +130,29 @@ function toFormValues(office) {
   };
 }
 
-function buildPayload(data) {
+function buildPayload(data, isEdit) {
   const payload = { code: data.code.trim(), name: data.name.trim() };
+  // Optional strings: send value when present; on edit, send null to CLEAR.
   ["address", "telephone", "note"].forEach((k) => {
-    if (data[k] && data[k].trim()) payload[k] = data[k].trim();
+    const v = data[k] ? data[k].trim() : "";
+    if (v) payload[k] = v;
+    else if (isEdit) payload[k] = null;
   });
-  ["latitude", "longitude", "radius"].forEach((k) => {
-    if (data[k] !== undefined && data[k] !== "" && !Number.isNaN(data[k])) {
-      payload[k] = Number(data[k]);
+  // Optional coordinates: same rule (null clears on edit).
+  ["latitude", "longitude"].forEach((k) => {
+    const raw = data[k];
+    if (raw !== undefined && raw !== "" && !Number.isNaN(Number(raw))) {
+      payload[k] = Number(raw);
+    } else if (isEdit) {
+      payload[k] = null;
     }
   });
+  // Radius has a default (100): send when provided; on edit, reset to 100 when cleared.
+  if (data.radius !== undefined && data.radius !== "" && !Number.isNaN(Number(data.radius))) {
+    payload.radius = Number(data.radius);
+  } else if (isEdit) {
+    payload.radius = 100;
+  }
   return payload;
 }
 
@@ -156,7 +169,7 @@ function OfficeFormDialog({ open, onOpenChange, mode, initialValues, onSaved }) 
 
   const submit = async (data) => {
     setSubmitting(true);
-    const payload = buildPayload(data);
+    const payload = buildPayload(data, mode === "edit");
     try {
       if (mode === "edit") {
         await API.put(`/offices/${initialValues.id}`, payload);
