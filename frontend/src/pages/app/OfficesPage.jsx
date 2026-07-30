@@ -27,7 +27,12 @@ import {
 } from "lucide-react";
 
 import API from "@/lib/api";
-import { PageHeader } from "@/components/layout/PageHeader";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -508,7 +513,7 @@ export default function OfficesPage() {
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
-                  variant="destructive"
+                  className="text-destructive focus:text-destructive"
                   onClick={() => setDeleteTarget(row.original)}
                   data-testid={`offices-delete-${row.original.id}`}
                 >
@@ -546,44 +551,44 @@ export default function OfficesPage() {
 
   return (
     <div className="space-y-6" data-testid="offices-page">
-      <PageHeader
-        title="Offices"
-        description="Manage office locations, contacts and geofence radius."
-      >
-        <Button onClick={openCreate} data-testid="offices-add">
-          <Plus className="size-4" /> Add Office
-        </Button>
-      </PageHeader>
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0">
+          <CardTitle className="text-base">Offices</CardTitle>
+          <Button size="sm" onClick={openCreate} data-testid="offices-add">
+            <Plus className="size-4" /> Add Office
+          </Button>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Toolbar */}
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div className="relative max-w-xs flex-1">
+              <Search className="absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+              <Input
+                value={globalFilter}
+                onChange={(e) => setGlobalFilter(e.target.value)}
+                placeholder="Search offices..."
+                className="pl-8"
+                data-testid="offices-search"
+              />
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              {selectedCount > 0 && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setBulkOpen(true)}
+                  className="border-destructive/50 text-destructive hover:text-destructive"
+                  data-testid="offices-bulk-delete"
+                >
+                  <Trash2 className="size-4" /> Delete ({selectedCount})
+                </Button>
+              )}
+              <DensityToggle />
+            </div>
+          </div>
 
-      {/* Toolbar */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="relative w-full sm:max-w-xs">
-          <Search className="absolute left-2.5 top-2.5 size-4 text-muted-foreground" aria-hidden="true" />
-          <Input
-            value={globalFilter}
-            onChange={(e) => setGlobalFilter(e.target.value)}
-            placeholder="Search offices..."
-            className="pl-8"
-            data-testid="offices-search"
-          />
-        </div>
-        <div className="flex items-center gap-2">
-          {selectedCount > 0 && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setBulkOpen(true)}
-              data-testid="offices-bulk-delete"
-            >
-              <Trash2 className="size-4" /> Delete ({selectedCount})
-            </Button>
-          )}
-          <DensityToggle />
-        </div>
-      </div>
-
-      {/* Table / states */}
-      <div className="rounded-md border">
+          {/* Table / states */}
+          <div className="rounded-md border">
         {status === "error" ? (
           <EmptyState
             variant="error"
@@ -717,6 +722,8 @@ export default function OfficesPage() {
           </div>
         </div>
       )}
+        </CardContent>
+      </Card>
 
       <OfficeFormDialog
         open={formOpen}
@@ -742,7 +749,11 @@ export default function OfficesPage() {
           </div>
           <AlertDialogFooter>
             <AlertDialogCancel data-testid="offices-delete-cancel">Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDelete} data-testid="offices-delete-confirm">
+            <AlertDialogAction
+              onClick={confirmDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              data-testid="offices-delete-confirm"
+            >
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -762,7 +773,11 @@ export default function OfficesPage() {
           </div>
           <AlertDialogFooter>
             <AlertDialogCancel data-testid="offices-bulk-delete-cancel">Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmBulkDelete} data-testid="offices-bulk-delete-confirm">
+            <AlertDialogAction
+              onClick={confirmBulkDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              data-testid="offices-bulk-delete-confirm"
+            >
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>

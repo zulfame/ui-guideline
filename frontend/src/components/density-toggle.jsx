@@ -1,50 +1,53 @@
-import { Rows2, Rows3 } from "lucide-react";
+import { ChevronDown, Rows3 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useDensity } from "@/components/density-provider";
-import { cn } from "@/lib/utils";
 
 const OPTIONS = [
-  { value: "dense", label: "Dense", icon: Rows3 },
-  { value: "comfortable", label: "Comfortable", icon: Rows2 },
+  { value: "dense", label: "Dense" },
+  { value: "comfortable", label: "Comfortable" },
 ];
 
-/** DensityToggle — dropdown for Dense / Comfortable UI density. */
+/** DensityToggle — global Dense / Comfortable UI density (mirrors sample "Density" dropdown). */
 export function DensityToggle() {
   const { density, setDensity } = useDensity();
-  const Icon = density === "comfortable" ? Rows2 : Rows3;
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button
-          variant="ghost"
-          size="icon"
-          className="size-8"
+          variant="outline"
+          size="sm"
           data-testid="density-toggle-trigger"
           aria-label="Toggle density"
         >
-          <Icon className="size-4" aria-hidden="true" />
+          <Rows3 className="size-4" /> Density
+          <ChevronDown className="size-3.5 opacity-50" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-40">
-        {OPTIONS.map(({ value, label, icon: OptIcon }) => (
-          <DropdownMenuItem
-            key={value}
-            onClick={() => setDensity(value)}
-            data-testid={`density-option-${value}`}
-            className={cn(density === value && "bg-accent text-accent-foreground")}
-          >
-            <OptIcon className="size-4" aria-hidden="true" />
-            {label}
-          </DropdownMenuItem>
-        ))}
+      <DropdownMenuContent align="end">
+        <DropdownMenuLabel>UI density</DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        <DropdownMenuRadioGroup value={density} onValueChange={setDensity}>
+          {OPTIONS.map(({ value, label }) => (
+            <DropdownMenuRadioItem
+              key={value}
+              value={value}
+              data-testid={`density-option-${value}`}
+            >
+              {label}
+            </DropdownMenuRadioItem>
+          ))}
+        </DropdownMenuRadioGroup>
       </DropdownMenuContent>
     </DropdownMenu>
   );

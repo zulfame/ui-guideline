@@ -152,6 +152,23 @@ def test_update_404(session):
     r = session.put(f"{API}/offices/nonexistent-id", json={"name": "TEST X"}, timeout=15)
     assert r.status_code == 404
 
+def test_update_clear_optional_field_with_null(session, created_ids):
+    # Create with a telephone value
+    r = session.post(f"{API}/offices", json={"code": "TEST_CLR", "name": "TEST Clear Field", "telephone": "021-999"}, timeout=15)
+    assert r.status_code == 201, r.text
+    oid = r.json()["id"]
+    created_ids.append(oid)
+    assert r.json()["telephone"] == "021-999"
+    # Send null explicitly to clear it
+    u = session.put(f"{API}/offices/{oid}", json={"telephone": None}, timeout=15)
+    assert u.status_code == 200, u.text
+    assert u.json()["telephone"] is None
+    # Verify via GET that null persisted (not reverted to previous value)
+    g = session.get(f"{API}/offices/{oid}", timeout=15).json()
+    assert g["telephone"] is None, f"Expected telephone cleared, got {g['telephone']}"
+
+
+
 
 # ---- DELETE ----
 def test_delete_office(session):
