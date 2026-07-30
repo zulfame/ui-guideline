@@ -207,7 +207,7 @@ function OfficeFormDialog({ open, onOpenChange, mode, initialValues, onSaved }) 
                     <FormItem>
                       <FormLabel>Code</FormLabel>
                       <FormControl>
-                        <Input placeholder="HQ-01" {...field} data-testid="office-field-code" />
+                        <Input {...field} data-testid="office-field-code" />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -220,7 +220,7 @@ function OfficeFormDialog({ open, onOpenChange, mode, initialValues, onSaved }) 
                     <FormItem>
                       <FormLabel>Name</FormLabel>
                       <FormControl>
-                        <Input placeholder="Head Office" {...field} data-testid="office-field-name" />
+                        <Input {...field} data-testid="office-field-name" />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -235,7 +235,7 @@ function OfficeFormDialog({ open, onOpenChange, mode, initialValues, onSaved }) 
                   <FormItem>
                     <FormLabel>Address</FormLabel>
                     <FormControl>
-                      <Input placeholder="Street, city..." {...field} data-testid="office-field-address" />
+                      <Input placeholder="(Optional)" {...field} data-testid="office-field-address" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -250,7 +250,7 @@ function OfficeFormDialog({ open, onOpenChange, mode, initialValues, onSaved }) 
                     <FormItem>
                       <FormLabel>Telephone</FormLabel>
                       <FormControl>
-                        <Input placeholder="021-5550123" {...field} data-testid="office-field-telephone" />
+                        <Input placeholder="(Optional)" {...field} data-testid="office-field-telephone" />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -263,7 +263,7 @@ function OfficeFormDialog({ open, onOpenChange, mode, initialValues, onSaved }) 
                     <FormItem>
                       <FormLabel>Radius (m)</FormLabel>
                       <FormControl>
-                        <Input type="number" placeholder="100" {...field} data-testid="office-field-radius" />
+                        <Input type="number" placeholder="(Optional)" {...field} data-testid="office-field-radius" />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -279,7 +279,7 @@ function OfficeFormDialog({ open, onOpenChange, mode, initialValues, onSaved }) 
                     <FormItem>
                       <FormLabel>Latitude</FormLabel>
                       <FormControl>
-                        <Input type="number" step="any" placeholder="-6.175" {...field} data-testid="office-field-latitude" />
+                        <Input type="number" step="any" placeholder="(Optional)" {...field} data-testid="office-field-latitude" />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -292,7 +292,7 @@ function OfficeFormDialog({ open, onOpenChange, mode, initialValues, onSaved }) 
                     <FormItem>
                       <FormLabel>Longitude</FormLabel>
                       <FormControl>
-                        <Input type="number" step="any" placeholder="106.827" {...field} data-testid="office-field-longitude" />
+                        <Input type="number" step="any" placeholder="(Optional)" {...field} data-testid="office-field-longitude" />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -307,7 +307,7 @@ function OfficeFormDialog({ open, onOpenChange, mode, initialValues, onSaved }) 
                   <FormItem>
                     <FormLabel>Note</FormLabel>
                     <FormControl>
-                      <Input placeholder="Optional note" {...field} data-testid="office-field-note" />
+                      <Input placeholder="(Optional)" {...field} data-testid="office-field-note" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
