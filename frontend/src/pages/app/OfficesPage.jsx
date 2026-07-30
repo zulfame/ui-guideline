@@ -1,0 +1,757 @@
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { toast } from "sonner";
+import {
+  flexRender,
+  getCoreRowModel,
+  getFilteredRowModel,
+  getPaginationRowModel,
+  getSortedRowModel,
+  useReactTable,
+} from "@tanstack/react-table";
+import {
+  ArrowDown,
+  ArrowUp,
+  ArrowUpDown,
+  ChevronLeft,
+  ChevronRight,
+  FilterX,
+  MoreHorizontal,
+  Pencil,
+  Plus,
+  RefreshCw,
+  Search,
+  Trash2,
+} from "lucide-react";
+
+import API from "@/lib/api";
+import { PageHeader } from "@/components/layout/PageHeader";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { EmptyState } from "@/components/composite/EmptyState";
+
+const emptyToUndef = (v) => (v === "" || v === null ? undefined : v);
+
+const officeSchema = z.object({
+  code: z.string().min(1, "Code is required"),
+  name: z.string().min(1, "Name is required"),
+  address: z.string().optional(),
+  telephone: z.string().optional(),
+  latitude: z.preprocess(
+    emptyToUndef,
+    z.coerce.number().min(-90, "Min -90").max(90, "Max 90").optional(),
+  ),
+  longitude: z.preprocess(
+    emptyToUndef,
+    z.coerce.number().min(-180, "Min -180").max(180, "Max 180").optional(),
+  ),
+  radius: z.preprocess(
+    emptyToUndef,
+    z.coerce.number().min(0, "Must be ≥ 0").optional(),
+  ),
+  note: z.string().optional(),
+});
+
+const emptyValues = {
+  code: "",
+  name: "",
+  address: "",
+  telephone: "",
+  latitude: "",
+  longitude: "",
+  radius: "",
+  note: "",
+};
+
+function toFormValues(office) {
+  if (!office) return emptyValues;
+  return {
+    code: office.code ?? "",
+    name: office.name ?? "",
+    address: office.address ?? "",
+    telephone: office.telephone ?? "",
+    latitude: office.latitude ?? "",
+    longitude: office.longitude ?? "",
+    radius: office.radius ?? "",
+    note: office.note ?? "",
+  };
+}
+
+function buildPayload(data) {
+  const payload = { code: data.code.trim(), name: data.name.trim() };
+  ["address", "telephone", "note"].forEach((k) => {
+    if (data[k] && data[k].trim()) payload[k] = data[k].trim();
+  });
+  ["latitude", "longitude", "radius"].forEach((k) => {
+    if (data[k] !== undefined && data[k] !== "" && !Number.isNaN(data[k])) {
+      payload[k] = Number(data[k]);
+    }
+  });
+  return payload;
+}
+
+function OfficeFormDialog({ open, onOpenChange, mode, initialValues, onSaved }) {
+  const [submitting, setSubmitting] = useState(false);
+  const form = useForm({
+    resolver: zodResolver(officeSchema),
+    defaultValues: emptyValues,
+  });
+
+  useEffect(() => {
+    if (open) form.reset(toFormValues(initialValues));
+  }, [open, initialValues, form]);
+
+  const submit = async (data) => {
+    setSubmitting(true);
+    const payload = buildPayload(data);
+    try {
+      if (mode === "edit") {
+        await API.put(`/offices/${initialValues.id}`, payload);
+        toast.success("Office updated", { description: payload.name });
+      } else {
+        await API.post("/offices", payload);
+        toast.success("Office created", { description: payload.name });
+      }
+      onOpenChange(false);
+      onSaved();
+    } catch (err) {
+      const detail = err?.response?.data?.detail;
+      if (err?.response?.status === 409 && typeof detail === "string") {
+        const field = detail.includes("code") ? "code" : "name";
+        form.setError(field, { message: detail });
+      } else {
+        toast.error("Failed to save office", {
+          description: typeof detail === "string" ? detail : "Please try again.",
+        });
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-lg" data-testid="office-form-dialog">
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(submit)} noValidate>
+            <DialogHeader>
+              <DialogTitle>
+                {mode === "edit" ? "Edit Office" : "Add Office"}
+              </DialogTitle>
+              <DialogDescription>
+                {mode === "edit"
+                  ? "Update the office details below."
+                  : "Create a new office. Code and name are required."}
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4 px-6 py-4">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <FormField
+                  control={form.control}
+                  name="code"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Code</FormLabel>
+                      <FormControl>
+                        <Input placeholder="HQ-01" {...field} data-testid="office-field-code" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Name</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Head Office" {...field} data-testid="office-field-name" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <FormField
+                control={form.control}
+                name="address"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Address</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Street, city..." {...field} data-testid="office-field-address" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <FormField
+                  control={form.control}
+                  name="telephone"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Telephone</FormLabel>
+                      <FormControl>
+                        <Input placeholder="021-5550123" {...field} data-testid="office-field-telephone" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="radius"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Radius (m)</FormLabel>
+                      <FormControl>
+                        <Input type="number" placeholder="100" {...field} data-testid="office-field-radius" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <FormField
+                  control={form.control}
+                  name="latitude"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Latitude</FormLabel>
+                      <FormControl>
+                        <Input type="number" step="any" placeholder="-6.175" {...field} data-testid="office-field-latitude" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="longitude"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Longitude</FormLabel>
+                      <FormControl>
+                        <Input type="number" step="any" placeholder="106.827" {...field} data-testid="office-field-longitude" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <FormField
+                control={form.control}
+                name="note"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Note</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Optional note" {...field} data-testid="office-field-note" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <DialogFooter>
+              <DialogClose asChild>
+                <Button type="button" variant="outline" data-testid="office-form-cancel">
+                  Cancel
+                </Button>
+              </DialogClose>
+              <Button type="submit" disabled={submitting} data-testid="office-form-submit">
+                {submitting ? "Saving..." : mode === "edit" ? "Save changes" : "Save office"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </Form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function SortableHeader({ column, children }) {
+  const sorted = column.getIsSorted();
+  return (
+    <button
+      type="button"
+      className="flex h-full w-full items-center gap-1 text-left font-medium"
+      onClick={() => column.toggleSorting(sorted === "asc")}
+    >
+      {children}
+      {sorted === "asc" ? (
+        <ArrowUp className="size-3.5" aria-hidden="true" />
+      ) : sorted === "desc" ? (
+        <ArrowDown className="size-3.5" aria-hidden="true" />
+      ) : (
+        <ArrowUpDown className="size-3.5 opacity-50" aria-hidden="true" />
+      )}
+    </button>
+  );
+}
+
+export default function OfficesPage() {
+  const [offices, setOffices] = useState([]);
+  const [status, setStatus] = useState("loading"); // loading | ready | error
+  const [globalFilter, setGlobalFilter] = useState("");
+  const [sorting, setSorting] = useState([]);
+  const [rowSelection, setRowSelection] = useState({});
+
+  const [formOpen, setFormOpen] = useState(false);
+  const [formMode, setFormMode] = useState("create");
+  const [editing, setEditing] = useState(null);
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [bulkOpen, setBulkOpen] = useState(false);
+
+  const fetchOffices = useCallback(async () => {
+    setStatus("loading");
+    try {
+      const { data } = await API.get("/offices");
+      setOffices(data);
+      setStatus("ready");
+    } catch {
+      setStatus("error");
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchOffices();
+  }, [fetchOffices]);
+
+  const openCreate = () => {
+    setFormMode("create");
+    setEditing(null);
+    setFormOpen(true);
+  };
+  const openEdit = (office) => {
+    setFormMode("edit");
+    setEditing(office);
+    setFormOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    try {
+      await API.delete(`/offices/${deleteTarget.id}`);
+      toast.success("Office deleted", { description: deleteTarget.name });
+      setDeleteTarget(null);
+      fetchOffices();
+    } catch {
+      toast.error("Failed to delete office");
+    }
+  };
+
+  const confirmBulkDelete = async () => {
+    const ids = table.getFilteredSelectedRowModel().rows.map((r) => r.original.id);
+    try {
+      await API.post("/offices/bulk-delete", { ids });
+      toast.success(`${ids.length} office(s) deleted`);
+      setBulkOpen(false);
+      setRowSelection({});
+      fetchOffices();
+    } catch {
+      toast.error("Failed to delete offices");
+    }
+  };
+
+  const columns = useMemo(
+    () => [
+      {
+        id: "select",
+        header: ({ table }) => (
+          <Checkbox
+            checked={
+              table.getIsAllPageRowsSelected() ||
+              (table.getIsSomePageRowsSelected() && "indeterminate")
+            }
+            onCheckedChange={(v) => table.toggleAllPageRowsSelected(!!v)}
+            aria-label="Select all"
+            data-testid="offices-select-all"
+          />
+        ),
+        cell: ({ row }) => (
+          <Checkbox
+            checked={row.getIsSelected()}
+            onCheckedChange={(v) => row.toggleSelected(!!v)}
+            aria-label="Select row"
+          />
+        ),
+        enableSorting: false,
+      },
+      {
+        accessorKey: "code",
+        header: ({ column }) => <SortableHeader column={column}>Code</SortableHeader>,
+        cell: ({ row }) => <span className="font-medium">{row.original.code}</span>,
+      },
+      {
+        accessorKey: "name",
+        header: ({ column }) => <SortableHeader column={column}>Name</SortableHeader>,
+      },
+      {
+        accessorKey: "telephone",
+        header: "Telephone",
+        cell: ({ row }) => row.original.telephone || "—",
+      },
+      {
+        accessorKey: "address",
+        header: "Address",
+        cell: ({ row }) => (
+          <span className="line-clamp-1 max-w-[240px] text-muted-foreground">
+            {row.original.address || "—"}
+          </span>
+        ),
+      },
+      {
+        accessorKey: "radius",
+        header: () => <div className="text-right">Radius</div>,
+        cell: ({ row }) => (
+          <div className="text-right tabular-nums">{row.original.radius} m</div>
+        ),
+      },
+      {
+        id: "actions",
+        cell: ({ row }) => (
+          <div className="text-right">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="size-8"
+                  aria-label="Row actions"
+                  data-testid={`offices-row-actions-${row.original.id}`}
+                >
+                  <MoreHorizontal className="size-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem
+                  onClick={() => openEdit(row.original)}
+                  data-testid={`offices-edit-${row.original.id}`}
+                >
+                  <Pencil className="size-4" /> Edit
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  variant="destructive"
+                  onClick={() => setDeleteTarget(row.original)}
+                  data-testid={`offices-delete-${row.original.id}`}
+                >
+                  <Trash2 className="size-4" /> Delete
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        ),
+        enableSorting: false,
+      },
+    ],
+    [],
+  );
+
+  const table = useReactTable({
+    data: offices,
+    columns,
+    state: { sorting, globalFilter, rowSelection },
+    getRowId: (row) => row.id,
+    onSortingChange: setSorting,
+    onGlobalFilterChange: setGlobalFilter,
+    onRowSelectionChange: setRowSelection,
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    initialState: { pagination: { pageSize: 10 } },
+  });
+
+  const selectedCount = table.getFilteredSelectedRowModel().rows.length;
+  const { pageIndex, pageSize } = table.getState().pagination;
+  const totalRows = table.getFilteredRowModel().rows.length;
+  const hasSearch = globalFilter.trim().length > 0;
+
+  return (
+    <div className="space-y-6" data-testid="offices-page">
+      <PageHeader
+        title="Offices"
+        description="Manage office locations, contacts and geofence radius."
+      />
+
+      {/* Toolbar */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="relative w-full sm:max-w-xs">
+          <Search className="absolute left-2.5 top-2.5 size-4 text-muted-foreground" aria-hidden="true" />
+          <Input
+            value={globalFilter}
+            onChange={(e) => setGlobalFilter(e.target.value)}
+            placeholder="Search offices..."
+            className="pl-8"
+            data-testid="offices-search"
+          />
+        </div>
+        <div className="flex items-center gap-2">
+          {selectedCount > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setBulkOpen(true)}
+              data-testid="offices-bulk-delete"
+            >
+              <Trash2 className="size-4" /> Delete ({selectedCount})
+            </Button>
+          )}
+          <Button size="sm" onClick={openCreate} data-testid="offices-add">
+            <Plus className="size-4" /> Add Office
+          </Button>
+        </div>
+      </div>
+
+      {/* Table / states */}
+      <div className="rounded-md border">
+        {status === "error" ? (
+          <EmptyState
+            variant="error"
+            action={
+              <Button variant="outline" size="sm" onClick={fetchOffices} data-testid="offices-retry">
+                <RefreshCw className="size-4" /> Try again
+              </Button>
+            }
+          />
+        ) : status === "loading" ? (
+          <div className="space-y-2 p-4" data-testid="offices-loading">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <Skeleton key={i} className="h-9 w-full" />
+            ))}
+          </div>
+        ) : offices.length === 0 ? (
+          <EmptyState
+            variant="first-time"
+            title="No offices yet"
+            description="Create your first office to get started."
+            action={
+              <Button size="sm" onClick={openCreate} data-testid="offices-empty-add">
+                <Plus className="size-4" /> Add Office
+              </Button>
+            }
+          />
+        ) : (
+          <>
+            <Table data-testid="offices-table">
+              <TableHeader>
+                {table.getHeaderGroups().map((hg) => (
+                  <TableRow key={hg.id} className="bg-muted/50 hover:bg-muted/50">
+                    {hg.headers.map((h) => (
+                      <TableHead key={h.id}>
+                        {h.isPlaceholder
+                          ? null
+                          : flexRender(h.column.columnDef.header, h.getContext())}
+                      </TableHead>
+                    ))}
+                  </TableRow>
+                ))}
+              </TableHeader>
+              <TableBody>
+                {table.getRowModel().rows.length ? (
+                  table.getRowModel().rows.map((row) => (
+                    <TableRow
+                      key={row.id}
+                      data-state={row.getIsSelected() && "selected"}
+                    >
+                      {row.getVisibleCells().map((cell) => (
+                        <TableCell key={cell.id}>
+                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell
+                      colSpan={columns.length}
+                      className="h-24 text-center text-muted-foreground"
+                    >
+                      <div className="flex flex-col items-center gap-2" data-testid="offices-empty-filtered">
+                        <span>No offices match your search.</span>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setGlobalFilter("")}
+                          data-testid="offices-clear-search"
+                        >
+                          <FilterX className="size-4" /> Clear search
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </>
+        )}
+      </div>
+
+      {/* Footer (only when there are rows) */}
+      {status === "ready" && offices.length > 0 && (
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <span>Rows per page</span>
+            <Select
+              value={String(pageSize)}
+              onValueChange={(v) => table.setPageSize(Number(v))}
+            >
+              <SelectTrigger className="h-8 w-[70px]" data-testid="offices-page-size">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {[10, 20, 50].map((n) => (
+                  <SelectItem key={n} value={String(n)}>
+                    {n}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <span>of {totalRows} rows</span>
+          </div>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+            <span className="text-xs text-muted-foreground">
+              Page {pageIndex + 1} of {Math.max(1, table.getPageCount())}
+            </span>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="icon"
+                className="size-8"
+                onClick={() => table.previousPage()}
+                disabled={!table.getCanPreviousPage()}
+                aria-label="Previous page"
+              >
+                <ChevronLeft className="size-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                className="size-8"
+                onClick={() => table.nextPage()}
+                disabled={!table.getCanNextPage()}
+                aria-label="Next page"
+              >
+                <ChevronRight className="size-4" />
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <OfficeFormDialog
+        open={formOpen}
+        onOpenChange={setFormOpen}
+        mode={formMode}
+        initialValues={editing}
+        onSaved={fetchOffices}
+      />
+
+      <AlertDialog open={!!deleteTarget} onOpenChange={(v) => !v && setDeleteTarget(null)}>
+        <AlertDialogContent data-testid="offices-delete-dialog">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete office?</AlertDialogTitle>
+          </AlertDialogHeader>
+          <div className="px-6 py-4">
+            <AlertDialogDescription>
+              This will permanently remove{" "}
+              <span className="font-medium text-foreground">
+                {deleteTarget?.name}
+              </span>
+              . This action cannot be undone.
+            </AlertDialogDescription>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-testid="offices-delete-cancel">Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} data-testid="offices-delete-confirm">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={bulkOpen} onOpenChange={setBulkOpen}>
+        <AlertDialogContent data-testid="offices-bulk-delete-dialog">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete {selectedCount} office(s)?</AlertDialogTitle>
+          </AlertDialogHeader>
+          <div className="px-6 py-4">
+            <AlertDialogDescription>
+              This will permanently remove the selected offices. This action cannot
+              be undone.
+            </AlertDialogDescription>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-testid="offices-bulk-delete-cancel">Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmBulkDelete} data-testid="offices-bulk-delete-confirm">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
+}
