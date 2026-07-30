@@ -200,6 +200,14 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+
+@app.on_event("startup")
+async def ensure_indexes():
+    # DB-level integrity for Offices unique fields (complements app-level check).
+    await db.offices.create_index("code", unique=True)
+    await db.offices.create_index("name", unique=True)
+
+
 @app.on_event("shutdown")
 async def shutdown_db_client():
     client.close()
