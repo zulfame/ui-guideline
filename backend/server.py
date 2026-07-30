@@ -182,6 +182,149 @@ async def delete_office(office_id: str):
     return {"success": True}
 
 
+# ---------------------------------------------------------------------------
+# Roles / Jabatan (CMS) — hierarchical tree via parent_id
+# ---------------------------------------------------------------------------
+class Role(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    name: str
+    parent_id: Optional[str] = None
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+
+class RoleCreate(BaseModel):
+    name: str = Field(..., min_length=1)
+    parent_id: Optional[str] = None
+
+
+class RoleUpdate(BaseModel):
+    name: Optional[str] = Field(None, min_length=1)
+    parent_id: Optional[str] = None
+
+
+def _role_to_doc(role: Role) -> dict:
+    doc = role.model_dump()
+    doc["created_at"] = doc["created_at"].isoformat()
+    doc["updated_at"] = doc["updated_at"].isoformat()
+    return doc
+
+
+async def _assert_role_name_unique(name: str, exclude_id: Optional[str] = None):
+    query = {"name": name}
+    if exclude_id:
+        query = {"$and": [{"id": {"$ne": exclude_id}}, {"name": name}]}
+    if await db.roles.find_one(query, {"_id": 0}):
+        raise HTTPException(status_code=409, detail="Role name already exists")
+
+
+async def _role_parent_map() -> dict:
+    docs = await db.roles.find({}, {"_id": 0, "id": 1, "parent_id": 1}).to_list(10000)
+    return {d["id"]: d.get("parent_id") for d in docs}
+
+
+def _ancestors(pmap: dict, rid: str) -> list:
+    chain, seen = [], set()
+    p = pmap.get(rid)
+    while p is not None and p not in seen:
+        seen.add(p)
+        chain.append(p)
+        p = pmap.get(p)
+    return chain
+
+
+async def _validate_parent(parent_id: Optional[str], role_id: Optional[str] = None):
+    """Parent must exist; setting it must not create a cycle."""
+    if parent_id is None:
+        return
+    if parent_id == role_id:
+        raise HTTPException(status_code=400, detail="A role cannot be its own parent")
+    if not await db.roles.find_one({"id": parent_id}, {"_id": 0, "id": 1}):
+        raise HTTPException(status_code=400, detail="Parent role not found")
+    if role_id is not None:
+        pmap = await _role_parent_map()
+        if role_id in _ancestors(pmap, parent_id):
+            raise HTTPException(
+                status_code=400,
+                detail="Cannot set parent to a descendant (would create a cycle)",
+            )
+
+
+@api_router.post("/roles", response_model=Role, status_code=201)
+async def create_role(payload: RoleCreate):
+    await _assert_role_name_unique(payload.name)
+    await _validate_parent(payload.parent_id)
+    role = Role(**payload.model_dump())
+    await db.roles.insert_one(_role_to_doc(role))
+    return role
+
+
+@api_router.get("/roles", response_model=List[Role])
+async def list_roles():
+    docs = await db.roles.find({}, {"_id": 0}).sort("name", 1).to_list(10000)
+    return [Role(**d) for d in docs]
+
+
+@api_router.post("/roles/bulk-delete")
+async def bulk_delete_roles(payload: BulkDeleteRequest):
+    deleted_set = set(payload.ids)
+    pmap = await _role_parent_map()
+    result = await db.roles.delete_many({"id": {"$in": payload.ids}})
+    # Promote orphaned children to their nearest surviving ancestor.
+    now = datetime.now(timezone.utc).isoformat()
+    for rid, parent in pmap.items():
+        if rid in deleted_set or parent not in deleted_set:
+            continue
+        p = parent
+        while p is not None and p in deleted_set:
+            p = pmap.get(p)
+        await db.roles.update_one(
+            {"id": rid}, {"$set": {"parent_id": p, "updated_at": now}}
+        )
+    return {"success": True, "deleted": result.deleted_count}
+
+
+@api_router.get("/roles/{role_id}", response_model=Role)
+async def get_role(role_id: str):
+    doc = await db.roles.find_one({"id": role_id}, {"_id": 0})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Role not found")
+    return Role(**doc)
+
+
+@api_router.put("/roles/{role_id}", response_model=Role)
+async def update_role(role_id: str, payload: RoleUpdate):
+    doc = await db.roles.find_one({"id": role_id}, {"_id": 0})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Role not found")
+    updates = payload.model_dump(exclude_unset=True)
+    if "name" in updates:
+        await _assert_role_name_unique(updates["name"], exclude_id=role_id)
+    if "parent_id" in updates:
+        await _validate_parent(updates["parent_id"], role_id=role_id)
+    updates["updated_at"] = datetime.now(timezone.utc).isoformat()
+    await db.roles.update_one({"id": role_id}, {"$set": updates})
+    doc.update(updates)
+    return Role(**doc)
+
+
+@api_router.delete("/roles/{role_id}")
+async def delete_role(role_id: str):
+    doc = await db.roles.find_one({"id": role_id}, {"_id": 0})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Role not found")
+    # Promote direct children up to this role's parent, then delete.
+    now = datetime.now(timezone.utc).isoformat()
+    await db.roles.delete_one({"id": role_id})
+    await db.roles.update_many(
+        {"parent_id": role_id},
+        {"$set": {"parent_id": doc.get("parent_id"), "updated_at": now}},
+    )
+    return {"success": True}
+
+
 # Include the router in the main app
 app.include_router(api_router)
 
@@ -206,6 +349,7 @@ async def ensure_indexes():
     # DB-level integrity for Offices unique fields (complements app-level check).
     await db.offices.create_index("code", unique=True)
     await db.offices.create_index("name", unique=True)
+    await db.roles.create_index("name", unique=True)
 
 
 @app.on_event("shutdown")

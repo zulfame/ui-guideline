@@ -8,6 +8,7 @@ import ForgotPasswordPage from "@/pages/ForgotPasswordPage";
 import DashboardPage from "@/pages/DashboardPage";
 import PlaceholderPage from "@/pages/PlaceholderPage";
 import OfficesPage from "@/pages/app/OfficesPage";
+import RolesPage from "@/pages/app/RolesPage";
 import ComponentsPage from "@/pages/ComponentsPage";
 import DesignTokensPage from "@/pages/DesignTokensPage";
 import DataTableLayoutPage from "@/pages/layouts/DataTableLayoutPage";
@@ -38,7 +39,7 @@ function App() {
         <Route element={<AppLayout />}>
           <Route path="/" element={<DashboardPage />} />
           <Route path="/users" element={<PlaceholderPage />} />
-          <Route path="/roles" element={<PlaceholderPage />} />
+          <Route path="/roles" element={<RolesPage />} />
           <Route path="/offices" element={<OfficesPage />} />
           <Route path="/account" element={<PlaceholderPage />} />
           <Route path="/settings" element={<PlaceholderPage />} />
