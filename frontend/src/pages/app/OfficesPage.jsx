@@ -211,7 +211,7 @@ function OfficeFormDialog({ open, onOpenChange, mode, initialValues, onSaved }) 
               </DialogDescription>
             </DialogHeader>
 
-            <div className="space-y-4 px-6 py-4">
+            <div className="space-y-3 px-6 py-4">
               <div className="grid gap-4 sm:grid-cols-2">
                 <FormField
                   control={form.control}

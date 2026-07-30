@@ -71,7 +71,7 @@ function ProfileSettingsCard() {
       </CardHeader>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} noValidate>
-          <CardContent className="space-y-5">
+          <CardContent className="space-y-3">
             {/* Avatar */}
             <div className="flex items-center gap-4">
               <Avatar className="h-12 w-12">

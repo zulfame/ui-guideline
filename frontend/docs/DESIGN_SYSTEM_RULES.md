@@ -153,7 +153,7 @@ Combobox, Date Picker, Password Input. Composite =
       semua konsumen — **R38**.
 - [ ] **COMPACT (R39):** `space-y` sudah sesuai Tabel Keputusan (2B.5) — **`space-y-6`
       HANYA di root halaman, DILARANG di dalam `CardContent/Header/Footer`** (pakai
-      `space-y-5`/`space-y-4`). Avatar profil `h-12 w-12`, grid form `gap-4`.
+      `space-y-3` form / `space-y-4` umum). Avatar profil `h-12 w-12`, grid form `gap-4`.
 - [ ] **GUARD:** `bash frontend/docs/design-guard.sh` sudah dijalankan & **lolos (exit 0)**
       (2C.14). Berlaku untuk **halaman/blok baru**, bukan hanya modifikasi komponen.
 
@@ -185,7 +185,7 @@ Card** — padahal itu ritme **root halaman**.
 |---|---|
 | Root halaman (`<div data-testid="*-page">`) | `space-y-6` |
 | Antar-section besar di root | `space-y-6` |
-| **Isi `CardContent`** (form/section) | **`space-y-5`** |
+| **Isi `CardContent`** (form/section) | **`space-y-3`** (Dense) |
 | **Isi `CardContent`** (umum) | **`space-y-4`** |
 | Grup terkait / rapat | `space-y-3` / `space-y-2` |
 
@@ -211,7 +211,7 @@ Alur kerja **wajib** setiap kali menyentuh UI — dirancang agar aturan tidak "l
    lalu ganti isinya. Ini otomatis membawa spacing/typography yang benar.
 
 3. **SAAT MENULIS:** untuk setiap `space-y-*`, tanyakan "ini root halaman atau isi Card?"
-   → root = `space-y-6`, isi Card = `space-y-5`/`space-y-4`. Warna hanya token. Ikon hanya
+   → root = `space-y-6`, isi Card = `space-y-3` (form/Dense) / `space-y-4` (umum). Warna hanya token. Ikon hanya
    `lucide-react`. Konten generik.
 
 4. **SEBELUM SELESAI (Definition of Done):**

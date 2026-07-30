@@ -108,7 +108,7 @@ function AddUserDialog() {
               </DialogDescription>
             </DialogHeader>
 
-            <div className="space-y-4 px-6 py-4">
+            <div className="space-y-3 px-6 py-4">
               <FormField
                 control={form.control}
                 name="fullName"

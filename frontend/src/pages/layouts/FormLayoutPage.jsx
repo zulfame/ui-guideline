@@ -42,7 +42,7 @@ function FormCard({ title, description, form, onSubmit, submitLabel, children, t
       </CardHeader>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} noValidate>
-          <CardContent className="space-y-5">{children}</CardContent>
+          <CardContent className="space-y-3">{children}</CardContent>
           <CardFooter>
             <Button type="submit" className="w-full">
               {submitLabel}

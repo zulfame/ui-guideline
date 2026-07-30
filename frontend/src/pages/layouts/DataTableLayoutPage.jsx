@@ -133,7 +133,7 @@ function UserFormDialog({ open, onOpenChange, mode, initialValues, onSubmit }) {
               </DialogDescription>
             </DialogHeader>
 
-            <div className="space-y-4 px-6 py-4">
+            <div className="space-y-3 px-6 py-4">
               <FormField
                 control={form.control}
                 name="name"

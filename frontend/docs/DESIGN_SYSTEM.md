@@ -61,7 +61,7 @@ pembuatan primitive baru **dilarang**.
 | Komponen | Status | Catatan standar |
 |----------|--------|-----------------|
 | button | ✅ | Variant: default, secondary, outline, ghost, link, destructive. Size: sm, default, lg, icon. |
-| input | ✅ | `h-9`, `text-sm`; selalu berpasangan dengan `Label`/`FormLabel`. |
+| input | ✅ | `h-8`, `text-sm`; selalu berpasangan dengan `Label`/`FormLabel`. |
 | label | ✅ | Selalu `htmlFor` terkait input (via `FormLabel`/`FormControl`). |
 | card | ✅ | Struktur **header/body/footer**: `Card > CardHeader(CardTitle, CardDescription) > CardContent > CardFooter`. Header & footer dipisah divider token (`border-b` pada `CardHeader`, `border-t` pada `CardFooter`). Dipakai di Login, pembungkus tiap chart (`ChartCard`), & pembungkus Table di halaman Components. |
 | checkbox | ✅ | Untuk boolean; dampingi `Label`. |
@@ -209,7 +209,7 @@ konten generik, monochrome-first.
 | R36 | **Routing** | React Router: layout route induk (`AppLayout` + `<Outlet />`) membungkus halaman; halaman auth standalone (`/login`); redirect root & fallback (`*`) terdefinisi; login sukses → `/`. Rute chart per-tipe → halaman masing-masing. |
 | R37 | **Dependency Exception** | Library non-shadcn yang **diizinkan** (dependency resmi/pendukung). **Global:** **lucide-react** (ikon, R09), **recharts@2.15.4** (chart, R33). **Terikat komponen (hanya boleh dipakai composite terkait di 1.4):** `@tanstack/react-table` (Data Table & Data Grid), `react-syntax-highlighter` (Code Block), `react-markdown`+`remark-gfm` (Markdown), `react-phone-number-input` (Phone Input), `react-imask` (Input Mask), `@dnd-kit/core`+`@dnd-kit/sortable`+`@dnd-kit/utilities` (Kanban & Sortable). Setiap dependency **tidak boleh menyebar** ke luar komponennya. Di luar daftar ini, library UI/komponen lain **dilarang** tanpa persetujuan. |
 | R38 | **Component Modification Invariants** (Non-Negotiable) | Karena komponen **reusable** (satu sumber → perubahan menyebar ke semua konsumen), setiap modifikasi pada `src/components/ui/` atau `src/components/composite/` **WAJIB** menjaga invarian berikut; melanggarnya = **regresi**: (a) **Compact/Spacing (2B)** — dilarang menambah whitespace; padding/margin tetap kelipatan-4 & seringkas mungkin; jangan menukar kepadatan demi tampilan. (b) **Typography (2A)** — skala ukuran & weight tidak berubah. (c) **Warna = token saja (R06/R29)** — gambar referensi hanya acuan **struktur/layout**, **bukan** warna; tetap monochrome, tanpa warna hardcode. (d) **Density** — ukuran kontrol (tombol/input) tetap compact. (e) **Verifikasi dampak menyeluruh** — sebelum menyatakan selesai, cek minimal 2–3 halaman konsumen (mis. Login, Components, Sample Layout). |
-| R39 | **Compact Density — Semua UI (Non-Negotiable)** | Memperluas R03/R38 agar berlaku **tidak hanya saat memodifikasi komponen**, tetapi juga saat **membuat halaman/blok/section baru**. Setiap UI baru WAJIB compact sejak awal. **Tabel keputusan `space-y` (WAJIB, lihat 2B.5):** **root halaman** (`<div data-testid="*-page">`) = `space-y-6`; **antar-section besar** = `space-y-6`; **di dalam `CardContent`** = `space-y-5` (form/section) atau `space-y-4` (umum) — **`space-y-6` DILARANG di dalam Card**; **grup field/rapat** = `space-y-2`/`space-y-3`. **Batas density lain:** avatar profil `h-12 w-12` (jangan `h-16`), grid form `gap-4` (jangan `gap-5`), Card section `px-6 py-4`. **Sebelum finish**, jalankan **guard** `docs/design-guard.sh` (2C.14) + **Checklist Compact** (`DESIGN_SYSTEM_RULES.md` §7). Nilai `px` arbitrer & whitespace berlebih = **regresi**. |
+| R39 | **Compact Density — Semua UI (Non-Negotiable)** | Memperluas R03/R38 agar berlaku **tidak hanya saat memodifikasi komponen**, tetapi juga saat **membuat halaman/blok/section baru**. Setiap UI baru WAJIB compact sejak awal. **Tabel keputusan `space-y` (WAJIB, lihat 2B.5):** **root halaman** (`<div data-testid="*-page">`) = `space-y-6`; **antar-section besar** = `space-y-6`; **di dalam `CardContent`** = `space-y-3` (form/section, Dense) atau `space-y-4` (umum) — **`space-y-6` DILARANG di dalam Card**; **grup field/rapat** = `space-y-2`/`space-y-3`. **Batas density lain:** avatar profil `h-12 w-12` (jangan `h-16`), grid form `gap-4` (jangan `gap-5`), Card section `px-6 py-4`. **Sebelum finish**, jalankan **guard** `docs/design-guard.sh` (2C.14) + **Checklist Compact** (`DESIGN_SYSTEM_RULES.md` §7). Nilai `px` arbitrer & whitespace berlebih = **regresi**. |
 
 ---
 
@@ -268,7 +268,7 @@ konten generik, monochrome-first.
 > |---|---|---|
 > | Root halaman (`<div data-testid="*-page">`) | **`space-y-6`** | wrapper terluar setiap page |
 > | Antar-section besar di root | **`space-y-6`** | section "Layer 1" vs "Layer 2" |
-> | **Isi `CardContent`** (form/section) | **`space-y-5`** | field-stack di dalam Card |
+> | **Isi `CardContent`** (form/section) | **`space-y-3`** | field-stack di dalam Card (Dense) |
 > | **Isi `CardContent`** (umum/non-form) | **`space-y-4`** | blok konten di dalam Card |
 > | Grup terkait / rapat | **`space-y-3`** / **`space-y-2`** | baris preferensi, label+control |
 >
@@ -276,13 +276,13 @@ konten generik, monochrome-first.
 
 **6. Component Spacing** — Tumpukan komponen terkait `space-y-4`; grup rapat `space-y-2`.
 
-**7. Form Spacing** — `<form>` antar-field **`space-y-5`**; `FormItem` internal `space-y-2` (label→control→message); baris checkbox `gap-2`.
+**7. Form Spacing (Dense — default)** — `<form>` antar-field **`space-y-3`**; `FormItem` internal `space-y-1.5` (label→control→message); baris checkbox `gap-2`.
 
-**8. Card Spacing** — `CardHeader` `px-6 py-4 space-y-1.5` + `border-b` (pemisah header↔body); `CardContent` `px-6 py-4`; `CardFooter` `px-6 py-4` + `border-t` (pemisah body↔footer). Ritme vertikal `py-4` (16px) menjaga **compact**; horizontal `px-6` (24px). Antar-kartu di grid `gap-4`. Jangan bungkus padding ganda di dalam Card. **INVARIAN (wajib):** stacking **di dalam `CardContent`** memakai **`space-y-5`** (form/section) atau **`space-y-4`** (umum) — **`space-y-6` DILARANG di dalam Card**. `space-y-6` **hanya** untuk **root halaman** (2B.5), **bukan** isi Card. Berlaku juga untuk **halaman/blok baru** (bukan hanya modifikasi komponen R38).
+**8. Card Spacing** — `CardHeader` `px-6 py-4 space-y-1.5` + `border-b` (pemisah header↔body); `CardContent` `px-6 py-4`; `CardFooter` `px-6 py-4` + `border-t` (pemisah body↔footer). Ritme vertikal `py-4` (16px) menjaga **compact**; horizontal `px-6` (24px). Antar-kartu di grid `gap-4`. Jangan bungkus padding ganda di dalam Card. **INVARIAN (wajib):** stacking **di dalam `CardContent`** memakai **`space-y-3`** (form/section, Dense) atau **`space-y-4`** (umum) — **`space-y-6` DILARANG di dalam Card**. `space-y-6` **hanya** untuk **root halaman** (2B.5), **bukan** isi Card. Berlaku juga untuk **halaman/blok baru** (bukan hanya modifikasi komponen R38).
 
 **9. Table Spacing** — `TableHead` `h-10 px-2`; `TableCell` `p-2`; empty-state cell `h-24 text-center`; bungkus tabel `rounded-md border` (padding milik sel, bukan wrapper).
 
-**10. Modal (Dialog & AlertDialog) Spacing** — `DialogContent`/`AlertDialogContent` `p-0 gap-0 max-w-lg` (pola header/body/footer, Update 31 & 54); `DialogHeader`/`AlertDialogHeader` `border-b px-6 py-4 space-y-1.5` (hanya **judul**); **body** dibungkus konsumen `px-6 py-4` (+`space-y-4` untuk form) — untuk AlertDialog konfirmasi, tempatkan **`AlertDialogDescription` di body** (bukan di dalam header) agar 3 seksi terlihat; `DialogFooter`/`AlertDialogFooter` `border-t px-6 py-4 gap-2 sm:justify-end`; tombol close `right-4 top-4`. **Kedua primitive wajib konsisten** (jangan salah satu saja).
+**10. Modal (Dialog & AlertDialog) Spacing** — `DialogContent`/`AlertDialogContent` `p-0 gap-0 max-w-lg` (pola header/body/footer, Update 31 & 54); `DialogHeader`/`AlertDialogHeader` `border-b px-6 py-4 space-y-1.5` (hanya **judul**); **body** dibungkus konsumen `px-6 py-4` (+`space-y-3` untuk form) — untuk AlertDialog konfirmasi, tempatkan **`AlertDialogDescription` di body** (bukan di dalam header) agar 3 seksi terlihat; `DialogFooter`/`AlertDialogFooter` `border-t px-6 py-4 gap-2 sm:justify-end`; tombol close `right-4 top-4`. **Kedua primitive wajib konsisten** (jangan salah satu saja).
 
 **11. Drawer (Sheet) Spacing** — `SheetContent` `p-6 gap-4`; header `space-y-2`; footer `sm:space-x-2`; close `right-4 top-4`.
 
@@ -294,9 +294,9 @@ konten generik, monochrome-first.
 
 **15. Navigation Spacing** — `SidebarGroup` `p-2` + `SidebarGroupLabel`; breadcrumb antar-item `gap-1.5` (default `BreadcrumbList`); crumb antara `hidden md:block`.
 
-**16. Button Internal Spacing** — default `h-9 px-4 py-2 gap-2`; `sm` `h-8 px-3`; `lg` `h-10 px-8`; `icon` `h-9 w-9` (persegi, tanpa `px`). Tombol ikon di tabel `h-8 w-8`.
+**16. Button Internal Spacing (Dense)** — default `h-8 px-4 py-2 gap-2`; `sm` `h-7 px-3`; `lg` `h-9 px-8`; `icon` `h-8 w-8` (persegi, tanpa `px`). Tombol ikon di tabel `h-8 w-8`.
 
-**17. Input Internal Spacing** — `h-9 px-3 py-1 text-sm`; input dgn ikon trailing `pr-10`; tombol dalam field `absolute right-1`.
+**17. Input Internal Spacing** — `h-8 px-3 py-1 text-sm`; input dgn ikon trailing `pr-10`; tombol dalam field `absolute right-1`.
 
 **18. Icon Spacing** — Ukuran default `h-4 w-4`; jarak ke teks lewat `gap-2` induk (jangan `ml-*` manual); dekoratif `aria-hidden`.
 
@@ -304,7 +304,7 @@ konten generik, monochrome-first.
 
 **20. Responsive Spacing Rules** — Naikkan padding di `lg` (`p-4`→`lg:p-6`), panel auth `p-10`→`xl:p-14`. Grid `1-col`→`md:grid-cols-*`. Jangan pernah lebih rapat dari basis mobile.
 
-**21. Density (Comfortable / Compact)** — Default = **Compact** (kontrol `h-9`, sel tabel `p-2`, `FormItem space-y-2`). Mode "Comfortable" **dicadangkan** (belum aktif). Jangan pakai spacing longgar (`space-y-8`+) di luar hero/auth.
+**21. Density (Dense — default)** — Default = **Dense** (kontrol `h-8`, sel tabel `p-2`, `FormItem space-y-1.5`, form field-stack `space-y-3`). Mode "Comfortable" **dicadangkan** (belum aktif). Jangan pakai spacing longgar (`space-y-8`+) di luar hero/auth.
 
 **22. Spacing Do's & Don'ts**
 - **Do:** pakai skala 4px; ritme via `gap`/`space-y` induk; Sheet `p-6`, Card/Dialog section `px-6 py-4`; root halaman `space-y-6`.
@@ -347,8 +347,8 @@ di sini **dimensi**. Komponen **dilarang** menentukan ukuran sendiri bila standa
 
 | Aspek | Nilai standar |
 |-------|---------------|
-| Control height (button/input/select) | `sm` 2rem(32) · **default 2.25rem(36) `h-9`** · `lg` 2.5rem(40) |
-| Icon button | `h-9 w-9` (default) · `h-8 w-8` (padat, mis. aksi tabel) |
+| Control height (button/input/select) | `sm` 1.75rem(28) · **default 2rem(32) `h-8`** · `lg` 2.25rem(36) |
+| Icon button | `h-8 w-8` (default) · `h-8 w-8` (padat, mis. aksi tabel) |
 | Icon size | 14 (`h-3.5`) · **16 (`h-4 w-4`) default** · 20 (`h-5`) · 24 (`h-6`) |
 | Table head height | `h-10` (40) |
 | Toolbar / preview header | `h-14` (56) |
@@ -377,18 +377,18 @@ Breakpoint Tailwind: `sm 640 · md 768 · lg 1024 · xl 1280 · 2xl 1536`. (Memp
 
 ## 2C.4 Density Rules
 
-Filosofi: **Compact Enterprise UI**. Dua mode (memperluas 2B.21):
+Filosofi: **Compact/Dense Enterprise UI**. Dua mode (memperluas 2B.21):
 
-| Aspek | Compact (default) | Comfortable (dicadangkan) |
+| Aspek | Dense (default) | Comfortable (dicadangkan) |
 |-------|-------------------|---------------------------|
-| Component height | `h-9` (36) | `h-10` (40) |
+| Component height | `h-8` (32) | `h-10` (40) |
 | Padding (surface) | `p-4` | `p-6` |
 | Gap | `gap-2` (kontrol) | `gap-3` |
 | Table row height | head `h-10`, cell `p-2` | cell `py-2.5` |
 | Toolbar height | `h-14` | `h-16` |
-| Form spacing | `space-y-5` / item `space-y-2` | `space-y-6` / item `space-y-2.5` |
+| Form spacing | `space-y-3` / item `space-y-1.5` | `space-y-6` / item `space-y-2.5` |
 
-Default sistem = **Compact**. Mode **Comfortable** terdokumentasi tetapi **belum aktif**
+Default sistem = **Dense**. Mode **Comfortable** terdokumentasi tetapi **belum aktif**
 (implementasi switch berbasis token = Proposal **P4**, pending — lihat `DESIGN_SYSTEM_PROPOSAL.md`).
 
 ## 2C.5 Interaction Rules
@@ -416,7 +416,7 @@ Standar wajib semua form (memperluas R15/R22; jarak lihat 2B.7):
 - **Validation Message:** via `FormMessage` `text-destructive text-xs` + `aria-invalid` (R15).
 - **Error Message (global):** `Alert` variant `destructive` di atas form.
 - **Success Message:** `Alert` non-destructive / teks konfirmasi ringkas (pola reset sukses).
-- **Field Spacing:** `<form>` `space-y-5`; `FormItem` `space-y-2` (2B.7).
+- **Field Spacing (Dense):** `<form>` `space-y-3`; `FormItem` `space-y-1.5` (2B.7).
 - **Grouping:** field terkait dikelompokkan dengan judul seksi (`text-sm font-medium`) + `Separator`; gunakan semantik `fieldset` bila relevan.
 - **Autocomplete:** base `Input`/`Textarea` default **`autoComplete="off"`** (mencegah autofill browser di form generik). Field auth boleh **override** dengan nilai semantik (`email`, `current-password`, `new-password`) demi password manager — ini bukan pelanggaran.
 
@@ -450,7 +450,7 @@ Satu standar (memperluas R09 & 2B.18):
 - **Icon Size:** default `h-4 w-4` (16); skala 14/16/20/24 mengikuti ukuran kontrol.
 - **Icon Position:** leading (sebelum teks) default; trailing untuk chevron/eksternal.
 - **Icon + Text:** jarak `gap-2` (induk), rata tengah vertikal.
-- **Icon Only Button:** `size="icon"` (`h-9 w-9`/`h-8 w-8`) + **wajib `aria-label`**.
+- **Icon Only Button:** `size="icon"` (`h-8 w-8`) + **wajib `aria-label`**.
 - **Decorative Icon:** `aria-hidden="true"`.
 - **Functional Icon:** menyampaikan makna/aksi → wajib punya nama aksesibel (aria-label / teks berdampingan).
 
@@ -492,7 +492,7 @@ Urutan komposisi kanonik (jangan mengarang urutan lain; hanya anak terdokumentas
 
 - **Card:** `Card > CardHeader(CardTitle[, CardDescription]) > CardContent [> CardFooter]`. Section `px-6 py-4`. Konsep **header/body/footer** dipisah divider token: `border-b` pada header, `border-t` pada footer.
 - **Dialog:** `DialogContent(p-0) > DialogHeader(border-b) > body(px-6 py-4) > DialogFooter(border-t)`. Konsep **header/body/footer** identik Card (section `px-6 py-4`, divider token, monochrome).
-- **Form:** `Form > FormField > FormItem(FormLabel, FormControl, [helper], FormMessage) …> Button submit` (`space-y-5`).
+- **Form:** `Form > FormField > FormItem(FormLabel, FormControl, [helper], FormMessage) …> Button submit` (`space-y-3`).
 - **Dialog:** `Dialog > (DialogTrigger) + DialogContent(DialogHeader(DialogTitle, DialogDescription), body, [DialogFooter])`.
 - **Toolbar:** `flex items-center justify-between gap-2` (kiri: search/filter; kanan: actions).
 - **Table:** `[Toolbar] + div.rounded-md.border > Table(TableHeader>TableRow>TableHead ; TableBody>TableRow>TableCell) + [Pagination]`.
@@ -507,7 +507,7 @@ Urutan komposisi kanonik (jangan mengarang urutan lain; hanya anak terdokumentas
     <CardTitle className="text-base">Title</CardTitle>
     <CardDescription>Muted description.</CardDescription>
   </CardHeader>
-  <CardContent className="space-y-5"> {/* px-6 py-4 · space-y-5/4 (JANGAN space-y-6) */}
+  <CardContent className="space-y-3"> {/* px-6 py-4 · space-y-3 (form/Dense) / space-y-4 (umum) — JANGAN space-y-6 */}
     {/* fields / content */}
   </CardContent>
   <CardFooter className="justify-end gap-2"> {/* border-t, px-6 py-4 */}
@@ -522,7 +522,7 @@ Urutan komposisi kanonik (jangan mengarang urutan lain; hanya anak terdokumentas
     <DialogTitle>Add User</DialogTitle>
     <DialogDescription>All fields are required.</DialogDescription>
   </DialogHeader>
-  <div className="space-y-4 px-6 py-4">{/* body */}</div>
+  <div className="space-y-3 px-6 py-4">{/* body */}</div>
   <DialogFooter> {/* border-t px-6 py-4 */}
     <Button variant="outline">Cancel</Button>
     <Button type="submit">Save</Button>
@@ -577,7 +577,7 @@ bash frontend/docs/design-guard.sh
 ```
 
 Anti-pattern yang dideteksi (semua = **regresi**):
-- `space-y-6` **di dalam** `CardHeader/CardContent/CardFooter` (harus `space-y-5`/`space-y-4`).
+- `space-y-6` **di dalam** `CardHeader/CardContent/CardFooter` (harus `space-y-3` form / `space-y-4` umum).
 - Warna hardcode Tailwind (`bg-white`, `text-black`, `bg-blue-500`, dll) & hex literal → pakai token (R05/R06).
 - Emoji sebagai ikon → pakai `lucide-react` (R09).
 - Avatar profil `h-16 w-16`+ (density; pakai `h-12 w-12`).
@@ -870,3 +870,4 @@ Setiap kali membangun UI baru:
 | Update 65 | **CMS scope awal — menu Application (placeholder).** Atas permintaan user (mulai fase CMS). Area **Application** ditambah grup **Management**: **Users** (`/users`), **Roles** (`/roles`), **Offices** (`/offices`) — ikon `Users`/`ShieldCheck`/`Building2`. Ketiganya memakai **`PlaceholderPage`** (judul otomatis dari breadcrumb) sebagai placeholder; rute didaftarkan di `App.js`. Fungsionalitas nyata **menunggu struktur DB dari user** (hindari revisi bolak-balik). **Verifikasi via screenshot:** sidebar Application (General→Dashboard, Management→Users/Roles/Offices), breadcrumb "Application / Users"; compile sukses; guard clean. |
 | Update 66 | **Aksi Account & Settings (dropdown user) → halaman placeholder.** Atas permintaan user. Item **Account** (`/account`) & **Settings** (`/settings`) di footer user-dropdown `AppSidebar` kini bernavigasi (`onClick navigate`) + `data-testid` (`user-menu-account`/`user-menu-settings`). Rute → **`PlaceholderPage`** di `App.js`; `getBreadcrumb` diberi peta judul untuk `/account`→"Account" & `/settings`→"Settings" (trail 1 level). **Verifikasi via screenshot:** `/account` render (breadcrumb "Account", placeholder); compile sukses; guard clean. |
 | Update 67 | **CMS modul pertama: OFFICES (FastAPI + MongoDB, CRUD nyata).** Atas permintaan user (skema dari Laravel migration). **Backend** (`server.py`): model `Office`/`OfficeCreate`/`OfficeUpdate` + endpoint `POST/GET/PUT/DELETE /api/offices` & `POST /api/offices/bulk-delete`; unique **code & name** (app-level 409 + **MongoDB unique index** via startup event); validasi `latitude∈[-90,90]`, `longitude∈[-180,180]`, `radius≥0`, `radius` default 100 (422 bila invalid); `created_at/updated_at` ISO. **Frontend** (`pages/app/OfficesPage.jsx`): pola **DataTable** design system (search, sortable header, selection + bulk delete, pagination footer "Rows per page … of N rows"), **OfficeFormDialog** (R38, react-hook-form + zod, inline 409 di field code/name), state loading (Skeleton)/error/empty/first-time/filtered via composite **EmptyState**; axios client `lib/api.js` (baseURL `REACT_APP_BACKEND_URL+/api`). Rute `/offices` (area Application). **Verifikasi:** testing agent **backend 18/18 + frontend semua alur 100%**, 0 bug; pytest suite di `backend/tests/test_offices.py`. Ini konsumen pertama design system → membuktikan pola reusable. |
+| Update 68 | **[MINOR] Density default → DENSE (h-8 + space-y-3), global.** Atas permintaan user (dialog Offices terasa "longgar" untuk UI Compact; pilih opsi buat varian Dense global + ubah aturan). **Primitives** (`ui/`): tinggi kontrol `h-9`→**`h-8`** di `input.jsx`, `select.jsx` (SelectTrigger), `native-select.jsx`, `button.jsx` (default `h-9`→`h-8`, `sm` `h-8`→`h-7`, `lg` `h-10`→`h-9`, `icon` `h-9 w-9`→`h-8 w-8`); `form.jsx` `FormItem` `space-y-2`→**`space-y-1.5`** (label→control). **Konsumen form** field-stack `space-y-4/5`→**`space-y-3`**: `OfficesPage` (dialog body), `FormElementsPage`, `DataTableLayoutPage` (UserFormDialog), `FormLayoutPage`, `ProfileBlockPage`, `WizardBlockPage`. **Docs/SSOT disinkronkan**: 1.1 (input `h-8`), 2B.5 (tabel `space-y` — form/section `space-y-3`), 2B.7 (Form Spacing Dense), 2B.8 (INVARIAN), 2B.10 (Modal body `space-y-3`), 2B.16 (Button Dense), 2B.17 (Input `h-8`), 2B.21 (Density = Dense), 2C.2 (Control height default `h-8`, icon `h-8 w-8`), 2C.4 (tabel Density = Dense), 2C.6 (Field Spacing Dense), 2C.8 (Icon-only `h-8 w-8`), 2C.11 (contoh Card/Dialog), 2C.14 & `RULES.md` §7/§9/§10 (fallback space-y-3 form). Umum/non-form Card tetap `space-y-4`. Verifikasi: guard clean + screenshot konsumen (Offices dialog, Form Elements, Form Layout, Base Components). |
