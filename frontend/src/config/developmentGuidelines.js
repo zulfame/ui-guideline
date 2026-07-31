@@ -441,16 +441,19 @@ export const guidelineGroups = [
         rules: [
           "Store references as `<entity>_id` (UUID).",
           "Validate reference existence before saving (e.g. `level_id` must exist).",
-          "Handle deletion: cascade / set-null / promote children (per domain).",
+          "Handle deletion per domain: restrict (block) / cascade / set-null / promote children.",
+          "For master data, restrict deletion while dependents exist (return 409).",
           "Prevent invalid relationships (self-reference, cycles).",
         ],
         dos: [
           "Validate FKs in the service layer.",
+          "Block deletion of records still referenced by dependents (409).",
           "Clean up dangling references on delete.",
         ],
         donts: [
           "Storing references without validation.",
           "Leaving dangling references after delete.",
+          "Deleting a parent/master record while children still point to it.",
         ],
         checklist: [
           "References validated on write.",

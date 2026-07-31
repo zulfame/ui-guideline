@@ -1140,11 +1140,16 @@ export default function RolesPage() {
         <AlertDialogContent data-testid="roles-delete-dialog">
           <AlertDialogHeader>
             <AlertDialogTitle>Delete role?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will delete "{deleteTarget?.name}". Any direct subordinates
-              will be moved up to its superior.
-            </AlertDialogDescription>
           </AlertDialogHeader>
+          <div className="px-6 py-4">
+            <AlertDialogDescription>
+              This will delete{" "}
+              <span className="font-medium text-foreground">
+                {deleteTarget?.name}
+              </span>
+              . Any direct subordinates will be moved up to its superior.
+            </AlertDialogDescription>
+          </div>
           <AlertDialogFooter>
             <AlertDialogCancel data-testid="roles-delete-cancel">
               Cancel
@@ -1164,11 +1169,13 @@ export default function RolesPage() {
         <AlertDialogContent data-testid="roles-bulk-delete-dialog">
           <AlertDialogHeader>
             <AlertDialogTitle>Delete {selectedCount} role(s)?</AlertDialogTitle>
+          </AlertDialogHeader>
+          <div className="px-6 py-4">
             <AlertDialogDescription>
               Subordinates of deleted roles will be moved up to the nearest
               surviving superior.
             </AlertDialogDescription>
-          </AlertDialogHeader>
+          </div>
           <AlertDialogFooter>
             <AlertDialogCancel data-testid="roles-bulk-delete-cancel">
               Cancel

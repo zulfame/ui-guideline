@@ -222,7 +222,22 @@ async def list_offices(
 
 @api_router.post("/offices/bulk-delete", tags=["Offices"], summary="Bulk delete offices")
 async def bulk_delete_offices(payload: BulkDeleteRequest):
-    """Delete multiple offices by id in a single operation."""
+    """Delete multiple offices by id in a single operation.
+
+    Referential integrity (RESTRICT): an office cannot be deleted while it is
+    still assigned to one or more active users.
+    """
+    in_use = await db.users.distinct(
+        "office_id", {"office_id": {"$in": payload.ids}, "deleted_at": None}
+    )
+    if in_use:
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                f"Cannot delete: {len(in_use)} of the selected offices are still "
+                "assigned to active users. Reassign those users first."
+            ),
+        )
     result = await db.offices.delete_many({"id": {"$in": payload.ids}})
     return {"success": True, "deleted": result.deleted_count}
 
@@ -255,7 +270,20 @@ async def update_office(office_id: str, payload: OfficeUpdate):
 
 @api_router.delete("/offices/{office_id}", tags=["Offices"], summary="Delete office")
 async def delete_office(office_id: str):
-    """Delete an office by id (404 if not found)."""
+    """Delete an office by id (404 if not found).
+
+    Referential integrity (RESTRICT): an office cannot be deleted while it is
+    still assigned to one or more active users.
+    """
+    linked = await db.users.count_documents({"office_id": office_id, "deleted_at": None})
+    if linked:
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                f"Cannot delete: {linked} active user(s) are still assigned to this "
+                "office. Reassign or remove them first."
+            ),
+        )
     result = await db.offices.delete_one({"id": office_id})
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Office not found")
@@ -428,6 +456,17 @@ async def bulk_delete_roles(payload: BulkDeleteRequest):
     Batch Processing) to reduce round-trips and the partial-failure window.
     """
     deleted_set = set(payload.ids)
+    in_use = await db.users.distinct(
+        "role_id", {"role_id": {"$in": payload.ids}, "deleted_at": None}
+    )
+    if in_use:
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                f"Cannot delete: {len(in_use)} of the selected roles are still "
+                "assigned to active users. Reassign those users first."
+            ),
+        )
     pmap = await _role_parent_map()
     result = await db.roles.delete_many({"id": {"$in": payload.ids}})
     now = datetime.now(timezone.utc).isoformat()
@@ -476,10 +515,23 @@ async def update_role(role_id: str, payload: RoleUpdate):
 
 @api_router.delete("/roles/{role_id}", tags=["Roles"], summary="Delete role")
 async def delete_role(role_id: str):
-    """Delete a role: promote direct children to this role's parent, clear dotted refs."""
+    """Delete a role: promote direct children to this role's parent, clear dotted refs.
+
+    Referential integrity (RESTRICT): a role cannot be deleted while it is still
+    assigned to one or more active users.
+    """
     doc = await db.roles.find_one({"id": role_id}, {"_id": 0})
     if not doc:
         raise HTTPException(status_code=404, detail="Role not found")
+    linked = await db.users.count_documents({"role_id": role_id, "deleted_at": None})
+    if linked:
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                f"Cannot delete: {linked} active user(s) still have this role. "
+                "Reassign or remove them first."
+            ),
+        )
     now = datetime.now(timezone.utc).isoformat()
     await db.roles.delete_one({"id": role_id})
     await db.roles.update_many(
