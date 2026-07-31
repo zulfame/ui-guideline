@@ -106,6 +106,10 @@ const userSchema = z.object({
   alias: z.string().optional(),
   mso_code: z.string().optional(),
   collector_code: z.string().optional(),
+  device_identifier: z.string().optional(),
+  device_name: z.string().optional(),
+  device_os: z.string().optional(),
+  fcm_token: z.string().optional(),
 });
 
 const emptyUser = {
@@ -118,6 +122,10 @@ const emptyUser = {
   alias: "",
   mso_code: "",
   collector_code: "",
+  device_identifier: "",
+  device_name: "",
+  device_os: "",
+  fcm_token: "",
 };
 
 function toUserForm(u) {
@@ -132,6 +140,10 @@ function toUserForm(u) {
     alias: u.alias ?? "",
     mso_code: u.mso_code ?? "",
     collector_code: u.collector_code ?? "",
+    device_identifier: u.device_identifier ?? "",
+    device_name: u.device_name ?? "",
+    device_os: u.device_os ?? "",
+    fcm_token: u.fcm_token ?? "",
   };
 }
 
@@ -142,7 +154,7 @@ function buildUserPayload(data, isEdit) {
     role_id: data.role_id,
     office_id: data.office_id,
   };
-  ["username", "phone", "alias", "mso_code", "collector_code"].forEach((k) => {
+  ["username", "phone", "alias", "mso_code", "collector_code", "device_identifier", "device_name", "device_os", "fcm_token"].forEach((k) => {
     const v = data[k] ? data[k].trim() : "";
     if (v) payload[k] = v;
     else if (isEdit) payload[k] = null;
@@ -353,6 +365,66 @@ function UserFormDialog({ open, onOpenChange, mode, initialValues, roles, office
                     </FormItem>
                   )}
                 />
+              </div>
+
+              <div className="mt-4 border-t pt-4">
+                <h4 className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Device &amp; Integration
+                </h4>
+                <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2">
+                  <FormField
+                    control={form.control}
+                    name="device_identifier"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Device Identifier</FormLabel>
+                        <FormControl>
+                          <Input placeholder="(Optional)" {...field} data-testid="user-field-device-id" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="device_name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Device Name</FormLabel>
+                        <FormControl>
+                          <Input placeholder="(Optional)" {...field} data-testid="user-field-device-name" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="device_os"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Device OS</FormLabel>
+                        <FormControl>
+                          <Input placeholder="(Optional)" {...field} data-testid="user-field-device-os" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="fcm_token"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>FCM Token</FormLabel>
+                        <FormControl>
+                          <Input placeholder="(Optional)" {...field} data-testid="user-field-fcm" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
               </div>
             </DialogBody>
 
