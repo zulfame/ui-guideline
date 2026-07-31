@@ -28,7 +28,7 @@ import {
 export const guidelineGroups = [
   {
     id: "code",
-    title: "Code",
+    title: "Coding Standards",
     icon: Code2,
     summary:
       "Coding standards: structure, naming, readability, reusability, error handling, logging, configuration, and input validation.",
@@ -303,7 +303,7 @@ export const guidelineGroups = [
 
   {
     id: "database",
-    title: "Database",
+    title: "Schema Database",
     icon: Database,
     summary:
       "Schema design, table/collection structure, column naming, data types, primary/foreign keys, indexes, constraints, normalization, and audit fields.",
@@ -913,7 +913,7 @@ export const guidelineGroups = [
 
   {
     id: "security",
-    title: "Security",
+    title: "Security Management",
     icon: ShieldCheck,
     summary:
       "Secure data validation, sensitive data protection, credential management, file security, session management, security headers, and input & output sanitization.",

@@ -105,7 +105,7 @@ export const navAreas = [
         label: "Dev Guidelines",
         items: [
           {
-            title: "Overview",
+            title: "Dev Guidelines",
             to: "/dev-guidelines",
             icon: LayoutDashboard,
             end: true,
