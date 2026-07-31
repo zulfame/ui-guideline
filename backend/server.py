@@ -1,13 +1,15 @@
-from fastapi import FastAPI, APIRouter, HTTPException, Query, Response, UploadFile, File
+from fastapi import FastAPI, APIRouter, HTTPException, Query, Response, UploadFile, File, Form
 from fastapi.responses import StreamingResponse
 from contextlib import asynccontextmanager
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
-from motor.motor_asyncio import AsyncIOMotorClient
+from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorGridFSBucket
+from bson import ObjectId
 from pymongo import UpdateOne, InsertOne
 import os
 import io
 import re
+import json
 import logging
 import bcrypt
 from pathlib import Path
@@ -209,10 +211,11 @@ async def log_audit(
         logger.error("Audit log write failed (non-fatal): %s", exc)
 
 
-AUDIT_ENTITY_TYPES = ["user", "role", "office", "level"]
+AUDIT_ENTITY_TYPES = ["user", "role", "office", "level", "database"]
 AUDIT_ACTIONS = [
     "create", "update", "delete", "bulk_delete",
     "import", "reassign", "change_password", "reset_password",
+    "backup", "restore",
 ]
 
 
@@ -1775,6 +1778,207 @@ async def _apply_users(items: list):
             })
             created += 1
     return created, updated
+
+
+# ---------------------------------------------------------------------------
+# Database Backup & Restore (Guideline: Backup/Restore).
+# Full-DB JSON snapshots stored in GridFS (survives redeploys, no disk deps).
+# Restore supports verify (dry-run) + two modes: update (upsert by id) / replace.
+# ---------------------------------------------------------------------------
+BACKUP_BUCKET = "backups"
+# GridFS internal collections for the backup store itself — never dump/restore these.
+_BACKUP_INTERNAL = (f"{BACKUP_BUCKET}.files", f"{BACKUP_BUCKET}.chunks")
+
+
+def _backup_bucket() -> AsyncIOMotorGridFSBucket:
+    return AsyncIOMotorGridFSBucket(db, bucket_name=BACKUP_BUCKET)
+
+
+async def _dump_all_collections() -> tuple[dict, dict]:
+    """Return ({collection: [docs...]}, {collection: count}) for every collection."""
+    names = [n for n in await db.list_collection_names() if n not in _BACKUP_INTERNAL]
+    collections, counts = {}, {}
+    for name in sorted(names):
+        docs = await db[name].find({}, {"_id": 0}).to_list(length=None)
+        collections[name] = docs
+        counts[name] = len(docs)
+    return collections, counts
+
+
+def _verify_backup(payload) -> dict:
+    """Validate a backup payload's structure; return a summary for the UI."""
+    errors = []
+    if not isinstance(payload, dict) or not isinstance(payload.get("collections"), dict):
+        return {"valid": False, "errors": ["Invalid backup file: missing 'collections' object."],
+                "collections": [], "total": 0, "meta": {}}
+    cols, total = [], 0
+    for name, docs in payload["collections"].items():
+        if not isinstance(docs, list):
+            errors.append(f"Collection '{name}' is not a list.")
+            continue
+        cols.append({"name": name, "count": len(docs)})
+        total += len(docs)
+    cols.sort(key=lambda c: c["name"])
+    return {"valid": not errors, "errors": errors, "collections": cols,
+            "total": total, "meta": payload.get("meta", {})}
+
+
+async def _apply_restore(payload: dict, mode: str) -> dict:
+    """Apply a verified backup. mode='replace' wipes each collection first;
+    mode='update' upserts docs by their `id` field. Backup store is never touched."""
+    result = {}
+    for name, docs in payload["collections"].items():
+        if name in _BACKUP_INTERNAL:
+            continue
+        col = db[name]
+        clean = [{k: v for k, v in d.items() if k != "_id"} for d in docs]
+        try:
+            if mode == "replace":
+                await col.delete_many({})
+                if clean:
+                    await col.insert_many(clean, ordered=False)
+                result[name] = {"mode": "replace", "restored": len(clean)}
+            else:
+                ops = []
+                for d in clean:
+                    if d.get("id") is not None:
+                        ops.append(UpdateOne({"id": d["id"]}, {"$set": d}, upsert=True))
+                    else:
+                        ops.append(InsertOne(d))
+                if ops:
+                    await col.bulk_write(ops, ordered=False)
+                result[name] = {"mode": "update", "upserted": len(clean)}
+        except Exception as exc:  # pragma: no cover - report per-collection, keep going
+            result[name] = {"mode": mode, "error": str(exc)[:200]}
+            logger.error("Restore error in collection %s: %s", name, exc)
+    return result
+
+
+@api_router.post("/database/backup", tags=["Database"], summary="Create a full DB backup (stored on server)")
+async def create_backup():
+    """Snapshot every collection to a JSON file in GridFS; returns its metadata."""
+    collections, counts = await _dump_all_collections()
+    now = datetime.now(timezone.utc)
+    payload = {
+        "meta": {
+            "created_at": now.isoformat(),
+            "app": "UI Guidelines CMS",
+            "version": "1.0.0",
+            "collections": sorted(counts.keys()),
+            "counts": counts,
+            "total": sum(counts.values()),
+        },
+        "collections": collections,
+    }
+    data = json.dumps(payload, default=str).encode("utf-8")
+    filename = f"backup_{now.strftime('%Y%m%d_%H%M%S')}.json"
+    bucket = _backup_bucket()
+    grid_in = bucket.open_upload_stream(
+        filename,
+        metadata={"created_at": now.isoformat(), "counts": counts, "total": sum(counts.values())},
+    )
+    await grid_in.write(data)
+    await grid_in.close()
+    file_id = str(grid_in._id)
+    await log_audit(
+        "backup", "database", entity_id=file_id, entity_label=filename,
+        summary=f"Created database backup {filename} ({sum(counts.values())} docs)",
+        method="POST", path="/api/database/backup", status_code=200,
+        response={"id": file_id, "size": len(data)}, metadata={"counts": counts},
+    )
+    return {"id": file_id, "filename": filename, "size": len(data),
+            "created_at": now.isoformat(), "counts": counts, "total": sum(counts.values())}
+
+
+@api_router.get("/database/backups", tags=["Database"], summary="List server backups")
+async def list_backups():
+    bucket = _backup_bucket()
+    files = await bucket.find({}).sort("uploadDate", -1).to_list(length=1000)
+    out = []
+    for f in files:
+        meta = f.get("metadata") or {}
+        upload_date = f.get("uploadDate")
+        out.append({
+            "id": str(f["_id"]),
+            "filename": f.get("filename"),
+            "size": f.get("length"),
+            "created_at": meta.get("created_at")
+            or (upload_date.isoformat() if hasattr(upload_date, "isoformat") else upload_date),
+            "total": meta.get("total"),
+            "counts": meta.get("counts", {}),
+        })
+    return out
+
+
+@api_router.get("/database/backups/{file_id}/download", tags=["Database"], summary="Download a backup file")
+async def download_backup(file_id: str):
+    bucket = _backup_bucket()
+    try:
+        stream = await bucket.open_download_stream(ObjectId(file_id))
+    except Exception:
+        raise HTTPException(status_code=404, detail="Backup not found")
+    data = await stream.read()
+    return StreamingResponse(
+        io.BytesIO(data),
+        media_type="application/json",
+        headers={"Content-Disposition": f'attachment; filename="{stream.filename}"'},
+    )
+
+
+class ServerRestoreRequest(BaseModel):
+    id: str
+    mode: str = "update"
+    dry_run: bool = False
+
+
+def _parse_backup_bytes(data: bytes) -> dict:
+    try:
+        return json.loads(data.decode("utf-8"))
+    except Exception:
+        raise HTTPException(
+            status_code=400,
+            detail={"message": "Could not read the file. Upload a valid .json backup.", "errors": []},
+        )
+
+
+async def _restore_response(payload: dict, mode: str, dry_run: bool, source: str):
+    summary = _verify_backup(payload)
+    if not summary["valid"]:
+        raise HTTPException(status_code=400, detail={"message": "Invalid backup file.", "errors": summary["errors"]})
+    if dry_run:
+        return {"dry_run": True, **summary}
+    if mode not in ("update", "replace"):
+        raise HTTPException(status_code=400, detail="mode must be 'update' or 'replace'")
+    result = await _apply_restore(payload, mode)
+    await log_audit(
+        "restore", "database", entity_label=source,
+        summary=f"Restored database ({mode}) from {source} — {summary['total']} docs across {len(summary['collections'])} collection(s)",
+        method="POST", path="/api/database/restore", status_code=200,
+        request={"mode": mode, "source": source}, response={"result": result},
+        metadata={"mode": mode, "total": summary["total"]},
+    )
+    return {"success": True, "mode": mode, "result": result, "total": summary["total"]}
+
+
+@api_router.post("/database/restore/upload", tags=["Database"], summary="Restore from an uploaded backup")
+async def restore_from_upload(
+    file: UploadFile = File(...),
+    mode: str = Form("update"),
+    dry_run: bool = Form(False),
+):
+    payload = _parse_backup_bytes(await file.read())
+    return await _restore_response(payload, mode, dry_run, source=file.filename or "upload")
+
+
+@api_router.post("/database/restore/server", tags=["Database"], summary="Restore from a server backup")
+async def restore_from_server(req: ServerRestoreRequest):
+    bucket = _backup_bucket()
+    try:
+        stream = await bucket.open_download_stream(ObjectId(req.id))
+    except Exception:
+        raise HTTPException(status_code=404, detail="Backup not found")
+    payload = _parse_backup_bytes(await stream.read())
+    return await _restore_response(payload, req.mode, req.dry_run, source=stream.filename)
 
 
 # Include the router in the main app.

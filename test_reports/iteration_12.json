@@ -1,0 +1,28 @@
+{
+  "summary": "E2E testing of Database Backup & Restore feature at /database. Backend: created /app/backend/tests/test_database_backup.py with 10 pytest cases in a single class (loadscope-safe) — all PASS. Verified: (1) POST /api/database/backup returns {id, filename, size, counts, total}; (2) GET /api/database/backups lists newest-first with size/total/created_at; (3) GET /api/database/backups/{id}/download returns Content-Disposition:attachment with valid JSON payload matching backup meta; (4) Server dry-run POST /api/database/restore/server {id,dry_run:true} returns {valid:true,total,collections:[...],meta} and does NOT modify DB (office count unchanged); (5) Upload dry-run POST /api/database/restore/upload (multipart, dry_run=true) same behavior; (6) Invalid file ({\"foo\":1}) → HTTP 400 with detail.message and DB unchanged; (7) UPDATE mode: backed up B1, created office 'AUDIT_TEST_UPD', restored B1 (mode=update) — office STILL EXISTS (proves update keeps records not in backup); cleanup ok; (8) REPLACE mode (SAFE ORDER): backed up B2, created 'AUDIT_TEST_REP', restored B2 (mode=replace) — AUDIT_TEST_REP GONE and seed office count unchanged (proves replace wipes to backup state without losing real seed data captured in B2); (9) Audit trail: GET /api/audit-logs?entity_type=database contains both 'backup' and 'restore' actions. Post-test seed integrity verified: offices=4, roles=11, active users=3. Frontend (Playwright on /database via REACT_APP_BACKEND_URL, desktop 1920x1080 + mobile 375): page renders with database-page and all 7 primary testids (backup-card, backup-btn, restore-card, restore-file, restore-upload-btn, history-card, refresh). Clicking database-backup-btn triggers a real browser download (backup_YYYYMMDD_HHMMSS.json), shows 'Backup created' toast, and adds a new row to the history table (9 → 10). Clicking database-restore-{id} on a server row opens database-restore-dialog, verify auto-runs and renders database-verify-col-* for 5 collections. Radio toggling works: no warning in update mode → database-replace-warning appears after selecting database-mode-replace → warning disappears on switch back to database-mode-update. Confirming update-mode restore fires 'Restore complete' toast and closes the dialog. Upload restore path also works: set_input_files on database-restore-file → click database-restore-upload-btn → same verify dialog → confirm → success toast. Responsive: at 375px the two row-1 cards stack (backup card ends before restore card begins), at 1920px they sit side-by-side (same y). No console errors observed.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_database_backup.py",
+    "/app/test_reports/pytest/database_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "_apply_restore explicitly skips backups.files/backups.chunks — critical safety guard; verified by inspection.",
+    "GridFS storage (bucket 'backups') means backups survive redeploys — matches spec.",
+    "_verify_backup checks structure (dict + collections dict + each collection is list) before any write; on invalid payload the endpoint returns 400 BEFORE _apply_restore runs, so DB is never touched on bad uploads.",
+    "In update mode _apply_restore uses UpdateOne with upsert=True keyed by 'id' field — correctly non-destructive for records not present in backup. Docs without 'id' fall back to InsertOne (may create duplicates on repeated restores; acceptable trade-off, worth noting for future).",
+    "Per-collection restore errors are caught and reported in result[name].error rather than aborting the whole restore — good resilience, but callers should surface partial-failure results in the UI toast (current toast only reports success/total). Minor UX improvement opportunity.",
+    "Password/audit collections are included in backup dumps (all collections dumped). Backups therefore contain hashed passwords — expected but note for future access-control decisions once auth lands.",
+    "GridFS uploadDate + metadata.created_at both used for sort/display fallback — good defensive coding.",
+    "No 'delete backup' endpoint by design (per spec) — accepted."
+  ],
+  "updated_files": ["/app/backend/tests/test_database_backup.py"],
+  "success_rate": {"backend": "100% (10/10 database tests)", "frontend": "100% (all target flows on /database)"},
+  "test_credentials": "No login (mock auth).",
+  "seed_data_creation": "Temporarily created offices with codes AUDIT_TEST_UPD and AUDIT_TEST_REP; AUDIT_TEST_UPD was DELETE-cleaned; AUDIT_TEST_REP was removed by the replace-mode restore itself. Post-test seed verified: offices=4, roles=11, active users=3. Backups + audit entries retained by design (no delete endpoint for backups).",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Run: pytest backend/tests/test_database_backup.py -v — all 10 tests kept in a single class TestDatabaseBackupRestore so loadscope pins them to one xdist worker (they mutate shared DB state and MUST run sequentially). Frontend testids on DatabasePage: database-page, database-backup-card/btn, database-restore-card/file/upload-btn, database-history-card, database-backups-table, database-backup-row-{id}, database-download-{id}, database-restore-{id}, database-restore-dialog, database-verifying, database-verify-col-{name}, database-mode-update/replace, database-replace-warning, database-restore-cancel/confirm, database-refresh.",
+  "rca of the issue": "N/A — feature works end-to-end as specified."
+}
