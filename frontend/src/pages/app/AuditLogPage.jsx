@@ -9,7 +9,6 @@ import {
 } from "lucide-react";
 
 import API from "@/lib/api";
-import { PageHeader } from "@/components/layout/PageHeader";
 import { EmptyState } from "@/components/composite/EmptyState";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -40,8 +39,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
-const ALL = "__all__";
-
 const humanize = (s) =>
   (s || "").replace(/_/g, " ").replace(/^\w/, (c) => c.toUpperCase());
 
@@ -70,12 +67,9 @@ export default function AuditLogPage() {
   const [rows, setRows] = useState([]);
   const [total, setTotal] = useState(0);
   const [status, setStatus] = useState("loading");
-  const [meta, setMeta] = useState({ entity_types: [], actions: [] });
   const [detail, setDetail] = useState(null);
 
   const [q, setQ] = useState("");
-  const [entityType, setEntityType] = useState(ALL);
-  const [action, setAction] = useState(ALL);
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
 
@@ -83,22 +77,13 @@ export default function AuditLogPage() {
   const [pageSize, setPageSize] = useState(20);
 
   const pageCount = Math.max(1, Math.ceil(total / pageSize));
-  const hasFilters =
-    q.trim() || entityType !== ALL || action !== ALL || dateFrom || dateTo;
-
-  useEffect(() => {
-    API.get("/audit-logs/meta")
-      .then((r) => setMeta(r.data))
-      .catch(() => {});
-  }, []);
+  const hasFilters = q.trim() || dateFrom || dateTo;
 
   const fetchLogs = useCallback(async () => {
     setStatus("loading");
     try {
       const params = { skip: page * pageSize, limit: pageSize };
       if (q.trim()) params.q = q.trim();
-      if (entityType !== ALL) params.entity_type = entityType;
-      if (action !== ALL) params.action = action;
       if (dateFrom) params.date_from = dateFrom;
       if (dateTo) params.date_to = dateTo;
       const res = await API.get("/audit-logs", { params });
@@ -108,7 +93,7 @@ export default function AuditLogPage() {
     } catch {
       setStatus("error");
     }
-  }, [page, pageSize, q, entityType, action, dateFrom, dateTo]);
+  }, [page, pageSize, q, dateFrom, dateTo]);
 
   // Debounced fetch (covers the search box); resets to page 0 on filter change.
   useEffect(() => {
@@ -118,28 +103,16 @@ export default function AuditLogPage() {
 
   const resetFilters = () => {
     setQ("");
-    setEntityType(ALL);
-    setAction(ALL);
     setDateFrom("");
     setDateTo("");
     setPage(0);
   };
 
-  const onFilterChange = (setter) => (value) => {
-    setPage(0);
-    setter(value);
-  };
-
   return (
     <div className="space-y-6" data-testid="audit-log-page">
-      <PageHeader
-        title="Audit Log"
-        description="A record of all important data changes across the app (request & response captured)."
-      />
-
       <Card>
         <CardHeader className="flex flex-col gap-3 space-y-0 sm:flex-row sm:items-center sm:justify-between">
-          <CardTitle className="text-base">Activity</CardTitle>
+          <CardTitle className="text-base">Activity List</CardTitle>
           <Button variant="outline" size="sm" onClick={fetchLogs} data-testid="audit-refresh">
             <RefreshCw className="size-4" /> Refresh
           </Button>
@@ -161,32 +134,6 @@ export default function AuditLogPage() {
               />
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              <Select value={entityType} onValueChange={onFilterChange(setEntityType)}>
-                <SelectTrigger className="h-9 w-[130px]" data-testid="audit-filter-entity">
-                  <SelectValue placeholder="Entity" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={ALL}>All entities</SelectItem>
-                  {meta.entity_types.map((t) => (
-                    <SelectItem key={t} value={t}>
-                      {humanize(t)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select value={action} onValueChange={onFilterChange(setAction)}>
-                <SelectTrigger className="h-9 w-[150px]" data-testid="audit-filter-action">
-                  <SelectValue placeholder="Action" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={ALL}>All actions</SelectItem>
-                  {meta.actions.map((a) => (
-                    <SelectItem key={a} value={a}>
-                      {humanize(a)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
               <Input
                 type="date"
                 value={dateFrom}
