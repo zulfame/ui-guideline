@@ -14,6 +14,7 @@ import {
   ArrowLeft,
   ArrowRight,
   ArrowUp,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   Download,
@@ -26,7 +27,9 @@ import {
   Pencil,
   Plus,
   Search,
+  Settings2,
   Trash2,
+  Upload,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -98,6 +101,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/composite/EmptyState";
+import { ImportDialog } from "@/components/composite/ImportDialog";
 import { DensityToggle } from "@/components/density-toggle";
 
 const NONE = "__none__";
@@ -677,6 +681,7 @@ export default function RolesPage() {
     }
   };
   const [levelsOpen, setLevelsOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
 
   const loadLevels = async () => {
     try {
@@ -911,27 +916,29 @@ export default function RolesPage() {
       <Card>
         <CardHeader className="flex flex-col gap-3 space-y-0 sm:flex-row sm:items-center sm:justify-between">
           <CardTitle className="text-base">Role List</CardTitle>
-          <div className="flex flex-wrap items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setLevelsOpen(true)}
-              data-testid="roles-levels-btn"
-            >
-              <Layers className="size-4" /> Levels
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setStructureOpen(true)}
-              data-testid="roles-structure-btn"
-            >
-              <Network className="size-4" /> Structure
-            </Button>
-            <Button size="sm" onClick={openCreate} data-testid="roles-add">
-              <Plus className="size-4" /> Add Role
-            </Button>
-          </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button size="sm" data-testid="roles-actions-btn">
+                <Settings2 className="size-4" /> Actions
+                <ChevronDown className="size-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={openCreate} data-testid="roles-add">
+                <Plus className="size-4" /> Add role
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setImportOpen(true)} data-testid="roles-import">
+                <Upload className="size-4" /> Import
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => setLevelsOpen(true)} data-testid="roles-levels-btn">
+                <Layers className="size-4" /> Levels
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setStructureOpen(true)} data-testid="roles-structure-btn">
+                <Network className="size-4" /> Structure
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -1131,6 +1138,16 @@ export default function RolesPage() {
         onOpenChange={setLevelsOpen}
         levels={levels}
         onChanged={loadLevels}
+      />
+
+      <ImportDialog
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        title="Import Roles"
+        resource="roles"
+        templateFilename="roles_import_template.xlsx"
+        instructions="Upload an .xlsx file with columns: name, parent, dotted_parent, level, order (parent/dotted/level by name). Existing roles (matched by name) are updated. All rows are validated first — if any row fails, nothing is imported."
+        onImported={load}
       />
 
       <AlertDialog

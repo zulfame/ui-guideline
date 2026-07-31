@@ -26,6 +26,7 @@ import {
   RotateCcw,
   Search,
   Trash2,
+  Upload,
 } from "lucide-react";
 
 import API from "@/lib/api";
@@ -86,6 +87,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { EmptyState } from "@/components/composite/EmptyState";
+import { ImportDialog } from "@/components/composite/ImportDialog";
 import { DensityToggle } from "@/components/density-toggle";
 
 const PW_BADGE = {
@@ -585,6 +587,7 @@ export default function UsersPage() {
   const [resetTarget, setResetTarget] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [bulkOpen, setBulkOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
 
   const fetchUsers = useCallback(async () => {
     setStatus("loading");
@@ -793,9 +796,19 @@ export default function UsersPage() {
       <Card>
         <CardHeader className="flex flex-col gap-3 space-y-0 sm:flex-row sm:items-center sm:justify-between">
           <CardTitle className="text-base">User List</CardTitle>
-          <Button size="sm" onClick={openCreate} data-testid="users-add" className="w-full sm:w-auto">
-            <Plus className="size-4" /> Add User
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setImportOpen(true)}
+              data-testid="users-import"
+            >
+              <Upload className="size-4" /> Import
+            </Button>
+            <Button size="sm" onClick={openCreate} data-testid="users-add">
+              <Plus className="size-4" /> Add User
+            </Button>
+          </div>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -970,6 +983,16 @@ export default function UsersPage() {
         roles={roles}
         offices={offices}
         onSaved={fetchUsers}
+      />
+
+      <ImportDialog
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        title="Import Users"
+        resource="users"
+        templateFilename="users_import_template.xlsx"
+        instructions="Upload an .xlsx file. Required columns: name, email, role, office (role & office by name). New users get the system default password and must change it on first login. Existing users (matched by email) are updated. All rows are validated first — if any row fails, nothing is imported."
+        onImported={fetchUsers}
       />
 
       <ChangePasswordDialog

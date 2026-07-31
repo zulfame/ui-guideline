@@ -1,0 +1,26 @@
+{
+  "summary": "E2E frontend testing of Excel import (Offices/Users/Roles) + referential integrity delete message. Verified via Playwright with real .xlsx files uploaded to the live preview backend. All 9 target flows PASSED: (1) Offices Import button next to Add Office opens ImportDialog. (2) Template download works (offices_import_template.xlsx). (3) Offices happy-path import creates 2 new offices and shows 'Import complete' toast, dialog closes. (4) Offices error-path (missing name + longitude=999 in row 3) → dialog stays open, import-errors shown with row3 text 'name is required; longitude must be between -180 and 180', nothing imported. (5) Users import happy-path with existing role 'Chief Executive Officer' + office 'Head Office' → user created, appears in table with role/office name and 'Active' password badge. (6) Users error-path (non-existent role name) → error 'Row 2: role \\'NOPE-ROLE-XYZ\\' not found', nothing imported. (7) Roles page toolbar shows single 'Actions' dropdown; opening it reveals items in exact order: Add role, Import, Levels, Structure — all present with correct testids. (8) Roles happy-path import: row2 references row1 as parent → 'Import complete', both ZZ Boss and ZZ Sub appear. (9) Referential integrity: deleting 'Head Office' (referenced by 2 active users) shows FULL toast: 'Cannot delete: 2 active user(s) are still assigned to this office. Reassign or remove them first.'. All seed data (ZZ Office A/B, ZZ Boss, ZZ Sub, zzuser*) cleaned up via API afterwards.",
+  "backend_issues": { "critical": [], "minor": [] },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/tests/make_xlsx.py"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "ImportDialog: catch-all `catch {}` in downloadTemplate hides real network/CORS errors — logging err.message to console would help future debug (not user-visible).",
+    "ImportDialog error branch: when detail is a string it falls through to 'Import failed. Please try again.' only for null/undefined — string detail IS displayed via `toast.error(typeof detail === 'string' ? detail : ...)`. Good.",
+    "OfficesPage buildPayload sends null for cleared optional strings but forces radius back to 100 on edit-clear — documented behavior, non-blocking."
+  ],
+  "updated_files": [],
+  "success_rate": { "backend": "n/a (frontend-only run)", "frontend": "100% (9/9 target flows)" },
+  "test_credentials": "No login required (mock auth).",
+  "seed_data_creation": "Created via UI upload then cleaned up via API DELETE: 2 offices (ZZ Office A/B 1785516590), 2 roles (ZZ Boss/Sub 1785516590), 1 user (zzuser1785516590@example.com). Production seed data untouched.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "XLSX generator at /app/tests/make_xlsx.py rebuilds fixture files under /tmp/import_tests. Playwright uploads via input[data-testid=import-file-input] with page.set_input_files. Toast text is easily grabbed via [data-sonner-toast]. Referential integrity check requires an office referenced by users (Head Office is seeded with users).",
+  "rca of the issue": "N/A - all target functionality passes."
+}

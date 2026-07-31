@@ -24,6 +24,7 @@ import {
   RefreshCw,
   Search,
   Trash2,
+  Upload,
 } from "lucide-react";
 
 import API from "@/lib/api";
@@ -88,6 +89,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { EmptyState } from "@/components/composite/EmptyState";
+import { ImportDialog } from "@/components/composite/ImportDialog";
 import { DensityToggle } from "@/components/density-toggle";
 
 const emptyToUndef = (v) => (v === "" || v === null ? undefined : v);
@@ -384,6 +386,7 @@ export default function OfficesPage() {
   const [editing, setEditing] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [bulkOpen, setBulkOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
 
   const fetchOffices = useCallback(async () => {
     setStatus("loading");
@@ -555,9 +558,19 @@ export default function OfficesPage() {
       <Card>
         <CardHeader className="flex flex-col gap-3 space-y-0 sm:flex-row sm:items-center sm:justify-between">
           <CardTitle className="text-base">Office List</CardTitle>
-          <Button size="sm" onClick={openCreate} data-testid="offices-add" className="w-full sm:w-auto">
-            <Plus className="size-4" /> Add Office
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setImportOpen(true)}
+              data-testid="offices-import"
+            >
+              <Upload className="size-4" /> Import
+            </Button>
+            <Button size="sm" onClick={openCreate} data-testid="offices-add">
+              <Plus className="size-4" /> Add Office
+            </Button>
+          </div>
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Toolbar */}
@@ -741,6 +754,16 @@ export default function OfficesPage() {
         mode={formMode}
         initialValues={editing}
         onSaved={fetchOffices}
+      />
+
+      <ImportDialog
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        title="Import Offices"
+        resource="offices"
+        templateFilename="offices_import_template.xlsx"
+        instructions="Upload an .xlsx file with columns: code, name, address, telephone, longitude, latitude, radius, note. Existing offices (matched by code) are updated. All rows are validated first — if any row fails, nothing is imported."
+        onImported={fetchOffices}
       />
 
       <AlertDialog open={!!deleteTarget} onOpenChange={(v) => !v && setDeleteTarget(null)}>
