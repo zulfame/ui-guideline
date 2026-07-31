@@ -119,7 +119,7 @@ export default function AuditLogPage() {
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Filters */}
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div className="relative w-full lg:max-w-xs">
               <Search className="absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
               <Input
@@ -133,41 +133,35 @@ export default function AuditLogPage() {
                 data-testid="audit-search"
               />
             </div>
-            <div className="grid grid-cols-2 items-end gap-2 sm:flex sm:flex-wrap">
-              <div className="flex flex-col gap-1">
-                <label className="text-xs text-muted-foreground" htmlFor="audit-from">From</label>
-                <Input
-                  id="audit-from"
-                  type="date"
-                  value={dateFrom}
-                  onChange={(e) => {
-                    setPage(0);
-                    setDateFrom(e.target.value);
-                  }}
-                  className="h-9 w-full sm:w-[150px]"
-                  data-testid="audit-date-from"
-                />
-              </div>
-              <div className="flex flex-col gap-1">
-                <label className="text-xs text-muted-foreground" htmlFor="audit-to">To</label>
-                <Input
-                  id="audit-to"
-                  type="date"
-                  value={dateTo}
-                  onChange={(e) => {
-                    setPage(0);
-                    setDateTo(e.target.value);
-                  }}
-                  className="h-9 w-full sm:w-[150px]"
-                  data-testid="audit-date-to"
-                />
-              </div>
+            <div className="grid grid-cols-2 items-center gap-2 sm:flex sm:flex-wrap">
+              <Input
+                type="date"
+                value={dateFrom}
+                onChange={(e) => {
+                  setPage(0);
+                  setDateFrom(e.target.value);
+                }}
+                className="h-9 w-full sm:w-[150px]"
+                data-testid="audit-date-from"
+                aria-label="From date"
+              />
+              <Input
+                type="date"
+                value={dateTo}
+                onChange={(e) => {
+                  setPage(0);
+                  setDateTo(e.target.value);
+                }}
+                className="h-9 w-full sm:w-[150px]"
+                data-testid="audit-date-to"
+                aria-label="To date"
+              />
               {hasFilters && (
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={resetFilters}
-                  className="col-span-2 h-9 sm:col-auto sm:self-end"
+                  className="col-span-2 h-9 sm:col-auto"
                   data-testid="audit-reset"
                 >
                   <FilterX className="size-4" /> Reset
