@@ -60,13 +60,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Combobox } from "@/components/composite/Combobox";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -149,6 +143,14 @@ function RoleFormDialog({ open, onOpenChange, editing, roles, onSaved }) {
     return roles.filter((r) => r.id !== editing.id && !blocked.has(r.id));
   }, [roles, editing]);
 
+  const parentComboOptions = useMemo(
+    () => [
+      { value: NONE, label: "None (top level)" },
+      ...parentOptions.map((r) => ({ value: r.id, label: r.name })),
+    ],
+    [parentOptions],
+  );
+
   const onSubmit = async (data) => {
     setSubmitting(true);
     const payload = {
@@ -202,26 +204,17 @@ function RoleFormDialog({ open, onOpenChange, editing, roles, onSaved }) {
                 control={form.control}
                 name="parent_id"
                 render={({ field }) => (
-                  <FormItem>
+                  <FormItem className="flex flex-col">
                     <FormLabel>Direct superior (Optional)</FormLabel>
-                    <Select
-                      value={field.value}
-                      onValueChange={field.onChange}
-                    >
-                      <FormControl>
-                        <SelectTrigger data-testid="role-parent-select">
-                          <SelectValue placeholder="(Optional)" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value={NONE}>None (top level)</SelectItem>
-                        {parentOptions.map((r) => (
-                          <SelectItem key={r.id} value={r.id}>
-                            {r.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <Combobox
+                      options={parentComboOptions}
+                      value={field.value || NONE}
+                      onChange={(v) => field.onChange(v || NONE)}
+                      placeholder="(Optional)"
+                      searchPlaceholder="Search role..."
+                      emptyText="No role found."
+                      data-testid="role-parent-select"
+                    />
                     <FormMessage />
                   </FormItem>
                 )}
