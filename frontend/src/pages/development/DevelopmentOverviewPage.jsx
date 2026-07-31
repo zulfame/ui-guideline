@@ -22,10 +22,10 @@ export default function DevelopmentOverviewPage() {
     <div className="space-y-6" data-testid="development-overview-page">
       <PageHeader
         title="Development Guidelines"
-        description="Standar rekayasa perangkat lunak yang wajib dipatuhi — kode, database, akses data, API, keamanan, performa, file, monitoring, backup, dan dokumentasi."
+        description="Mandatory software engineering standards — code, database, data access, API, security, performance, files, monitoring, backup, and documentation."
       >
         <Badge variant="secondary" className="font-normal">
-          {guidelineGroups.length} grup · {totalTopics} topik
+          {guidelineGroups.length} groups · {totalTopics} topics
         </Badge>
       </PageHeader>
 
@@ -46,7 +46,7 @@ export default function DevelopmentOverviewPage() {
                       <Icon className="size-4" aria-hidden="true" />
                     </div>
                     <Badge variant="outline" className="font-normal">
-                      {group.topics.length} topik
+                      {group.topics.length} topics
                     </Badge>
                   </div>
                   <CardTitle className="text-base">{group.title}</CardTitle>
@@ -56,7 +56,7 @@ export default function DevelopmentOverviewPage() {
                 </CardHeader>
                 <CardContent>
                   <span className="inline-flex items-center gap-1 text-sm font-medium text-muted-foreground transition-colors group-hover:text-foreground">
-                    Lihat panduan
+                    View guideline
                     <ArrowRight className="size-3.5" aria-hidden="true" />
                   </span>
                 </CardContent>

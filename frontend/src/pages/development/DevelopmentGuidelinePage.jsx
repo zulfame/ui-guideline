@@ -74,9 +74,9 @@ function CodeExample({ label, code, tone }) {
 function TopicBody({ topic }) {
   return (
     <div className="space-y-4 pt-1">
-      {/* Aturan wajib */}
+      {/* Required rules */}
       <div className="space-y-2">
-        <SectionLabel>Aturan Wajib</SectionLabel>
+        <SectionLabel>Required Rules</SectionLabel>
         <MarkedList
           items={topic.rules}
           icon={CheckCircle2}
@@ -87,22 +87,22 @@ function TopicBody({ topic }) {
       {/* Do / Don't */}
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-2 rounded-md border bg-muted/20 p-3">
-          <SectionLabel>Lakukan (Do)</SectionLabel>
+          <SectionLabel>Do</SectionLabel>
           <MarkedList items={topic.dos} icon={Check} iconClass="text-foreground" />
         </div>
         <div className="space-y-2 rounded-md border bg-muted/20 p-3">
-          <SectionLabel>Hindari (Don&apos;t)</SectionLabel>
+          <SectionLabel>Don&apos;t</SectionLabel>
           <MarkedList items={topic.donts} icon={X} iconClass="text-destructive" />
         </div>
       </div>
 
-      {/* Contoh kode (opsional) */}
+      {/* Code example (optional) */}
       {topic.code ? (
         <div className="space-y-2">
-          <SectionLabel>Contoh · {topic.code.language}</SectionLabel>
+          <SectionLabel>Example · {topic.code.language}</SectionLabel>
           <div className="grid gap-3 lg:grid-cols-2">
-            <CodeExample label="Benar" code={topic.code.good} tone="good" />
-            <CodeExample label="Salah" code={topic.code.bad} tone="bad" />
+            <CodeExample label="Correct" code={topic.code.good} tone="good" />
+            <CodeExample label="Incorrect" code={topic.code.bad} tone="bad" />
           </div>
         </div>
       ) : null}
@@ -131,15 +131,15 @@ export default function DevelopmentGuidelinePage() {
       <div className="space-y-6" data-testid="development-guideline-page">
         <PageHeader
           title="Development Guidelines"
-          description="Grup panduan tidak ditemukan."
+          description="Guideline group not found."
         />
         <EmptyState
           variant="no-data"
-          title="Panduan tidak ditemukan"
-          description="Grup panduan yang Anda tuju tidak tersedia."
+          title="Guideline not found"
+          description="The guideline group you are looking for is not available."
           action={
             <Button asChild variant="outline" size="sm">
-              <Link to="/development">Kembali ke Overview</Link>
+              <Link to="/development">Back to Overview</Link>
             </Button>
           }
         />
@@ -169,11 +169,11 @@ export default function DevelopmentGuidelinePage() {
             <div className="space-y-0.5">
               <CardTitle className="text-base">{group.title}</CardTitle>
               <p className="text-sm text-muted-foreground">
-                {group.topics.length} topik · klik untuk memperluas
+                {group.topics.length} topics · click to expand
               </p>
             </div>
             <Badge variant="secondary" className="ml-auto font-normal">
-              Wajib dipatuhi
+              Mandatory
             </Badge>
           </div>
         </CardHeader>
