@@ -273,25 +273,39 @@ async def update_office(office_id: str, payload: OfficeUpdate):
 
 
 @api_router.delete("/offices/{office_id}", tags=["Offices"], summary="Delete office")
-async def delete_office(office_id: str):
+async def delete_office(
+    office_id: str,
+    reassign_to: Optional[str] = Query(None, description="Office id to move linked users to before deleting"),
+):
     """Delete an office by id (404 if not found).
 
     Referential integrity (RESTRICT): an office cannot be deleted while it is
-    still assigned to one or more active users.
+    still assigned to active users — unless `reassign_to` is provided, in which
+    case those users are moved to the target office first.
     """
     linked = await db.users.count_documents({"office_id": office_id, "deleted_at": None})
     if linked:
-        raise HTTPException(
-            status_code=409,
-            detail=(
-                f"Cannot delete: {linked} active user(s) are still assigned to this "
-                "office. Reassign or remove them first."
-            ),
+        if not reassign_to:
+            raise HTTPException(
+                status_code=409,
+                detail=(
+                    f"Cannot delete: {linked} active user(s) are still assigned to this "
+                    "office. Reassign or remove them first."
+                ),
+            )
+        if reassign_to == office_id:
+            raise HTTPException(status_code=400, detail="Reassign target must be a different office")
+        if not await db.offices.find_one({"id": reassign_to}, {"_id": 0, "id": 1}):
+            raise HTTPException(status_code=400, detail="Reassign target office not found")
+        now = datetime.now(timezone.utc).isoformat()
+        await db.users.update_many(
+            {"office_id": office_id, "deleted_at": None},
+            {"$set": {"office_id": reassign_to, "updated_at": now}},
         )
     result = await db.offices.delete_one({"id": office_id})
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Office not found")
-    return {"success": True}
+    return {"success": True, "reassigned": linked if reassign_to else 0}
 
 
 # ---------------------------------------------------------------------------
@@ -518,23 +532,37 @@ async def update_role(role_id: str, payload: RoleUpdate):
 
 
 @api_router.delete("/roles/{role_id}", tags=["Roles"], summary="Delete role")
-async def delete_role(role_id: str):
+async def delete_role(
+    role_id: str,
+    reassign_to: Optional[str] = Query(None, description="Role id to move linked users to before deleting"),
+):
     """Delete a role: promote direct children to this role's parent, clear dotted refs.
 
     Referential integrity (RESTRICT): a role cannot be deleted while it is still
-    assigned to one or more active users.
+    assigned to active users — unless `reassign_to` is provided, in which case
+    those users are moved to the target role first.
     """
     doc = await db.roles.find_one({"id": role_id}, {"_id": 0})
     if not doc:
         raise HTTPException(status_code=404, detail="Role not found")
     linked = await db.users.count_documents({"role_id": role_id, "deleted_at": None})
     if linked:
-        raise HTTPException(
-            status_code=409,
-            detail=(
-                f"Cannot delete: {linked} active user(s) still have this role. "
-                "Reassign or remove them first."
-            ),
+        if not reassign_to:
+            raise HTTPException(
+                status_code=409,
+                detail=(
+                    f"Cannot delete: {linked} active user(s) still have this role. "
+                    "Reassign or remove them first."
+                ),
+            )
+        if reassign_to == role_id:
+            raise HTTPException(status_code=400, detail="Reassign target must be a different role")
+        if not await db.roles.find_one({"id": reassign_to}, {"_id": 0, "id": 1}):
+            raise HTTPException(status_code=400, detail="Reassign target role not found")
+        reassign_now = datetime.now(timezone.utc).isoformat()
+        await db.users.update_many(
+            {"role_id": role_id, "deleted_at": None},
+            {"$set": {"role_id": reassign_to, "updated_at": reassign_now}},
         )
     now = datetime.now(timezone.utc).isoformat()
     await db.roles.delete_one({"id": role_id})
@@ -1024,6 +1052,52 @@ def _abort_import(errors: list):
     )
 
 
+# UI-friendly cap: never stream thousands of preview rows to the browser.
+PREVIEW_ROW_CAP = 300
+
+
+def _preview_response(errors: list, items: list) -> dict:
+    to_create = sum(1 for i in items if i["action"] == "create")
+    to_update = sum(1 for i in items if i["action"] == "update")
+    preview = [
+        {"row": i["row"], "action": i["action"], "label": i["label"]}
+        for i in items[:PREVIEW_ROW_CAP]
+    ]
+    return {
+        "total": len(items),
+        "to_create": to_create,
+        "to_update": to_update,
+        "errors": errors,
+        "rows": preview,
+        "truncated": len(items) > PREVIEW_ROW_CAP,
+    }
+
+
+class ImportErrorsExport(BaseModel):
+    errors: List[dict] = []
+    filename: Optional[str] = None
+
+
+@api_router.post("/import/errors/export", tags=["Import"], summary="Export import errors to Excel")
+async def export_import_errors(payload: ImportErrorsExport):
+    """Return the failing rows as an .xlsx (columns: Row, Errors) for easy fixing."""
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Errors"
+    ws.append(["Row", "Errors"])
+    for e in payload.errors:
+        ws.append([e.get("row"), "; ".join(e.get("errors", []))])
+    buf = io.BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+    fname = payload.filename or "import_errors.xlsx"
+    return StreamingResponse(
+        buf,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f'attachment; filename="{fname}"'},
+    )
+
+
 # ---- Offices ----
 @api_router.get("/offices/import/template", tags=["Offices"], summary="Download offices import template")
 async def offices_import_template():
@@ -1037,6 +1111,23 @@ async def import_offices(file: UploadFile = File(...)):
     rows = _read_upload(await file.read())
     if not rows:
         raise HTTPException(status_code=400, detail={"message": "No data rows found in the file.", "errors": []})
+    errors, items = await _prepare_offices(rows)
+    if errors:
+        _abort_import(errors)
+    created, updated = await _apply_offices(items)
+    return {"success": True, "created": created, "updated": updated, "total": len(items)}
+
+
+@api_router.post("/offices/import/preview", tags=["Offices"], summary="Preview offices import (dry-run)")
+async def preview_offices(file: UploadFile = File(...)):
+    rows = _read_upload(await file.read())
+    if not rows:
+        raise HTTPException(status_code=400, detail={"message": "No data rows found in the file.", "errors": []})
+    errors, items = await _prepare_offices(rows)
+    return _preview_response(errors, items)
+
+
+async def _prepare_offices(rows: list):
     errors, parsed = [], []
     seen_code, seen_name = {}, {}
     for i, row in enumerate(rows):
@@ -1084,27 +1175,37 @@ async def import_offices(file: UploadFile = File(...)):
         owner = name_owner.get(p["name"].lower())
         if owner is not None and owner != p["code"].lower():
             errors.append({"row": p["row"], "errors": [f"name already used by another office (code {owner.upper()})"]})
-    if errors:
-        _abort_import(errors)
+    items = []
+    for p in parsed:
+        ex = by_code.get(p["code"].lower())
+        items.append({
+            "row": p["row"],
+            "action": "update" if ex else "create",
+            "label": f"{p['code']} — {p['name']}",
+            "id": ex["id"] if ex else None,
+            "fields": {
+                "code": p["code"], "name": p["name"], "address": p["address"],
+                "telephone": p["telephone"], "longitude": p["longitude"],
+                "latitude": p["latitude"], "radius": p["radius"], "note": p["note"],
+            },
+        })
+    return errors, items
+
+
+async def _apply_offices(items: list):
     now = datetime.now(timezone.utc).isoformat()
     ops, created, updated = [], 0, 0
-    for p in parsed:
-        fields = {
-            "code": p["code"], "name": p["name"], "address": p["address"],
-            "telephone": p["telephone"], "longitude": p["longitude"],
-            "latitude": p["latitude"], "radius": p["radius"], "note": p["note"],
-            "updated_at": now,
-        }
-        ex = by_code.get(p["code"].lower())
-        if ex:
-            ops.append(UpdateOne({"id": ex["id"]}, {"$set": fields}))
+    for it in items:
+        fields = {**it["fields"], "updated_at": now}
+        if it["id"]:
+            ops.append(UpdateOne({"id": it["id"]}, {"$set": fields}))
             updated += 1
         else:
             ops.append(InsertOne({"id": str(uuid.uuid4()), **fields, "created_at": now}))
             created += 1
     if ops:
         await db.offices.bulk_write(ops, ordered=False)
-    return {"success": True, "created": created, "updated": updated, "total": len(parsed)}
+    return created, updated
 
 
 # ---- Roles ----
@@ -1120,6 +1221,23 @@ async def import_roles(file: UploadFile = File(...)):
     rows = _read_upload(await file.read())
     if not rows:
         raise HTTPException(status_code=400, detail={"message": "No data rows found in the file.", "errors": []})
+    errors, items = await _prepare_roles(rows)
+    if errors:
+        _abort_import(errors)
+    created, updated = await _apply_roles(items)
+    return {"success": True, "created": created, "updated": updated, "total": len(items)}
+
+
+@api_router.post("/roles/import/preview", tags=["Roles"], summary="Preview roles import (dry-run)")
+async def preview_roles(file: UploadFile = File(...)):
+    rows = _read_upload(await file.read())
+    if not rows:
+        raise HTTPException(status_code=400, detail={"message": "No data rows found in the file.", "errors": []})
+    errors, items = await _prepare_roles(rows)
+    return _preview_response(errors, items)
+
+
+async def _prepare_roles(rows: list):
     existing = await db.roles.find({}, {"_id": 0, "id": 1, "name": 1, "parent_id": 1}).to_list(100000)
     levels = await db.levels.find({}, {"_id": 0, "id": 1, "name": 1}).to_list(100000)
     role_id_by_name = {r["name"].lower(): r["id"] for r in existing}
@@ -1167,15 +1285,16 @@ async def import_roles(file: UploadFile = File(...)):
             errs.append(f"level '{p['level']}' not found")
         if errs:
             errors.append({"row": p["row"], "errors": errs})
-    if errors:
-        _abort_import(errors)
     name_to_id = dict(role_id_by_name)
     for p in parsed:
-        name_to_id.setdefault(p["name"].lower(), str(uuid.uuid4()))
+        if p["name"]:
+            name_to_id.setdefault(p["name"].lower(), str(uuid.uuid4()))
     final_parent = {r["id"]: r.get("parent_id") for r in existing}
     for p in parsed:
+        if not p["name"]:
+            continue
         rid = name_to_id[p["name"].lower()]
-        final_parent[rid] = name_to_id[p["parent"].lower()] if p["parent"] else None
+        final_parent[rid] = name_to_id.get(p["parent"].lower()) if p["parent"] else None
 
     def _has_cycle(start):
         seen, cur = set(), start
@@ -1186,31 +1305,47 @@ async def import_roles(file: UploadFile = File(...)):
             cur = final_parent.get(cur)
         return False
 
-    cyc = [p["row"] for p in parsed if _has_cycle(name_to_id[p["name"].lower()])]
-    if cyc:
-        _abort_import([{"row": r, "errors": ["parent relationships create a cycle"]} for r in cyc])
+    if not errors:  # cycle check only meaningful once names resolve cleanly
+        cyc = [p["row"] for p in parsed if p["name"] and _has_cycle(name_to_id[p["name"].lower()])]
+        for r in cyc:
+            errors.append({"row": r, "errors": ["parent relationships create a cycle"]})
     existing_ids = {r["id"] for r in existing}
+    items = []
+    for p in parsed:
+        if not p["name"]:
+            continue
+        rid = name_to_id[p["name"].lower()]
+        items.append({
+            "row": p["row"],
+            "action": "update" if rid in existing_ids else "create",
+            "label": p["name"],
+            "id": rid,
+            "is_new": rid not in existing_ids,
+            "fields": {
+                "name": p["name"],
+                "parent_id": name_to_id.get(p["parent"].lower()) if p["parent"] else None,
+                "dotted_parent_id": name_to_id.get(p["dotted"].lower()) if p["dotted"] else None,
+                "level_id": level_id_by_name.get(p["level"].lower()) if p["level"] else None,
+                "order": p["order"],
+            },
+        })
+    return errors, items
+
+
+async def _apply_roles(items: list):
     now = datetime.now(timezone.utc).isoformat()
     ops, created, updated = [], 0, 0
-    for p in parsed:
-        rid = name_to_id[p["name"].lower()]
-        fields = {
-            "name": p["name"],
-            "parent_id": name_to_id[p["parent"].lower()] if p["parent"] else None,
-            "dotted_parent_id": name_to_id[p["dotted"].lower()] if p["dotted"] else None,
-            "level_id": level_id_by_name.get(p["level"].lower()) if p["level"] else None,
-            "order": p["order"],
-            "updated_at": now,
-        }
-        if rid in existing_ids:
-            ops.append(UpdateOne({"id": rid}, {"$set": fields}))
-            updated += 1
-        else:
-            ops.append(InsertOne({"id": rid, **fields, "created_at": now}))
+    for it in items:
+        fields = {**it["fields"], "updated_at": now}
+        if it["is_new"]:
+            ops.append(InsertOne({"id": it["id"], **fields, "created_at": now}))
             created += 1
+        else:
+            ops.append(UpdateOne({"id": it["id"]}, {"$set": fields}))
+            updated += 1
     if ops:
         await db.roles.bulk_write(ops, ordered=False)
-    return {"success": True, "created": created, "updated": updated, "total": len(parsed)}
+    return created, updated
 
 
 # ---- Users ----
@@ -1235,6 +1370,23 @@ async def import_users(file: UploadFile = File(...)):
     rows = _read_upload(await file.read())
     if not rows:
         raise HTTPException(status_code=400, detail={"message": "No data rows found in the file.", "errors": []})
+    errors, items = await _prepare_users(rows)
+    if errors:
+        _abort_import(errors)
+    created, updated = await _apply_users(items)
+    return {"success": True, "created": created, "updated": updated, "total": len(items)}
+
+
+@api_router.post("/users/import/preview", tags=["Users"], summary="Preview users import (dry-run)")
+async def preview_users(file: UploadFile = File(...)):
+    rows = _read_upload(await file.read())
+    if not rows:
+        raise HTTPException(status_code=400, detail={"message": "No data rows found in the file.", "errors": []})
+    errors, items = await _prepare_users(rows)
+    return _preview_response(errors, items)
+
+
+async def _prepare_users(rows: list):
     roles = await db.roles.find({}, {"_id": 0, "id": 1, "name": 1}).to_list(100000)
     offices = await db.offices.find({}, {"_id": 0, "id": 1, "name": 1}).to_list(100000)
     role_id_by_name = {r["name"].lower(): r["id"] for r in roles}
@@ -1298,21 +1450,31 @@ async def import_users(file: UploadFile = File(...)):
                 errs.append(f"{f} already exists for another user")
         if errs:
             errors.append({"row": p["row"], "errors": errs})
-    if errors:
-        _abort_import(errors)
+    items = []
+    for p in parsed:
+        target = user_by_email.get(p["email"].lower()) if p["email"] else None
+        items.append({
+            "row": p["row"],
+            "action": "update" if target else "create",
+            "label": f"{p['name']} <{p['email']}>",
+            "target_id": target["id"] if target else None,
+            "fields": {
+                "name": p["name"], "email": p["email"],
+                "role_id": p["role_id"], "office_id": p["office_id"],
+                **{f: p[f] for f in _USER_IMPORT_OPTIONAL},
+            },
+        })
+    return errors, items
+
+
+async def _apply_users(items: list):
     now = datetime.now(timezone.utc)
     now_iso = now.isoformat()
     created, updated = 0, 0
-    for p in parsed:
-        base = {
-            "name": p["name"], "email": p["email"],
-            "role_id": p["role_id"], "office_id": p["office_id"],
-            **{f: p[f] for f in _USER_IMPORT_OPTIONAL},
-            "updated_at": now_iso,
-        }
-        target = user_by_email.get(p["email"].lower())
-        if target:
-            await db.users.update_one({"id": target["id"]}, {"$set": base})
+    for it in items:
+        base = {**it["fields"], "updated_at": now_iso}
+        if it["target_id"]:
+            await db.users.update_one({"id": it["target_id"]}, {"$set": base})
             updated += 1
         else:
             pw = _hash_password(DEFAULT_USER_PASSWORD)
@@ -1324,7 +1486,7 @@ async def import_users(file: UploadFile = File(...)):
                 "must_change_password": True, "deleted_at": None, "created_at": now_iso,
             })
             created += 1
-    return {"success": True, "created": created, "updated": updated, "total": len(parsed)}
+    return created, updated
 
 
 # Include the router in the main app.

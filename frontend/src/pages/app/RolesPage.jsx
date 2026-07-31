@@ -664,6 +664,8 @@ export default function RolesPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const [reassignInfo, setReassignInfo] = useState(null);
+  const [reassignTarget, setReassignTarget] = useState("");
   const [bulkOpen, setBulkOpen] = useState(false);
   const [structureOpen, setStructureOpen] = useState(false);
   const orgRef = useRef(null);
@@ -750,14 +752,36 @@ export default function RolesPage() {
     }
   };
 
+  const closeDelete = () => {
+    setDeleteTarget(null);
+    setReassignInfo(null);
+    setReassignTarget("");
+  };
+
   const confirmDelete = async () => {
     try {
       await API.delete(`/roles/${deleteTarget.id}`);
       toast.success("Role deleted");
-      setDeleteTarget(null);
+      closeDelete();
       load();
     } catch (err) {
-      toast.error(err?.response?.data?.detail || "Failed to delete role");
+      if (err?.response?.status === 409) {
+        setReassignInfo({ message: err.response.data.detail });
+      } else {
+        toast.error(err?.response?.data?.detail || "Failed to delete role");
+      }
+    }
+  };
+
+  const confirmReassignDelete = async () => {
+    if (!reassignTarget) return;
+    try {
+      await API.delete(`/roles/${deleteTarget.id}`, { params: { reassign_to: reassignTarget } });
+      toast.success("Users reassigned & role deleted");
+      closeDelete();
+      load();
+    } catch (err) {
+      toast.error(err?.response?.data?.detail || "Failed to reassign & delete");
     }
   };
 
@@ -1152,32 +1176,67 @@ export default function RolesPage() {
 
       <AlertDialog
         open={!!deleteTarget}
-        onOpenChange={(o) => !o && setDeleteTarget(null)}
+        onOpenChange={(o) => !o && closeDelete()}
       >
         <AlertDialogContent data-testid="roles-delete-dialog">
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete role?</AlertDialogTitle>
+            <AlertDialogTitle>
+              {reassignInfo ? "Reassign users before deleting" : "Delete role?"}
+            </AlertDialogTitle>
           </AlertDialogHeader>
-          <div className="px-6 py-4">
-            <AlertDialogDescription>
-              This will delete{" "}
-              <span className="font-medium text-foreground">
-                {deleteTarget?.name}
-              </span>
-              . Any direct subordinates will be moved up to its superior.
-            </AlertDialogDescription>
+          <div className="space-y-3 px-6 py-4">
+            {reassignInfo ? (
+              <>
+                <AlertDialogDescription>
+                  {reassignInfo.message} Choose a role to move them to, then delete.
+                </AlertDialogDescription>
+                <Select value={reassignTarget} onValueChange={setReassignTarget}>
+                  <SelectTrigger data-testid="roles-reassign-target">
+                    <SelectValue placeholder="Select target role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {roles
+                      .filter((r) => r.id !== deleteTarget?.id)
+                      .map((r) => (
+                        <SelectItem key={r.id} value={r.id}>
+                          {r.name}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+              </>
+            ) : (
+              <AlertDialogDescription>
+                This will delete{" "}
+                <span className="font-medium text-foreground">
+                  {deleteTarget?.name}
+                </span>
+                . Any direct subordinates will be moved up to its superior.
+              </AlertDialogDescription>
+            )}
           </div>
           <AlertDialogFooter>
-            <AlertDialogCancel data-testid="roles-delete-cancel">
+            <Button variant="outline" onClick={closeDelete} data-testid="roles-delete-cancel">
               Cancel
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={confirmDelete}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              data-testid="roles-delete-confirm"
-            >
-              Delete
-            </AlertDialogAction>
+            </Button>
+            {reassignInfo ? (
+              <Button
+                onClick={confirmReassignDelete}
+                disabled={!reassignTarget}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                data-testid="roles-reassign-confirm"
+              >
+                Reassign &amp; delete
+              </Button>
+            ) : (
+              <Button
+                onClick={confirmDelete}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                data-testid="roles-delete-confirm"
+              >
+                Delete
+              </Button>
+            )}
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

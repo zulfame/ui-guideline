@@ -1,0 +1,28 @@
+{
+  "summary": "E2E frontend testing of import PREVIEW + errors-download + big-data UI + quick-reassign-on-delete. 18/18 target flows PASSED against live preview backend. (1) Offices preview mix (1 new ZZP + 1 existing BR-JKT) shows create=1/update=1/total=2 with Create+Update badges; verified via API GET that the new office is NOT written to DB while on the review step. (2) Confirm import from review closes dialog and inserts the new office (verified via /api/offices). (3) Bad-file preview (missing name + longitude=999) keeps dialog on select step, shows import-errors block, download-errors button triggers offices_import_errors.xlsx blob download, and NOTHING is imported. (4) Big file (350 valid new rows ZZBIG000..ZZBIG349) → review shows create=350, total=350, list is scrollable, renders exactly 300 rows and displays 'Showing first 300 of 350 rows.' truncation note (did not confirm). (5) Users import preview (Chief Executive Officer + Head Office) shows create=1/total=1, confirm creates the user. (6) Roles import via Actions dropdown → Import: preview shows create=2/total=2 for row1 ZZ Boss + row2 ZZ Sub whose parent references row1; after confirm, sub.parent_id == boss.id (parent-in-same-file resolved). (7) Delete Head Office (referenced by 1 active user Andi Wijaya) → 409 flips dialog to 'Reassign users before deleting' mode with offices-reassign-target Select; selecting Jakarta Branch + offices-reassign-confirm succeeds; Head Office is removed and Andi's office becomes Jakarta Branch. (8) Roles reassign: created ZZ Temp Role + ZZ Target Role + user with ZZ Temp Role; UI delete of ZZ Temp Role flips to reassign mode with roles-reassign-target; picking ZZ Target Role + roles-reassign-confirm succeeds; user's role becomes ZZ Target Role. (9) Regression: deleting an unreferenced ZZ Temp NoRef office deletes immediately with no reassign prompt. All seed data restored: Head Office re-created via POST /api/offices, Andi Wijaya moved back to Head Office, all ZZ-prefixed offices/roles/users deleted.",
+  "backend_issues": { "critical": [], "minor": [] },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/tests/make_xlsx.py"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "ImportDialog.downloadTemplate / downloadErrors swallow errors with bare `catch {}` — a console.error(err) would help future debugging without changing UX.",
+    "ImportDialog: truncation note only appears when plan.truncated is true. When total < 300, the list is not truncated so the note is (correctly) hidden — no issue.",
+    "OfficesPage confirmDelete: on 409 the dialog title & body change to reassign mode, but the AlertDialog remains open reusing the same open state — this is UX-correct and matches spec. Note that reassignTarget Select uses SelectItem where value === office.id; the id 'aa2a3dca-...' is fine (non-empty). No issue.",
+    "RolesPage delete dialog reassign: description reads 'Choose a role to move them to, then delete.' — clear. Level filtering not applied to target options; a user with a role at any level can be reassigned to any other role (spec-compliant).",
+    "Head Office restore via POST recreates a fresh row with a new UUID; existing user seed still references old UUIDs indirectly (only Andi was on Head Office). Verified andi.office_name == 'Head Office' post-restore."
+  ],
+  "updated_files": ["/app/tests/make_xlsx.py"],
+  "success_rate": { "backend": "n/a (frontend-only run)", "frontend": "100% (18/18 target flows)" },
+  "test_credentials": "No login required (mock auth).",
+  "seed_data_creation": "All temp data cleaned via API: ZZ Preview New office, ZZ Big offices not confirmed, ZZ Temp NoRef office, ZZ Temp Role + ZZ Target Role, temp users (zzuser* and zztu*). Head Office was restored via POST /api/offices and Andi Wijaya reassigned back via PUT /api/users. Final seed verified: 4 offices (HQ/BR-JKT/BR-BDG/BR-SBY), no ZZ leftovers, Andi on Head Office.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "make_xlsx.py generates all fixtures under /tmp/import_tests/: offices_ok, offices_bad, offices_preview_mix (1 new ZZP{TS} + 1 existing BR-JKT), offices_big (350 rows ZZBIG###), roles_ok (parent-in-file), users_ok, users_bad. Note: /api/offices?limit=1000 returns 422 — max limit is 500. When cleaning up Head Office and re-creating it, the new office gets a new UUID; use PUT /api/users to reassign users back. The Select component target requires opening the SelectTrigger first, page.wait_for_timeout(300), then click role='option' with force=True.",
+  "rca of the issue": "N/A - all target functionality passes."
+}

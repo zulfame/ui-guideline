@@ -385,6 +385,8 @@ export default function OfficesPage() {
   const [formMode, setFormMode] = useState("create");
   const [editing, setEditing] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const [reassignInfo, setReassignInfo] = useState(null);
+  const [reassignTarget, setReassignTarget] = useState("");
   const [bulkOpen, setBulkOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
 
@@ -414,14 +416,36 @@ export default function OfficesPage() {
     setFormOpen(true);
   };
 
+  const closeDelete = () => {
+    setDeleteTarget(null);
+    setReassignInfo(null);
+    setReassignTarget("");
+  };
+
   const confirmDelete = async () => {
     try {
       await API.delete(`/offices/${deleteTarget.id}`);
       toast.success("Office deleted", { description: deleteTarget.name });
-      setDeleteTarget(null);
+      closeDelete();
       fetchOffices();
     } catch (err) {
-      toast.error(err?.response?.data?.detail || "Failed to delete office");
+      if (err?.response?.status === 409) {
+        setReassignInfo({ message: err.response.data.detail });
+      } else {
+        toast.error(err?.response?.data?.detail || "Failed to delete office");
+      }
+    }
+  };
+
+  const confirmReassignDelete = async () => {
+    if (!reassignTarget) return;
+    try {
+      await API.delete(`/offices/${deleteTarget.id}`, { params: { reassign_to: reassignTarget } });
+      toast.success("Users reassigned & office deleted", { description: deleteTarget.name });
+      closeDelete();
+      fetchOffices();
+    } catch (err) {
+      toast.error(err?.response?.data?.detail || "Failed to reassign & delete");
     }
   };
 
@@ -766,29 +790,64 @@ export default function OfficesPage() {
         onImported={fetchOffices}
       />
 
-      <AlertDialog open={!!deleteTarget} onOpenChange={(v) => !v && setDeleteTarget(null)}>
+      <AlertDialog open={!!deleteTarget} onOpenChange={(v) => !v && closeDelete()}>
         <AlertDialogContent data-testid="offices-delete-dialog">
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete office?</AlertDialogTitle>
+            <AlertDialogTitle>
+              {reassignInfo ? "Reassign users before deleting" : "Delete office?"}
+            </AlertDialogTitle>
           </AlertDialogHeader>
-          <div className="px-6 py-4">
-            <AlertDialogDescription>
-              This will permanently remove{" "}
-              <span className="font-medium text-foreground">
-                {deleteTarget?.name}
-              </span>
-              . This action cannot be undone.
-            </AlertDialogDescription>
+          <div className="space-y-3 px-6 py-4">
+            {reassignInfo ? (
+              <>
+                <AlertDialogDescription>
+                  {reassignInfo.message} Choose an office to move them to, then delete.
+                </AlertDialogDescription>
+                <Select value={reassignTarget} onValueChange={setReassignTarget}>
+                  <SelectTrigger data-testid="offices-reassign-target">
+                    <SelectValue placeholder="Select target office" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {offices
+                      .filter((o) => o.id !== deleteTarget?.id)
+                      .map((o) => (
+                        <SelectItem key={o.id} value={o.id}>
+                          {o.name}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+              </>
+            ) : (
+              <AlertDialogDescription>
+                This will permanently remove{" "}
+                <span className="font-medium text-foreground">{deleteTarget?.name}</span>. This
+                action cannot be undone.
+              </AlertDialogDescription>
+            )}
           </div>
           <AlertDialogFooter>
-            <AlertDialogCancel data-testid="offices-delete-cancel">Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={confirmDelete}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              data-testid="offices-delete-confirm"
-            >
-              Delete
-            </AlertDialogAction>
+            <Button variant="outline" onClick={closeDelete} data-testid="offices-delete-cancel">
+              Cancel
+            </Button>
+            {reassignInfo ? (
+              <Button
+                onClick={confirmReassignDelete}
+                disabled={!reassignTarget}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                data-testid="offices-reassign-confirm"
+              >
+                Reassign &amp; delete
+              </Button>
+            ) : (
+              <Button
+                onClick={confirmDelete}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                data-testid="offices-delete-confirm"
+              >
+                Delete
+              </Button>
+            )}
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

@@ -54,3 +54,17 @@ ws.append([f"ZZ UserBad {TS}", f"zzuserbad{TS}@example.com", "NOPE-ROLE-XYZ", "H
 save(wb, "users_bad.xlsx")
 
 print(f"TS={TS}")
+
+# ---------- Offices preview (1 new + 1 existing) ----------
+wb = openpyxl.Workbook(); ws = wb.active
+ws.append(["code","name","address","longitude","latitude","radius","note"])
+ws.append([f"ZZP{TS}", f"ZZ Preview New {TS}", "Addr new", 106.9, -6.2, 100, ""])
+ws.append(["BR-JKT", "Jakarta Branch", "Jl. Gatot Subroto No. 12, Jakarta", 106.8, -6.235, 100, ""])
+save(wb, "offices_preview_mix.xlsx")
+
+# ---------- Offices big (350 new) ----------
+wb = openpyxl.Workbook(); ws = wb.active
+ws.append(["code","name","address","longitude","latitude","radius","note"])
+for i in range(350):
+    ws.append([f"ZZBIG{i:03d}", f"ZZ Big Office {i:03d}", f"Addr {i}", 106.8, -6.2, 100, ""])
+save(wb, "offices_big.xlsx")
