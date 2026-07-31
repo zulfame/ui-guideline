@@ -1,6 +1,5 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
-  GalleryVerticalEnd,
   ChevronRight,
   ChevronsUpDown,
   Check,
@@ -59,6 +58,7 @@ export const AppSidebar = (props) => {
 
   const activeAreaId = getAreaIdForPath(location.pathname);
   const activeArea = getArea(activeAreaId);
+  const ActiveAreaIcon = activeArea.icon;
 
   const isActive = (to, end) =>
     end ? location.pathname === to : location.pathname.startsWith(to);
@@ -79,12 +79,14 @@ export const AppSidebar = (props) => {
                   data-testid="area-switcher-trigger"
                 >
                   <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-                    <GalleryVerticalEnd className="size-4" aria-hidden="true" />
+                    <ActiveAreaIcon className="size-4" aria-hidden="true" />
                   </div>
                   <div className="grid flex-1 text-left text-sm leading-tight">
-                    <span className="truncate font-semibold">UI Guidelines</span>
+                    <span className="truncate font-semibold">
+                      {activeArea.label}
+                    </span>
                     <span className="truncate text-xs text-sidebar-foreground/70">
-                      Enterprise
+                      {activeArea.tagline}
                     </span>
                   </div>
                   <ChevronsUpDown className="ml-auto size-4" aria-hidden="true" />

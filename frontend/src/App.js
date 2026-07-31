@@ -45,9 +45,9 @@ function App() {
           <Route path="/offices" element={<OfficesPage />} />
           <Route path="/account" element={<PlaceholderPage />} />
           <Route path="/settings" element={<PlaceholderPage />} />
-          <Route path="/development" element={<DevelopmentOverviewPage />} />
+          <Route path="/dev-guidelines" element={<DevelopmentOverviewPage />} />
           <Route
-            path="/development/:groupId"
+            path="/dev-guidelines/:groupId"
             element={<DevelopmentGuidelinePage />}
           />
           <Route

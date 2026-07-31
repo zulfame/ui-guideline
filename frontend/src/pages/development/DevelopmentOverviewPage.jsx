@@ -40,7 +40,7 @@ const searchIndex = guidelineGroups.flatMap((group) =>
 /**
  * Development Guidelines — Overview with cross-group search.
  * Empty query → group grid. Non-empty → matched topics grouped by group,
- * each linking to `/development/{groupId}?topic={topicId}` (auto-opens there).
+ * each linking to `/dev-guidelines/{groupId}?topic={topicId}` (auto-opens there).
  */
 export default function DevelopmentOverviewPage() {
   const [query, setQuery] = useState("");
@@ -104,7 +104,7 @@ export default function DevelopmentOverviewPage() {
               {results.map(({ groupId, groupTitle, groupIcon: Icon, topic }) => (
                 <Link
                   key={`${groupId}-${topic.id}`}
-                  to={`/development/${groupId}?topic=${topic.id}`}
+                  to={`/dev-guidelines/${groupId}?topic=${topic.id}`}
                   className="flex items-start gap-3 px-4 py-3 transition-colors hover:bg-accent/40 focus-visible:bg-accent/40 focus-visible:outline-none"
                   data-testid={`guideline-result-${topic.id}`}
                 >
@@ -150,7 +150,7 @@ export default function DevelopmentOverviewPage() {
             return (
               <Link
                 key={group.id}
-                to={`/development/${group.id}`}
+                to={`/dev-guidelines/${group.id}`}
                 className="group rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                 data-testid={`guideline-card-${group.id}`}
               >

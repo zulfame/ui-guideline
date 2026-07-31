@@ -25,6 +25,7 @@ export const navAreas = [
   {
     id: "application",
     label: "Application",
+    tagline: "Management CMS",
     icon: LayoutGrid,
     sections: [
       {
@@ -46,6 +47,7 @@ export const navAreas = [
   {
     id: "design-system",
     label: "Design System",
+    tagline: "Components & Tokens",
     icon: Shapes,
     sections: [
       {
@@ -96,6 +98,7 @@ export const navAreas = [
   {
     id: "development",
     label: "Dev Guidelines",
+    tagline: "Engineering Standards",
     icon: BookOpenCheck,
     sections: [
       {
@@ -103,13 +106,13 @@ export const navAreas = [
         items: [
           {
             title: "Overview",
-            to: "/development",
+            to: "/dev-guidelines",
             icon: LayoutDashboard,
             end: true,
           },
           ...guidelineGroups.map((group) => ({
             title: group.title,
-            to: `/development/${group.id}`,
+            to: `/dev-guidelines/${group.id}`,
             icon: group.icon,
           })),
         ],
@@ -133,7 +136,7 @@ export const navRoutes = navAreas.flatMap((area) =>
 /** Which area a pathname belongs to (route-derived active area). */
 export const getAreaIdForPath = (pathname) => {
   if (pathname.startsWith("/design-system")) return "design-system";
-  if (pathname.startsWith("/development")) return "development";
+  if (pathname.startsWith("/dev-guidelines")) return "development";
   return "application";
 };
 

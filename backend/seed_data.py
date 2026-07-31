@@ -1,10 +1,9 @@
 """Seed sample data for the CMS (Offices, Levels, Roles).
 
-Idempotent: clears the three collections then inserts a coherent org structure
-so the tables and the Roles org-chart look populated out of the box.
-
-Usage:
-    cd /app/backend && python seed_data.py
+Two entry points share ONE source of truth (`build_documents()`):
+- CLI (`python seed_data.py`): resets the collections and inserts the sample set.
+- App startup (server.py lifespan): auto-seeds ONLY when the DB is empty and the
+  AUTO_SEED toggle is enabled — so fresh deployments come pre-filled with examples.
 
 Notes:
 - Uses the SAME env config as the app (MONGO_URL, DB_NAME) — never hardcoded.
@@ -17,24 +16,13 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from dotenv import load_dotenv
-from pymongo import MongoClient
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / ".env")
 
-client = MongoClient(os.environ["MONGO_URL"])
-db = client[os.environ["DB_NAME"]]
 
-
-def now_iso() -> str:
+def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
-
-
-def stamp(doc: dict) -> dict:
-    ts = now_iso()
-    doc.setdefault("created_at", ts)
-    doc.setdefault("updated_at", ts)
-    return doc
 
 
 # --- Levels (swimlanes) -----------------------------------------------------
@@ -45,8 +33,7 @@ LEVELS = [
     {"name": "Staff", "order": 4, "color": "#64748b"},
 ]
 
-# --- Roles (hierarchy) ------------------------------------------------------
-# (name, level, parent, order, dotted_parent)
+# --- Roles (hierarchy) — (name, level, parent, order, dotted_parent) --------
 ROLES = [
     ("Chief Executive Officer", "Executive", None, 0, None),
     ("Chief Technology Officer", "Management", "Chief Executive Officer", 0, None),
@@ -76,41 +63,57 @@ OFFICES = [
 ]
 
 
-def seed():
-    # Reset the sample collections for an idempotent, repeatable seed.
-    db.roles.delete_many({})
-    db.levels.delete_many({})
-    db.offices.delete_many({})
+def build_documents():
+    """Build ready-to-insert docs (with UUID ids + ISO timestamps).
 
-    # Levels
+    Returns (level_docs, role_docs, office_docs). Parent/level references are
+    resolved by pre-generating role ids so the hierarchy is valid on insert.
+    """
+    ts = _now_iso()
+
     level_id = {}
     level_docs = []
     for lvl in LEVELS:
         lid = str(uuid.uuid4())
         level_id[lvl["name"]] = lid
-        level_docs.append(stamp({"id": lid, **lvl}))
-    db.levels.insert_many(level_docs)
+        level_docs.append({"id": lid, **lvl, "created_at": ts, "updated_at": ts})
 
-    # Roles — pre-generate ids so parent references resolve by name.
     role_id = {name: str(uuid.uuid4()) for (name, *_rest) in ROLES}
     role_docs = []
     for name, level, parent, order, dotted in ROLES:
-        role_docs.append(stamp({
+        role_docs.append({
             "id": role_id[name],
             "name": name,
             "parent_id": role_id.get(parent) if parent else None,
             "dotted_parent_id": role_id.get(dotted) if dotted else None,
             "level_id": level_id.get(level),
             "order": order,
-        }))
-    db.roles.insert_many(role_docs)
+            "created_at": ts,
+            "updated_at": ts,
+        })
 
-    # Offices
-    db.offices.insert_many([stamp({"id": str(uuid.uuid4()), **o}) for o in OFFICES])
+    office_docs = [
+        {"id": str(uuid.uuid4()), **o, "created_at": ts, "updated_at": ts} for o in OFFICES
+    ]
+    return level_docs, role_docs, office_docs
 
-    print(f"Seeded: {len(level_docs)} levels, {len(role_docs)} roles, {len(OFFICES)} offices.")
+
+def _cli_seed():
+    """Standalone CLI: reset the collections then insert the sample set."""
+    from pymongo import MongoClient
+
+    client = MongoClient(os.environ["MONGO_URL"])
+    db = client[os.environ["DB_NAME"]]
+    levels, roles, offices = build_documents()
+    db.roles.delete_many({})
+    db.levels.delete_many({})
+    db.offices.delete_many({})
+    db.levels.insert_many(levels)
+    db.roles.insert_many(roles)
+    db.offices.insert_many(offices)
+    print(f"Seeded: {len(levels)} levels, {len(roles)} roles, {len(offices)} offices.")
+    client.close()
 
 
 if __name__ == "__main__":
-    seed()
-    client.close()
+    _cli_seed()

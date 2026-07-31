@@ -32,12 +32,42 @@ db = client[os.environ['DB_NAME']]
 MAX_PAGE_SIZE = 500
 DEFAULT_PAGE_SIZE = 100
 
+# Auto-seed toggle (Guideline: Configuration Management) — populate sample data
+# on a fresh/empty database so new deployments come pre-filled with examples.
+AUTO_SEED = os.environ.get('AUTO_SEED', 'true').strip().lower() in ('1', 'true', 'yes', 'on')
+
+
+async def _auto_seed_if_empty():
+    """Insert sample data only when all CMS collections are empty (idempotent)."""
+    counts = [
+        await db.offices.count_documents({}),
+        await db.roles.count_documents({}),
+        await db.levels.count_documents({}),
+    ]
+    if any(counts):
+        logger.info("Auto-seed skipped: existing data present.")
+        return
+    from seed_data import build_documents  # local import: avoids CLI deps at module load
+
+    levels, roles, offices = build_documents()
+    if levels:
+        await db.levels.insert_many(levels)
+    if roles:
+        await db.roles.insert_many(roles)
+    if offices:
+        await db.offices.insert_many(offices)
+    logger.info(
+        "Auto-seed: inserted %d levels, %d roles, %d offices (empty DB).",
+        len(levels), len(roles), len(offices),
+    )
+
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     """App lifecycle (replaces deprecated @app.on_event).
 
-    Startup: ensure DB-level unique indexes + query indexes.
+    Startup: ensure DB-level unique indexes + query indexes, then auto-seed when
+    the DB is empty and AUTO_SEED is enabled.
     Shutdown: close the Mongo client cleanly.
     """
     await db.offices.create_index("code", unique=True)
@@ -46,6 +76,11 @@ async def lifespan(_app: FastAPI):
     await db.roles.create_index("name", unique=True)
     await db.levels.create_index("name", unique=True)
     logger.info("Startup complete: indexes ensured.")
+    if AUTO_SEED:
+        try:
+            await _auto_seed_if_empty()
+        except Exception as exc:  # pragma: no cover - non-fatal
+            logger.error("Auto-seed failed (non-fatal): %s", exc)
     yield
     client.close()
     logger.info("Shutdown complete: Mongo client closed.")

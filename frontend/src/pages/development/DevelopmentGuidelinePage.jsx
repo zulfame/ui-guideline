@@ -160,7 +160,7 @@ export default function DevelopmentGuidelinePage() {
           description="The guideline group you are looking for is not available."
           action={
             <Button asChild variant="outline" size="sm">
-              <Link to="/development">Back to Overview</Link>
+              <Link to="/dev-guidelines">Back to Overview</Link>
             </Button>
           }
         />
@@ -174,7 +174,7 @@ export default function DevelopmentGuidelinePage() {
     <div className="space-y-6" data-testid="development-guideline-page">
       <PageHeader title={group.title} description={group.summary}>
         <Button asChild variant="outline" size="sm">
-          <Link to="/development">
+          <Link to="/dev-guidelines">
             <ChevronLeft className="size-4" aria-hidden="true" />
             Overview
           </Link>
