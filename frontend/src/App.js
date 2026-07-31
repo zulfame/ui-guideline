@@ -44,6 +44,11 @@ function App() {
           <Route path="/users" element={<UsersPage />} />
           <Route path="/roles" element={<RolesPage />} />
           <Route path="/offices" element={<OfficesPage />} />
+          <Route path="/clients" element={<PlaceholderPage />} />
+          <Route path="/branding" element={<PlaceholderPage />} />
+          <Route path="/broadcast" element={<PlaceholderPage />} />
+          <Route path="/database" element={<PlaceholderPage />} />
+          <Route path="/audit-log" element={<PlaceholderPage />} />
           <Route path="/account" element={<PlaceholderPage />} />
           <Route path="/settings" element={<PlaceholderPage />} />
           <Route path="/dev-guidelines" element={<DevelopmentOverviewPage />} />

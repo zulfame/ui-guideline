@@ -11,6 +11,11 @@ import {
   ShieldCheck,
   Building2,
   BookOpenCheck,
+  KeyRound,
+  Paintbrush,
+  Radio,
+  Database,
+  ScrollText,
 } from "lucide-react";
 
 import { guidelineGroups } from "./developmentGuidelines";
@@ -35,11 +40,21 @@ export const navAreas = [
         ],
       },
       {
-        label: "Management",
+        label: "Manage",
         items: [
           { title: "Users", to: "/users", icon: Users },
           { title: "Roles", to: "/roles", icon: ShieldCheck },
           { title: "Offices", to: "/offices", icon: Building2 },
+          { title: "Clients", to: "/clients", icon: KeyRound },
+        ],
+      },
+      {
+        label: "System",
+        items: [
+          { title: "Branding", to: "/branding", icon: Paintbrush },
+          { title: "Broadcast", to: "/broadcast", icon: Radio },
+          { title: "Database", to: "/database", icon: Database },
+          { title: "Audit Log", to: "/audit-log", icon: ScrollText },
         ],
       },
     ],

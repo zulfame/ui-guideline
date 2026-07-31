@@ -69,7 +69,7 @@ DEFAULT_USER_PASSWORD = os.environ.get("DEFAULT_USER_PASSWORD", "bpr2026")
 PASSWORD_EXPIRY_DAYS = int(os.environ.get("PASSWORD_EXPIRY_DAYS", "90"))
 USERS = [
     ("Andi Wijaya", "andi@bpr.co.id", "andi", "Chief Executive Officer", "HQ", "AW", "MSO001", "COL001"),
-    ("Budi Santoso", "budi@bpr.co.id", "budi", "Operations Lead", "BR-JKT", "BS", "MSO002", "COL002"),
+    ("Budi Santoso", "budi@bpr.co.id", "budi", "Operations Staff", "BR-JKT", "BS", "MSO002", "COL002"),
     ("Citra Lestari", "citra@bpr.co.id", "citra", "Accountant", "BR-BDG", "CL", "MSO003", "COL003"),
 ]
 
