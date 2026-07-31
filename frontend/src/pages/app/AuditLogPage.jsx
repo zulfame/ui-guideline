@@ -119,8 +119,8 @@ export default function AuditLogPage() {
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Filters */}
-          <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
-            <div className="relative max-w-xs flex-1">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+            <div className="relative w-full lg:max-w-xs">
               <Search className="absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
               <Input
                 value={q}
@@ -133,31 +133,43 @@ export default function AuditLogPage() {
                 data-testid="audit-search"
               />
             </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <Input
-                type="date"
-                value={dateFrom}
-                onChange={(e) => {
-                  setPage(0);
-                  setDateFrom(e.target.value);
-                }}
-                className="h-9 w-[150px]"
-                data-testid="audit-date-from"
-                aria-label="From date"
-              />
-              <Input
-                type="date"
-                value={dateTo}
-                onChange={(e) => {
-                  setPage(0);
-                  setDateTo(e.target.value);
-                }}
-                className="h-9 w-[150px]"
-                data-testid="audit-date-to"
-                aria-label="To date"
-              />
+            <div className="grid grid-cols-2 items-end gap-2 sm:flex sm:flex-wrap">
+              <div className="flex flex-col gap-1">
+                <label className="text-xs text-muted-foreground" htmlFor="audit-from">From</label>
+                <Input
+                  id="audit-from"
+                  type="date"
+                  value={dateFrom}
+                  onChange={(e) => {
+                    setPage(0);
+                    setDateFrom(e.target.value);
+                  }}
+                  className="h-9 w-full sm:w-[150px]"
+                  data-testid="audit-date-from"
+                />
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-xs text-muted-foreground" htmlFor="audit-to">To</label>
+                <Input
+                  id="audit-to"
+                  type="date"
+                  value={dateTo}
+                  onChange={(e) => {
+                    setPage(0);
+                    setDateTo(e.target.value);
+                  }}
+                  className="h-9 w-full sm:w-[150px]"
+                  data-testid="audit-date-to"
+                />
+              </div>
               {hasFilters && (
-                <Button variant="outline" size="sm" onClick={resetFilters} data-testid="audit-reset">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={resetFilters}
+                  className="col-span-2 h-9 sm:col-auto sm:self-end"
+                  data-testid="audit-reset"
+                >
                   <FilterX className="size-4" /> Reset
                 </Button>
               )}
@@ -266,7 +278,7 @@ export default function AuditLogPage() {
                 </Select>
                 <span>of {total} entries</span>
               </div>
-              <div className="flex items-center gap-4">
+              <div className="flex items-center justify-between gap-4 sm:justify-end">
                 <span className="text-xs text-muted-foreground" data-testid="audit-page-indicator">
                   Page {page + 1} of {pageCount}
                 </span>
@@ -329,9 +341,9 @@ export default function AuditLogPage() {
                     {detail.entity_label ? ` — ${detail.entity_label}` : ""}
                   </dd>
                 </div>
-                <div>
+                <div className="col-span-2 sm:col-auto">
                   <dt className="text-xs text-muted-foreground">Method &amp; Path</dt>
-                  <dd className="font-mono text-xs">
+                  <dd className="break-all font-mono text-xs">
                     {detail.method} {detail.path}
                   </dd>
                 </div>
