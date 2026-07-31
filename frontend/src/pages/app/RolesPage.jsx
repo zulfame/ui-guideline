@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -16,6 +16,9 @@ import {
   ArrowUp,
   ChevronLeft,
   ChevronRight,
+  Download,
+  FileImage,
+  FileText,
   FilterX,
   Layers,
   MoreHorizontal,
@@ -658,6 +661,20 @@ export default function RolesPage() {
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [bulkOpen, setBulkOpen] = useState(false);
   const [structureOpen, setStructureOpen] = useState(false);
+  const orgRef = useRef(null);
+  const [exportingChart, setExportingChart] = useState(false);
+
+  const handleExport = async (kind) => {
+    if (!orgRef.current) return;
+    setExportingChart(true);
+    try {
+      await (kind === "png" ? orgRef.current.exportPng() : orgRef.current.exportPdf());
+    } catch {
+      toast.error("Failed to export chart");
+    } finally {
+      setExportingChart(false);
+    }
+  };
   const [levelsOpen, setLevelsOpen] = useState(false);
 
   const loadLevels = async () => {
@@ -888,9 +905,9 @@ export default function RolesPage() {
   return (
     <div className="space-y-6" data-testid="roles-page">
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0">
+        <CardHeader className="flex flex-col gap-3 space-y-0 sm:flex-row sm:items-center sm:justify-between">
           <CardTitle className="text-base">Role List</CardTitle>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Button
               variant="outline"
               size="sm"
@@ -1165,19 +1182,47 @@ export default function RolesPage() {
 
       <Dialog open={structureOpen} onOpenChange={setStructureOpen}>
         <DialogContent
-          className="w-[95vw] max-w-[95vw]"
+          className="grid max-h-[90vh] w-[95vw] max-w-[95vw] grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden"
           data-testid="roles-structure-dialog"
         >
           <DialogHeader>
             <DialogTitle>Role structure</DialogTitle>
             <DialogDescription>
-              Org chart per level (swimlane). Solid = atasan langsung, garis
-              putus-putus = atasan dotted-line.
+              Org chart per level (swimlane). Solid = direct superior, dashed =
+              dotted-line superior.
             </DialogDescription>
           </DialogHeader>
-          <DialogBody className="max-h-[75vh] overflow-auto">
-            <OrgChart roles={roles} levels={levels} />
+          <DialogBody className="flex min-h-0 flex-col overflow-hidden">
+            <OrgChart ref={orgRef} roles={roles} levels={levels} />
           </DialogBody>
+          <DialogFooter>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="outline"
+                  disabled={exportingChart}
+                  data-testid="org-export-btn"
+                >
+                  <Download className="size-4" />
+                  {exportingChart ? "Exporting..." : "Export"}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem
+                  onClick={() => handleExport("png")}
+                  data-testid="org-export-png"
+                >
+                  <FileImage className="size-4" /> Download PNG
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => handleExport("pdf")}
+                  data-testid="org-export-pdf"
+                >
+                  <FileText className="size-4" /> Download PDF
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

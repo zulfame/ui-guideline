@@ -481,9 +481,9 @@ export default function DataTableLayoutPage() {
       />
 
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0">
+        <CardHeader className="flex flex-col gap-3 space-y-0 sm:flex-row sm:items-center sm:justify-between">
           <CardTitle className="text-base">Users</CardTitle>
-          <Button size="sm" onClick={openAdd} data-testid="dt-add">
+          <Button size="sm" onClick={openAdd} data-testid="dt-add" className="w-full sm:w-auto">
             <Plus className="size-4" /> Add
           </Button>
         </CardHeader>

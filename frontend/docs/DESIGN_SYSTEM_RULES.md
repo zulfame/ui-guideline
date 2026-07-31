@@ -161,7 +161,8 @@ Combobox, Date Picker, Password Input. Composite =
       `space-y-3` form / `space-y-4` umum). Avatar profil `h-12 w-12`, grid form `gap-4`.
 - [ ] **GUARD:** `bash frontend/docs/design-guard.sh` sudah dijalankan & **lolos (exit 0)**
       (2C.14). Berlaku untuk **halaman/blok baru**, bukan hanya modifikasi komponen.
-- [ ] **APP CRUD (R40):** halaman `pages/app/*` mengikuti pola wajib — Card+CardHeader(title+Add),
+- [ ] **APP CRUD (R40):** halaman `pages/app/*` mengikuti pola wajib — Card+CardHeader
+      (**responsif: `flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between`** — judul menumpuk di atas & tombol membungkus di mobile; grup tombol `flex flex-wrap gap-2`),
       toolbar (search + **Reset** `FilterX` yang muncul saat search/filter aktif → reset `globalFilter`(+`columnFilters`) + Density),
       DataTable no-wrap, **form dialog pakai `<DialogBody>`**, **Delete destructive (merah)**,
       states via `EmptyState` (no-match tampilkan tombol **Reset** juga), data via `lib/api.js`.

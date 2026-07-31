@@ -132,18 +132,19 @@ export const getBreadcrumb = (pathname) => {
             if (pathname === child.to) {
               return {
                 title: child.title,
-                trail: [area.label, item.title, child.title],
+                trail: [section.label, item.title, child.title],
               };
             }
           }
         } else if (item.to === pathname) {
-          const trail = item.to === "/" ? [item.title] : [area.label, item.title];
+          const trail =
+            item.to === "/" ? [item.title] : [section.label, item.title];
           return { title: item.title, trail };
         }
       }
     }
   }
   const accountTitle = { "/account": "Account", "/settings": "Settings" }[pathname];
-  if (accountTitle) return { title: accountTitle, trail: [accountTitle] };
+  if (accountTitle) return { title: accountTitle, trail: ["Application", accountTitle] };
   return { title: "Page", trail: ["Page"] };
 };

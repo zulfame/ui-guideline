@@ -1,15 +1,15 @@
-import React, { useMemo, useRef, useState } from "react";
+import React, {
+  forwardRef,
+  useImperativeHandle,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { toPng } from "html-to-image";
 import jsPDF from "jspdf";
-import { Download, FileImage, FileText } from "lucide-react";
+import { RotateCcw, ZoomIn, ZoomOut } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 
 /**
  * SVG-based organization chart with horizontal swimlanes (by level).
@@ -18,7 +18,7 @@ import {
  * - Solid connectors = direct superior (parent_id).
  * - Dashed connectors = dotted-line superior (dotted_parent_id).
  * - Each level can carry a `color` used for node fill/border + swimlane band.
- * - Export the chart to PNG or PDF.
+ * - Zoom in/out/reset; export handled by parent via forwarded ref (exportPng/exportPdf).
  */
 
 const LABEL_W = 132;
@@ -28,6 +28,9 @@ const H_GAP = 28;
 const ROW_GAP = 82;
 const PAD = 24;
 const NO_LEVEL = "__no_level__";
+const ZOOM_MIN = 0.4;
+const ZOOM_MAX = 1.6;
+const ZOOM_STEP = 0.1;
 
 function withAlpha(hex, a) {
   if (!hex) return undefined;
@@ -40,9 +43,12 @@ function withAlpha(hex, a) {
   return `rgba(${r}, ${g}, ${b}, ${a})`;
 }
 
-export function OrgChart({ roles = [], levels = [] }) {
+export const OrgChart = forwardRef(function OrgChart(
+  { roles = [], levels = [] },
+  ref,
+) {
   const chartRef = useRef(null);
-  const [exporting, setExporting] = useState(false);
+  const [zoom, setZoom] = useState(1);
 
   const colorByLevel = useMemo(() => {
     const m = {};
@@ -128,44 +134,49 @@ export function OrgChart({ roles = [], levels = [] }) {
 
   const doExport = async (kind) => {
     if (!chartRef.current) return;
-    setExporting(true);
-    try {
-      const node = chartRef.current;
-      const w = node.scrollWidth;
-      const h = node.scrollHeight;
-      const dataUrl = await toPng(node, {
-        backgroundColor: "#ffffff", // guard-allow: exported image needs a solid white canvas
-        pixelRatio: 2,
-        width: w,
-        height: h,
-        style: { margin: "0" },
+    const dataUrl = await toPng(chartRef.current, {
+      backgroundColor: "#ffffff", // guard-allow: exported image needs a solid white canvas
+      pixelRatio: 2,
+      width: totalW,
+      height: totalH,
+      // neutralize on-screen zoom so the export is always full-resolution
+      style: { transform: "none", transformOrigin: "top left", margin: "0" },
+    });
+    if (kind === "png") {
+      const a = document.createElement("a");
+      a.href = dataUrl;
+      a.download = "org-chart.png";
+      a.click();
+    } else {
+      const pdf = new jsPDF({
+        orientation: totalW >= totalH ? "landscape" : "portrait",
+        unit: "pt",
+        format: [totalW, totalH],
       });
-      if (kind === "png") {
-        const a = document.createElement("a");
-        a.href = dataUrl;
-        a.download = "org-chart.png";
-        a.click();
-      } else {
-        const pdf = new jsPDF({
-          orientation: w >= h ? "landscape" : "portrait",
-          unit: "pt",
-          format: [w, h],
-        });
-        pdf.addImage(dataUrl, "PNG", 0, 0, w, h);
-        pdf.save("org-chart.pdf");
-      }
-    } finally {
-      setExporting(false);
+      pdf.addImage(dataUrl, "PNG", 0, 0, totalW, totalH);
+      pdf.save("org-chart.pdf");
     }
   };
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      exportPng: () => doExport("png"),
+      exportPdf: () => doExport("pdf"),
+    }),
+    [totalW, totalH],
+  );
+
+  const setZoomClamped = (z) =>
+    setZoom(Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, Math.round(z * 10) / 10)));
 
   if (!nodes.length) {
     return <p className="text-sm text-muted-foreground">No roles yet.</p>;
   }
 
   return (
-    <div className="space-y-3" data-testid="org-chart">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+    <div className="flex h-full min-h-0 flex-col gap-3" data-testid="org-chart">
+      <div className="flex shrink-0 flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-6 text-xs text-muted-foreground">
           <span className="inline-flex items-center gap-2">
             <svg width="26" height="8" aria-hidden="true">
@@ -180,86 +191,126 @@ export function OrgChart({ roles = [], levels = [] }) {
             Dotted-line superior
           </span>
         </div>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="sm" disabled={exporting} data-testid="org-export-btn">
-              <Download className="size-4" /> {exporting ? "Exporting..." : "Export"}
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={() => doExport("png")} data-testid="org-export-png">
-              <FileImage className="size-4" /> Download PNG
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => doExport("pdf")} data-testid="org-export-pdf">
-              <FileText className="size-4" /> Download PDF
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <div className="flex items-center gap-1">
+          <Button
+            variant="outline"
+            size="icon"
+            className="size-8"
+            onClick={() => setZoomClamped(zoom - ZOOM_STEP)}
+            disabled={zoom <= ZOOM_MIN}
+            aria-label="Zoom out"
+            data-testid="org-zoom-out"
+          >
+            <ZoomOut className="size-4" />
+          </Button>
+          <span
+            className="w-12 text-center text-xs tabular-nums text-muted-foreground"
+            data-testid="org-zoom-level"
+          >
+            {Math.round(zoom * 100)}%
+          </span>
+          <Button
+            variant="outline"
+            size="icon"
+            className="size-8"
+            onClick={() => setZoomClamped(zoom + ZOOM_STEP)}
+            disabled={zoom >= ZOOM_MAX}
+            aria-label="Zoom in"
+            data-testid="org-zoom-in"
+          >
+            <ZoomIn className="size-4" />
+          </Button>
+          <Button
+            variant="outline"
+            size="icon"
+            className="size-8"
+            onClick={() => setZoom(1)}
+            disabled={zoom === 1}
+            aria-label="Reset zoom"
+            data-testid="org-zoom-reset"
+          >
+            <RotateCcw className="size-4" />
+          </Button>
+        </div>
       </div>
 
-      <div ref={chartRef} className="relative min-w-max" style={{ width: totalW, height: totalH }}>
-        {swimlanes.map((lane, ri) => {
-          const rowY = PAD + ri * (NODE_H + ROW_GAP);
-          return (
-            <React.Fragment key={lane.id}>
-              <div
-                className="absolute rounded-md"
-                style={{
-                  left: LABEL_W + PAD - 8,
-                  top: rowY - 10,
-                  width: totalW - LABEL_W - PAD * 2 + 16,
-                  height: NODE_H + 20,
-                  backgroundColor: lane.color ? withAlpha(lane.color, 0.1) : "hsl(var(--muted) / 0.4)",
-                }}
-                aria-hidden="true"
-              />
-              <div
-                className="absolute flex items-center gap-2 text-xs font-medium text-muted-foreground"
-                style={{ left: PAD, top: rowY, width: LABEL_W - 12, height: NODE_H }}
-                data-testid={`org-lane-${lane.id}`}
-              >
-                {lane.color && (
-                  <span className="size-2.5 shrink-0 rounded-sm" style={{ backgroundColor: lane.color }} aria-hidden="true" />
-                )}
-                {lane.name}
-              </div>
-            </React.Fragment>
-          );
-        })}
+      <div className="min-h-0 min-w-0 flex-1 overflow-auto rounded-md border bg-muted/20">
+        <div style={{ width: totalW * zoom, height: totalH * zoom }}>
+          <div
+            ref={chartRef}
+            className="relative"
+            style={{
+              width: totalW,
+              height: totalH,
+              transform: `scale(${zoom})`,
+              transformOrigin: "top left",
+              backgroundColor: "hsl(var(--background))",
+            }}
+          >
+            {swimlanes.map((lane, ri) => {
+              const rowY = PAD + ri * (NODE_H + ROW_GAP);
+              return (
+                <React.Fragment key={lane.id}>
+                  <div
+                    className="absolute rounded-md"
+                    style={{
+                      left: LABEL_W + PAD - 8,
+                      top: rowY - 10,
+                      width: totalW - LABEL_W - PAD * 2 + 16,
+                      height: NODE_H + 20,
+                      backgroundColor: lane.color ? withAlpha(lane.color, 0.1) : "hsl(var(--muted) / 0.4)",
+                    }}
+                    aria-hidden="true"
+                  />
+                  <div
+                    className="absolute flex items-center gap-2 text-xs font-medium text-muted-foreground"
+                    style={{ left: PAD, top: rowY, width: LABEL_W - 12, height: NODE_H }}
+                    data-testid={`org-lane-${lane.id}`}
+                  >
+                    {lane.color && (
+                      <span className="size-2.5 shrink-0 rounded-sm" style={{ backgroundColor: lane.color }} aria-hidden="true" />
+                    )}
+                    {lane.name}
+                  </div>
+                </React.Fragment>
+              );
+            })}
 
-        <svg className="pointer-events-none absolute inset-0" width={totalW} height={totalH}>
-          {links.map((l) => (
-            <path
-              key={l.id}
-              d={l.d}
-              fill="none"
-              style={{ stroke: l.dashed ? "hsl(var(--muted-foreground))" : "hsl(var(--foreground))" }}
-              strokeWidth="1.5"
-              strokeDasharray={l.dashed ? "4 3" : undefined}
-            />
-          ))}
-        </svg>
+            <svg className="pointer-events-none absolute inset-0" width={totalW} height={totalH}>
+              {links.map((l) => (
+                <path
+                  key={l.id}
+                  d={l.d}
+                  fill="none"
+                  style={{ stroke: l.dashed ? "hsl(var(--muted-foreground))" : "hsl(var(--foreground))" }}
+                  strokeWidth="1.5"
+                  strokeDasharray={l.dashed ? "4 3" : undefined}
+                />
+              ))}
+            </svg>
 
-        {nodes.map((n) => {
-          const c = colorByLevel[n.level_id];
-          return (
-            <div
-              key={n.id}
-              className="absolute flex items-center justify-center rounded-md border bg-card px-2 text-center text-xs font-medium text-card-foreground shadow-sm"
-              style={{
-                left: n._x,
-                top: n._y,
-                width: NODE_W,
-                height: NODE_H,
-                ...(c ? { backgroundColor: withAlpha(c, 0.18), borderColor: c } : {}),
-              }}
-              data-testid={`org-node-${n.id}`}
-            >
-              <span className="line-clamp-2">{n.name}</span>
-            </div>
-          );
-        })}
+            {nodes.map((n) => {
+              const c = colorByLevel[n.level_id];
+              return (
+                <div
+                  key={n.id}
+                  className="absolute flex items-center justify-center rounded-md border bg-card px-2 text-center text-xs font-medium text-card-foreground shadow-sm"
+                  style={{
+                    left: n._x,
+                    top: n._y,
+                    width: NODE_W,
+                    height: NODE_H,
+                    ...(c ? { backgroundColor: withAlpha(c, 0.18), borderColor: c } : {}),
+                  }}
+                  data-testid={`org-node-${n.id}`}
+                >
+                  <span className="line-clamp-2">{n.name}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
       </div>
     </div>
   );
-}
+});

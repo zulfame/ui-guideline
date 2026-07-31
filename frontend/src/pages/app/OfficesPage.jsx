@@ -553,9 +553,9 @@ export default function OfficesPage() {
   return (
     <div className="space-y-6" data-testid="offices-page">
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0">
+        <CardHeader className="flex flex-col gap-3 space-y-0 sm:flex-row sm:items-center sm:justify-between">
           <CardTitle className="text-base">Office List</CardTitle>
-          <Button size="sm" onClick={openCreate} data-testid="offices-add">
+          <Button size="sm" onClick={openCreate} data-testid="offices-add" className="w-full sm:w-auto">
             <Plus className="size-4" /> Add Office
           </Button>
         </CardHeader>
