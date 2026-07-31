@@ -225,7 +225,7 @@ function UserFormDialog({ open, onOpenChange, mode, initialValues, roles, office
             </DialogHeader>
 
             <DialogBody>
-              <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2">
                 <FormField
                   control={form.control}
                   name="name"
@@ -326,52 +326,54 @@ function UserFormDialog({ open, onOpenChange, mode, initialValues, roles, office
                     </FormItem>
                   )}
                 />
-                <FormField
-                  control={form.control}
-                  name="alias"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Alias</FormLabel>
-                      <FormControl>
-                        <Input placeholder="(Optional)" {...field} data-testid="user-field-alias" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="mso_code"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>MSO Code</FormLabel>
-                      <FormControl>
-                        <Input placeholder="(Optional)" {...field} data-testid="user-field-mso" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="collector_code"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Collector Code</FormLabel>
-                      <FormControl>
-                        <Input placeholder="(Optional)" {...field} data-testid="user-field-collector" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-3 sm:col-span-2">
+                  <FormField
+                    control={form.control}
+                    name="alias"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Alias</FormLabel>
+                        <FormControl>
+                          <Input placeholder="(Optional)" {...field} data-testid="user-field-alias" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="mso_code"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>MSO Code</FormLabel>
+                        <FormControl>
+                          <Input placeholder="(Optional)" {...field} data-testid="user-field-mso" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="collector_code"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Collector Code</FormLabel>
+                        <FormControl>
+                          <Input placeholder="(Optional)" {...field} data-testid="user-field-collector" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
               </div>
 
               <div className="mt-4 border-t pt-4">
                 <h4 className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                   Device &amp; Integration
                 </h4>
-                <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2">
                   <FormField
                     control={form.control}
                     name="device_identifier"
