@@ -191,6 +191,9 @@ class Role(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     name: str
     parent_id: Optional[str] = None
+    dotted_parent_id: Optional[str] = None
+    level: Optional[int] = None
+    order: int = 0
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
@@ -198,11 +201,17 @@ class Role(BaseModel):
 class RoleCreate(BaseModel):
     name: str = Field(..., min_length=1)
     parent_id: Optional[str] = None
+    dotted_parent_id: Optional[str] = None
+    level: Optional[int] = Field(None, ge=1)
+    order: int = 0
 
 
 class RoleUpdate(BaseModel):
     name: Optional[str] = Field(None, min_length=1)
     parent_id: Optional[str] = None
+    dotted_parent_id: Optional[str] = None
+    level: Optional[int] = Field(None, ge=1)
+    order: Optional[int] = None
 
 
 def _role_to_doc(role: Role) -> dict:
