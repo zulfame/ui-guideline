@@ -315,12 +315,12 @@ function RoleFormDialog({ open, onOpenChange, editing, roles, levels, onSaved })
                   </FormItem>
                 )}
               />
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 items-start gap-3">
                 <FormField
                   control={form.control}
                   name="parent_id"
                   render={({ field }) => (
-                    <FormItem className="flex flex-col">
+                    <FormItem>
                       <FormLabel>Direct superior</FormLabel>
                       <Combobox
                         options={parentComboOptions}
@@ -339,7 +339,7 @@ function RoleFormDialog({ open, onOpenChange, editing, roles, levels, onSaved })
                   control={form.control}
                   name="dotted_parent_id"
                   render={({ field }) => (
-                    <FormItem className="flex flex-col">
+                    <FormItem>
                       <FormLabel>Dotted-line superior</FormLabel>
                       <Combobox
                         options={dottedComboOptions}
@@ -355,12 +355,12 @@ function RoleFormDialog({ open, onOpenChange, editing, roles, levels, onSaved })
                   )}
                 />
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 items-start gap-3">
                 <FormField
                   control={form.control}
                   name="level_id"
                   render={({ field }) => (
-                    <FormItem className="flex flex-col">
+                    <FormItem>
                       <FormLabel>Level</FormLabel>
                       <Combobox
                         options={levelComboOptions}

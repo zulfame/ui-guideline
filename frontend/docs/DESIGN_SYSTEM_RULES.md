@@ -164,6 +164,12 @@ Combobox, Date Picker, Password Input. Composite =
 - [ ] **APP CRUD (R40):** halaman `pages/app/*` mengikuti pola wajib — Card+CardHeader(title+Add),
       toolbar, DataTable no-wrap, **form dialog pakai `<DialogBody>`**, **Delete destructive (merah)**,
       states via `EmptyState`, data via `lib/api.js`.
+- [ ] **FORM GRID (R41):** field form disusun rapi & sejajar — field utama (mis. Name) full-width,
+      field pendek terkait dikelompokkan dalam baris **`grid grid-cols-2 items-start gap-3`**.
+      **Pakai `<FormItem>` polos untuk SEMUA field** (Combobox sudah block-level & `w-full`);
+      **DILARANG mencampur `<FormItem className="flex flex-col">`** dengan `<FormItem>` di baris grid yang sama
+      (menyebabkan label/kontrol tidak sejajar). Label **ringkas & 1 baris** (tanpa suffix "(Optional)");
+      opsionalitas lewat **placeholder**.
 
 ---
 
@@ -251,5 +257,6 @@ Bagian ini hanya **penunjuk**; definisi lengkap & otoritatif ada di `DESIGN_SYST
 - **Testing Standard** (Visual/A11y/Interaction/Responsive — aturan saja) → **2C.22**.
 - **Performance Guideline** (Lazy/Memo/Virtualization/Bundle/Chart/Large Table) → **2C.23**.
 - **Application CRUD Page Pattern** (Card+DataTable, `DialogBody`, Delete destructive, states, `lib/api.js`) → **R40**; model backend & API → `ARCHITECTURE.md` §11.
+- **Form Field Grid Pattern** (field utama full-width; field pendek terkait di `grid grid-cols-2 items-start gap-3`; **`<FormItem>` polos konsisten** untuk semua field — dilarang campur `flex flex-col`; label ringkas 1 baris, opsionalitas via placeholder) → **R41**; dicek otomatis oleh `design-guard.sh` (#8/#9).
 
 > Setiap perubahan komponen/pattern **wajib** tunduk pada Versioning (2C.15) & tercatat di Changelog.

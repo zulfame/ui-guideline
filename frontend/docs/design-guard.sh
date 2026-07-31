@@ -61,6 +61,18 @@ report "gap-5 off-scale (pakai gap-4/gap-6) — 2B.4 / R39" \
 report "console.log/debug/info tersisa (bersihkan sebelum finish; console.error diizinkan) — logging hygiene" \
   "$(scan '\bconsole\.(log|debug|info)\s*\(')"
 
+# 8) Form field alignment: mixing FormItem layout modes misaligns grid rows.
+# Standard: use a plain <FormItem> for every field (Combobox is block-level & w-full).
+# Do NOT use `FormItem className="flex flex-col"` — it desyncs label/control height
+# against sibling <FormItem> fields in the same grid row (R41).
+report "FormItem 'flex flex-col' (pakai <FormItem> polos agar field grid sejajar) — R41" \
+  "$(scan 'FormItem className=\"[^\"]*flex flex-col')"
+
+# 9) Verbose '(Optional)/(Opsional)' inside FormLabel → keep labels concise & single-line;
+# convey optionality via placeholder so 2-col form rows stay aligned (R41).
+report "Label form verbose '(Optional)/(Opsional)' (pakai placeholder; label ringkas 1 baris) — R41" \
+  "$(scan 'FormLabel>[^<]*\((Optional|Opsional)\)')"
+
 echo ""
 if [ "$fail" -eq 0 ]; then
   echo "✓ design-guard: clean — tidak ada anti-pattern terdeteksi."
