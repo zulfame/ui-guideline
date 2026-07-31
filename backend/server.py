@@ -6,11 +6,12 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from pymongo import UpdateOne
 import os
 import logging
+import bcrypt
 from pathlib import Path
 from pydantic import BaseModel, Field, ConfigDict
 from typing import List, Optional
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 
 ROOT_DIR = Path(__file__).parent
@@ -43,22 +44,25 @@ async def _auto_seed_if_empty():
         await db.offices.count_documents({}),
         await db.roles.count_documents({}),
         await db.levels.count_documents({}),
+        await db.users.count_documents({}),
     ]
     if any(counts):
         logger.info("Auto-seed skipped: existing data present.")
         return
     from seed_data import build_documents  # local import: avoids CLI deps at module load
 
-    levels, roles, offices = build_documents()
+    levels, roles, offices, users = build_documents()
     if levels:
         await db.levels.insert_many(levels)
     if roles:
         await db.roles.insert_many(roles)
     if offices:
         await db.offices.insert_many(offices)
+    if users:
+        await db.users.insert_many(users)
     logger.info(
-        "Auto-seed: inserted %d levels, %d roles, %d offices (empty DB).",
-        len(levels), len(roles), len(offices),
+        "Auto-seed: inserted %d levels, %d roles, %d offices, %d users (empty DB).",
+        len(levels), len(roles), len(offices), len(users),
     )
 
 
@@ -75,6 +79,11 @@ async def lifespan(_app: FastAPI):
     await db.offices.create_index("created_at")  # supports the list sort
     await db.roles.create_index("name", unique=True)
     await db.levels.create_index("name", unique=True)
+    await db.users.create_index("created_at")
+    await db.users.create_index("email")
+    await db.users.create_index("role_id")
+    await db.users.create_index("office_id")
+    await db.users.create_index("deleted_at")
     logger.info("Startup complete: indexes ensured.")
     if AUTO_SEED:
         try:
@@ -557,6 +566,315 @@ async def delete_level(level_id: str):
         {"level_id": level_id},
         {"$set": {"level_id": None, "updated_at": now}},
     )
+    return {"success": True}
+
+
+# ---------------------------------------------------------------------------
+# Users (CMS) — with password policy (90-day expiry, no-reuse of last N)
+# ---------------------------------------------------------------------------
+PASSWORD_EXPIRY_DAYS = int(os.environ.get("PASSWORD_EXPIRY_DAYS", "90"))
+PASSWORD_HISTORY_LIMIT = int(os.environ.get("PASSWORD_HISTORY_LIMIT", "3"))
+DEFAULT_USER_PASSWORD = os.environ.get("DEFAULT_USER_PASSWORD", "bpr2026")
+PASSWORD_EXPIRY_WARN_DAYS = 14
+EMAIL_RE = r"^[^@\s]+@[^@\s]+\.[^@\s]+$"
+
+# Nullable + unique business fields (enforced at the application layer so
+# soft-deleted records can free their values and multiple NULLs are allowed).
+UNIQUE_USER_FIELDS = ["username", "phone", "email", "alias", "mso_code", "collector_code"]
+# Optional fields normalized "" -> None so blanks never collide on uniqueness.
+NULLABLE_USER_FIELDS = [
+    "username", "phone", "alias", "mso_code", "collector_code",
+    "device_identifier", "device_name", "device_os", "fcm_token",
+]
+
+
+def _hash_password(raw: str) -> str:
+    return bcrypt.hashpw(raw.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+
+
+def _verify_password(raw: str, hashed: str) -> bool:
+    try:
+        return bcrypt.checkpw(raw.encode("utf-8"), hashed.encode("utf-8"))
+    except Exception:  # pragma: no cover - defensive
+        return False
+
+
+def _normalize_optionals(data: dict) -> dict:
+    for f in NULLABLE_USER_FIELDS:
+        if f in data and isinstance(data[f], str) and data[f].strip() == "":
+            data[f] = None
+    return data
+
+
+def _password_status(doc: dict):
+    """Return (status, expired) — status in {active, expiring, expired}."""
+    exp = doc.get("password_expires_at")
+    now = datetime.now(timezone.utc)
+    if not exp:
+        return "active", False
+    exp_dt = datetime.fromisoformat(exp)
+    if now >= exp_dt:
+        return "expired", True
+    if exp_dt - now <= timedelta(days=PASSWORD_EXPIRY_WARN_DAYS):
+        return "expiring", False
+    return "active", False
+
+
+def _user_public(doc: dict, roles: dict = None, offices: dict = None) -> dict:
+    """Serialize a user WITHOUT secrets (password / password_history)."""
+    roles = roles or {}
+    offices = offices or {}
+    status, expired = _password_status(doc)
+    return {
+        "id": doc["id"],
+        "name": doc.get("name"),
+        "username": doc.get("username"),
+        "phone": doc.get("phone"),
+        "email": doc.get("email"),
+        "role_id": doc.get("role_id"),
+        "role_name": roles.get(doc.get("role_id")),
+        "office_id": doc.get("office_id"),
+        "office_name": offices.get(doc.get("office_id")),
+        "alias": doc.get("alias"),
+        "mso_code": doc.get("mso_code"),
+        "collector_code": doc.get("collector_code"),
+        "device_identifier": doc.get("device_identifier"),
+        "device_name": doc.get("device_name"),
+        "device_os": doc.get("device_os"),
+        "fcm_token": doc.get("fcm_token"),
+        "password_changed_at": doc.get("password_changed_at"),
+        "password_expires_at": doc.get("password_expires_at"),
+        "password_status": status,
+        "password_expired": expired,
+        "must_change_password": bool(doc.get("must_change_password")) or expired,
+        "created_at": doc.get("created_at"),
+        "updated_at": doc.get("updated_at"),
+    }
+
+
+async def _enrich_maps(docs: list):
+    role_ids = list({d["role_id"] for d in docs if d.get("role_id")})
+    office_ids = list({d["office_id"] for d in docs if d.get("office_id")})
+    rdocs = await db.roles.find({"id": {"$in": role_ids}}, {"_id": 0, "id": 1, "name": 1}).to_list(len(role_ids) or 1)
+    odocs = await db.offices.find({"id": {"$in": office_ids}}, {"_id": 0, "id": 1, "name": 1}).to_list(len(office_ids) or 1)
+    return {r["id"]: r["name"] for r in rdocs}, {o["id"]: o["name"] for o in odocs}
+
+
+async def _assert_user_unique(data: dict, exclude_id: Optional[str] = None):
+    """Enforce uniqueness among non-deleted users (skips NULL/empty values)."""
+    for field in UNIQUE_USER_FIELDS:
+        value = data.get(field)
+        if value is None or value == "":
+            continue
+        query = {field: value, "deleted_at": None}
+        if exclude_id:
+            query = {"$and": [{"id": {"$ne": exclude_id}}, query]}
+        if await db.users.find_one(query, {"_id": 0, "id": 1}):
+            raise HTTPException(status_code=409, detail=f"User {field} already exists")
+
+
+async def _validate_role_office(role_id: Optional[str], office_id: Optional[str]):
+    if role_id is not None:
+        if not await db.roles.find_one({"id": role_id}, {"_id": 0, "id": 1}):
+            raise HTTPException(status_code=400, detail="Role not found")
+    if office_id is not None:
+        if not await db.offices.find_one({"id": office_id}, {"_id": 0, "id": 1}):
+            raise HTTPException(status_code=400, detail="Office not found")
+
+
+class UserCreate(BaseModel):
+    name: str = Field(..., min_length=1)
+    email: str = Field(..., pattern=EMAIL_RE)
+    role_id: str = Field(..., min_length=1)
+    office_id: str = Field(..., min_length=1)
+    username: Optional[str] = None
+    phone: Optional[str] = None
+    alias: Optional[str] = None
+    mso_code: Optional[str] = None
+    collector_code: Optional[str] = None
+    device_identifier: Optional[str] = None
+    device_name: Optional[str] = None
+    device_os: Optional[str] = None
+    fcm_token: Optional[str] = None
+
+
+class UserUpdate(BaseModel):
+    name: Optional[str] = Field(None, min_length=1)
+    email: Optional[str] = Field(None, pattern=EMAIL_RE)
+    role_id: Optional[str] = Field(None, min_length=1)
+    office_id: Optional[str] = Field(None, min_length=1)
+    username: Optional[str] = None
+    phone: Optional[str] = None
+    alias: Optional[str] = None
+    mso_code: Optional[str] = None
+    collector_code: Optional[str] = None
+    device_identifier: Optional[str] = None
+    device_name: Optional[str] = None
+    device_os: Optional[str] = None
+    fcm_token: Optional[str] = None
+
+
+class ChangePasswordRequest(BaseModel):
+    new_password: str = Field(..., min_length=6, max_length=128)
+
+
+class ResetPasswordRequest(BaseModel):
+    new_password: Optional[str] = Field(None, min_length=6, max_length=128)
+
+
+@api_router.post("/users", status_code=201, tags=["Users"], summary="Create user")
+async def create_user(payload: UserCreate):
+    """Create a user with the system default password (must be changed on first login)."""
+    data = _normalize_optionals(payload.model_dump())
+    await _assert_user_unique(data)
+    await _validate_role_office(data["role_id"], data["office_id"])
+    now = datetime.now(timezone.utc)
+    now_iso = now.isoformat()
+    pw_hash = _hash_password(DEFAULT_USER_PASSWORD)
+    doc = {
+        "id": str(uuid.uuid4()),
+        **data,
+        "password": pw_hash,
+        "password_history": [pw_hash],
+        "password_changed_at": now_iso,
+        "password_expires_at": (now + timedelta(days=PASSWORD_EXPIRY_DAYS)).isoformat(),
+        "must_change_password": True,
+        "deleted_at": None,
+        "created_at": now_iso,
+        "updated_at": now_iso,
+    }
+    await db.users.insert_one(doc)
+    roles, offices = await _enrich_maps([doc])
+    return _user_public(doc, roles, offices)
+
+
+@api_router.get("/users", tags=["Users"], summary="List users (paginated, excludes deleted)")
+async def list_users(
+    response: Response,
+    skip: int = Query(0, ge=0),
+    limit: int = Query(DEFAULT_PAGE_SIZE, ge=1, le=MAX_PAGE_SIZE),
+):
+    """List active (non-deleted) users, newest first, enriched with role/office names."""
+    q = {"deleted_at": None}
+    total = await db.users.count_documents(q)
+    response.headers["X-Total-Count"] = str(total)
+    docs = (
+        await db.users.find(q, {"_id": 0}).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
+    )
+    if not docs:
+        return []
+    roles, offices = await _enrich_maps(docs)
+    return [_user_public(d, roles, offices) for d in docs]
+
+
+@api_router.post("/users/bulk-delete", tags=["Users"], summary="Bulk soft-delete users")
+async def bulk_delete_users(payload: BulkDeleteRequest):
+    """Soft-delete multiple users by id."""
+    now = datetime.now(timezone.utc).isoformat()
+    result = await db.users.update_many(
+        {"id": {"$in": payload.ids}, "deleted_at": None},
+        {"$set": {"deleted_at": now, "updated_at": now}},
+    )
+    return {"success": True, "deleted": result.modified_count}
+
+
+@api_router.get("/users/{user_id}", tags=["Users"], summary="Get user")
+async def get_user(user_id: str):
+    """Fetch a single active user by id (404 if not found or deleted)."""
+    doc = await db.users.find_one({"id": user_id, "deleted_at": None}, {"_id": 0})
+    if not doc:
+        raise HTTPException(status_code=404, detail="User not found")
+    roles, offices = await _enrich_maps([doc])
+    return _user_public(doc, roles, offices)
+
+
+@api_router.put("/users/{user_id}", tags=["Users"], summary="Update user (non-password fields)")
+async def update_user(user_id: str, payload: UserUpdate):
+    """Update user profile fields. Returns 404 if missing, 409 on unique conflict."""
+    doc = await db.users.find_one({"id": user_id, "deleted_at": None}, {"_id": 0})
+    if not doc:
+        raise HTTPException(status_code=404, detail="User not found")
+    updates = _normalize_optionals(payload.model_dump(exclude_unset=True))
+    if updates:
+        await _assert_user_unique({**doc, **updates}, exclude_id=user_id)
+        await _validate_role_office(updates.get("role_id"), updates.get("office_id"))
+        updates["updated_at"] = datetime.now(timezone.utc).isoformat()
+        await db.users.update_one({"id": user_id}, {"$set": updates})
+        doc.update(updates)
+    roles, offices = await _enrich_maps([doc])
+    return _user_public(doc, roles, offices)
+
+
+@api_router.post("/users/{user_id}/change-password", tags=["Users"], summary="Change password")
+async def change_password(user_id: str, payload: ChangePasswordRequest):
+    """Change a user's password. Rejects reuse of the last N passwords and resets expiry."""
+    doc = await db.users.find_one({"id": user_id, "deleted_at": None}, {"_id": 0})
+    if not doc:
+        raise HTTPException(status_code=404, detail="User not found")
+    history = doc.get("password_history") or []
+    recent = history if doc.get("password") in history else [doc.get("password"), *history]
+    recent = [h for h in recent if h]
+    for h in recent[:PASSWORD_HISTORY_LIMIT]:
+        if _verify_password(payload.new_password, h):
+            raise HTTPException(
+                status_code=400,
+                detail=f"New password must differ from the last {PASSWORD_HISTORY_LIMIT} passwords",
+            )
+    new_hash = _hash_password(payload.new_password)
+    new_history = [new_hash, *recent][:PASSWORD_HISTORY_LIMIT]
+    now = datetime.now(timezone.utc)
+    now_iso = now.isoformat()
+    await db.users.update_one(
+        {"id": user_id},
+        {"$set": {
+            "password": new_hash,
+            "password_history": new_history,
+            "password_changed_at": now_iso,
+            "password_expires_at": (now + timedelta(days=PASSWORD_EXPIRY_DAYS)).isoformat(),
+            "must_change_password": False,
+            "updated_at": now_iso,
+        }},
+    )
+    return {"success": True}
+
+
+@api_router.post("/users/{user_id}/reset-password", tags=["Users"], summary="Admin reset password")
+async def reset_password(user_id: str, payload: ResetPasswordRequest):
+    """Admin reset to the system default (or a provided value); forces change on next login."""
+    doc = await db.users.find_one({"id": user_id, "deleted_at": None}, {"_id": 0})
+    if not doc:
+        raise HTTPException(status_code=404, detail="User not found")
+    raw = payload.new_password or DEFAULT_USER_PASSWORD
+    new_hash = _hash_password(raw)
+    history = doc.get("password_history") or []
+    recent = history if doc.get("password") in history else [doc.get("password"), *history]
+    new_history = [new_hash, *[h for h in recent if h]][:PASSWORD_HISTORY_LIMIT]
+    now = datetime.now(timezone.utc)
+    now_iso = now.isoformat()
+    await db.users.update_one(
+        {"id": user_id},
+        {"$set": {
+            "password": new_hash,
+            "password_history": new_history,
+            "password_changed_at": now_iso,
+            "password_expires_at": (now + timedelta(days=PASSWORD_EXPIRY_DAYS)).isoformat(),
+            "must_change_password": True,
+            "updated_at": now_iso,
+        }},
+    )
+    return {"success": True, "must_change_password": True}
+
+
+@api_router.delete("/users/{user_id}", tags=["Users"], summary="Soft-delete user")
+async def delete_user(user_id: str):
+    """Soft-delete a user (sets deleted_at); 404 if not found or already deleted."""
+    now = datetime.now(timezone.utc).isoformat()
+    result = await db.users.update_one(
+        {"id": user_id, "deleted_at": None},
+        {"$set": {"deleted_at": now, "updated_at": now}},
+    )
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="User not found")
     return {"success": True}
 
 

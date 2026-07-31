@@ -12,9 +12,10 @@ Notes:
 """
 import os
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
+import bcrypt
 from dotenv import load_dotenv
 
 ROOT_DIR = Path(__file__).parent
@@ -63,11 +64,21 @@ OFFICES = [
 ]
 
 
+# --- Users — (name, email, username, role_name, office_code, alias, mso, collector) ---
+DEFAULT_USER_PASSWORD = os.environ.get("DEFAULT_USER_PASSWORD", "bpr2026")
+PASSWORD_EXPIRY_DAYS = int(os.environ.get("PASSWORD_EXPIRY_DAYS", "90"))
+USERS = [
+    ("Andi Wijaya", "andi@bpr.co.id", "andi", "Chief Executive Officer", "HQ", "AW", "MSO001", "COL001"),
+    ("Budi Santoso", "budi@bpr.co.id", "budi", "Operations Lead", "BR-JKT", "BS", "MSO002", "COL002"),
+    ("Citra Lestari", "citra@bpr.co.id", "citra", "Accountant", "BR-BDG", "CL", "MSO003", "COL003"),
+]
+
+
 def build_documents():
     """Build ready-to-insert docs (with UUID ids + ISO timestamps).
 
-    Returns (level_docs, role_docs, office_docs). Parent/level references are
-    resolved by pre-generating role ids so the hierarchy is valid on insert.
+    Returns (level_docs, role_docs, office_docs, user_docs). Parent/level/role/
+    office references are resolved by pre-generating ids so relations are valid.
     """
     ts = _now_iso()
 
@@ -92,10 +103,43 @@ def build_documents():
             "updated_at": ts,
         })
 
-    office_docs = [
-        {"id": str(uuid.uuid4()), **o, "created_at": ts, "updated_at": ts} for o in OFFICES
-    ]
-    return level_docs, role_docs, office_docs
+    office_id = {}
+    office_docs = []
+    for o in OFFICES:
+        oid = str(uuid.uuid4())
+        office_id[o["code"]] = oid
+        office_docs.append({"id": oid, **o, "created_at": ts, "updated_at": ts})
+
+    pw_hash = bcrypt.hashpw(DEFAULT_USER_PASSWORD.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+    expires = (datetime.now(timezone.utc) + timedelta(days=PASSWORD_EXPIRY_DAYS)).isoformat()
+    user_docs = []
+    for name, email, username, role_name, office_code, alias, mso, collector in USERS:
+        user_docs.append({
+            "id": str(uuid.uuid4()),
+            "name": name,
+            "email": email,
+            "username": username,
+            "phone": None,
+            "role_id": role_id.get(role_name),
+            "office_id": office_id.get(office_code),
+            "alias": alias,
+            "mso_code": mso,
+            "collector_code": collector,
+            "device_identifier": None,
+            "device_name": None,
+            "device_os": None,
+            "fcm_token": None,
+            "password": pw_hash,
+            "password_history": [pw_hash],
+            "password_changed_at": ts,
+            "password_expires_at": expires,
+            "must_change_password": True,
+            "deleted_at": None,
+            "created_at": ts,
+            "updated_at": ts,
+        })
+
+    return level_docs, role_docs, office_docs, user_docs
 
 
 def _cli_seed():
@@ -104,14 +148,16 @@ def _cli_seed():
 
     client = MongoClient(os.environ["MONGO_URL"])
     db = client[os.environ["DB_NAME"]]
-    levels, roles, offices = build_documents()
+    levels, roles, offices, users = build_documents()
+    db.users.delete_many({})
     db.roles.delete_many({})
     db.levels.delete_many({})
     db.offices.delete_many({})
     db.levels.insert_many(levels)
     db.roles.insert_many(roles)
     db.offices.insert_many(offices)
-    print(f"Seeded: {len(levels)} levels, {len(roles)} roles, {len(offices)} offices.")
+    db.users.insert_many(users)
+    print(f"Seeded: {len(levels)} levels, {len(roles)} roles, {len(offices)} offices, {len(users)} users.")
     client.close()
 
 
