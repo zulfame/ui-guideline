@@ -10,6 +10,7 @@ import {
   flexRender,
 } from "@tanstack/react-table";
 import {
+  ChevronLeft,
   ChevronRight,
   MoreHorizontal,
   Pencil,
@@ -61,6 +62,13 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Combobox } from "@/components/composite/Combobox";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -418,10 +426,13 @@ export default function RolesPage() {
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
+    initialState: { pagination: { pageSize: 10 } },
   });
 
   const selectedCount = table.getSelectedRowModel().rows.length;
   const colSpan = columns.length;
+  const { pageIndex, pageSize } = table.getState().pagination;
+  const totalRows = table.getFilteredRowModel().rows.length;
 
   return (
     <div className="space-y-6" data-testid="roles-page">
@@ -543,34 +554,53 @@ export default function RolesPage() {
           </div>
 
           {status === "ready" && roles.length > 0 && (
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-              <p className="text-sm text-muted-foreground" data-testid="roles-count">
-                {selectedCount > 0 ? `${selectedCount} selected · ` : ""}
-                {table.getFilteredRowModel().rows.length} of {roles.length} roles
-              </p>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => table.previousPage()}
-                  disabled={!table.getCanPreviousPage()}
-                  data-testid="roles-prev-page"
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <Select
+                  value={String(pageSize)}
+                  onValueChange={(v) => table.setPageSize(Number(v))}
                 >
-                  Previous
-                </Button>
-                <span className="text-sm text-muted-foreground">
-                  Page {table.getState().pagination.pageIndex + 1} of{" "}
-                  {table.getPageCount() || 1}
+                  <SelectTrigger className="h-8 w-[70px]" data-testid="roles-page-size">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {[10, 20, 50].map((n) => (
+                      <SelectItem key={n} value={String(n)}>
+                        {n}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <span>of {totalRows} rows</span>
+              </div>
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                <span className="text-xs text-muted-foreground" data-testid="roles-count">
+                  Page {pageIndex + 1} of {Math.max(1, table.getPageCount())}
                 </span>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => table.nextPage()}
-                  disabled={!table.getCanNextPage()}
-                  data-testid="roles-next-page"
-                >
-                  Next
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="size-8"
+                    onClick={() => table.previousPage()}
+                    disabled={!table.getCanPreviousPage()}
+                    aria-label="Previous page"
+                    data-testid="roles-prev-page"
+                  >
+                    <ChevronLeft className="size-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="size-8"
+                    onClick={() => table.nextPage()}
+                    disabled={!table.getCanNextPage()}
+                    aria-label="Next page"
+                    data-testid="roles-next-page"
+                  >
+                    <ChevronRight className="size-4" />
+                  </Button>
+                </div>
               </div>
             </div>
           )}

@@ -676,7 +676,6 @@ export default function OfficesPage() {
       {status === "ready" && offices.length > 0 && (
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <span>Rows per page</span>
             <Select
               value={String(pageSize)}
               onValueChange={(v) => table.setPageSize(Number(v))}
