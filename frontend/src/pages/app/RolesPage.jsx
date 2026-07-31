@@ -315,7 +315,7 @@ function RoleFormDialog({ open, onOpenChange, editing, roles, levels, onSaved })
                   </FormItem>
                 )}
               />
-              <div className="grid grid-cols-2 items-start gap-3">
+              <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2">
                 <FormField
                   control={form.control}
                   name="parent_id"
@@ -355,7 +355,7 @@ function RoleFormDialog({ open, onOpenChange, editing, roles, levels, onSaved })
                   )}
                 />
               </div>
-              <div className="grid grid-cols-2 items-start gap-3">
+              <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2">
                 <FormField
                   control={form.control}
                   name="level_id"
