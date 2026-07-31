@@ -88,6 +88,9 @@ async def lifespan(_app: FastAPI):
     await db.users.create_index("role_id")
     await db.users.create_index("office_id")
     await db.users.create_index("deleted_at")
+    await db.audit_logs.create_index([("created_at", -1)])
+    await db.audit_logs.create_index("entity_type")
+    await db.audit_logs.create_index("action")
     logger.info("Startup complete: indexes ensured.")
     if AUTO_SEED:
         try:
@@ -135,6 +138,128 @@ async def health():
 # ---------------------------------------------------------------------------
 class BulkDeleteRequest(BaseModel):
     ids: List[str]
+
+
+# ---------------------------------------------------------------------------
+# Audit Log (Guideline: Monitoring / Audit) — records important data changes.
+# Schema is request/response-shaped so it doubles as an API activity log later.
+# ---------------------------------------------------------------------------
+AUDIT_ACTOR_SYSTEM = "System"  # placeholder until real auth is wired
+_REDACT_KEYS = {"password", "new_password", "password_history", "confirm"}
+
+
+def _redact(obj):
+    """Recursively redact secret-bearing keys so passwords never reach the log."""
+    if isinstance(obj, dict):
+        return {k: ("«redacted»" if k in _REDACT_KEYS else _redact(v)) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [_redact(v) for v in obj]
+    return obj
+
+
+def _diff_changes(before: dict, updates: dict) -> list:
+    """Return [{field, from, to}] for fields whose value actually changed."""
+    changes = []
+    for k, new_v in updates.items():
+        if k in _REDACT_KEYS or k == "updated_at":
+            continue
+        old_v = before.get(k)
+        if old_v != new_v:
+            changes.append({"field": k, "from": old_v, "to": new_v})
+    return changes
+
+
+async def log_audit(
+    action: str,
+    entity_type: str,
+    *,
+    entity_id: Optional[str] = None,
+    entity_label: Optional[str] = None,
+    summary: str = "",
+    method: Optional[str] = None,
+    path: Optional[str] = None,
+    status_code: Optional[int] = None,
+    request: Optional[dict] = None,
+    response: Optional[dict] = None,
+    changes: Optional[list] = None,
+    metadata: Optional[dict] = None,
+    actor: str = AUDIT_ACTOR_SYSTEM,
+):
+    """Insert one audit entry. Never raises — logging must not break the flow."""
+    try:
+        doc = {
+            "id": str(uuid.uuid4()),
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "actor": actor,
+            "action": action,
+            "entity_type": entity_type,
+            "entity_id": entity_id,
+            "entity_label": entity_label,
+            "summary": summary,
+            "method": method,
+            "path": path,
+            "status_code": status_code,
+            "request": _redact(request) if request is not None else None,
+            "response": _redact(response) if response is not None else None,
+            "changes": changes or [],
+            "metadata": metadata or {},
+        }
+        await db.audit_logs.insert_one(doc)
+    except Exception as exc:  # pragma: no cover - non-fatal
+        logger.error("Audit log write failed (non-fatal): %s", exc)
+
+
+AUDIT_ENTITY_TYPES = ["user", "role", "office", "level"]
+AUDIT_ACTIONS = [
+    "create", "update", "delete", "bulk_delete",
+    "import", "reassign", "change_password", "reset_password",
+]
+
+
+@api_router.get("/audit-logs", tags=["Audit"], summary="List audit logs (paginated, filterable)")
+async def list_audit_logs(
+    response: Response,
+    skip: int = Query(0, ge=0),
+    limit: int = Query(DEFAULT_PAGE_SIZE, ge=1, le=MAX_PAGE_SIZE),
+    entity_type: Optional[str] = Query(None),
+    action: Optional[str] = Query(None),
+    q: Optional[str] = Query(None, description="Text search on summary / entity label / actor"),
+    date_from: Optional[str] = Query(None, description="ISO date/datetime lower bound (inclusive)"),
+    date_to: Optional[str] = Query(None, description="ISO date/datetime upper bound (inclusive)"),
+):
+    """Newest-first audit entries, bounded by `limit`; total count in `X-Total-Count`."""
+    query = {}
+    if entity_type:
+        query["entity_type"] = entity_type
+    if action:
+        query["action"] = action
+    if q:
+        rx = {"$regex": re.escape(q), "$options": "i"}
+        query["$or"] = [{"summary": rx}, {"entity_label": rx}, {"actor": rx}]
+    if date_from or date_to:
+        rng = {}
+        if date_from:
+            rng["$gte"] = date_from
+        if date_to:
+            # make an all-day upper bound inclusive when only a date is given
+            rng["$lte"] = date_to if len(date_to) > 10 else date_to + "T23:59:59.999999+00:00"
+        query["created_at"] = rng
+    total = await db.audit_logs.count_documents(query)
+    response.headers["X-Total-Count"] = str(total)
+    docs = (
+        await db.audit_logs.find(query, {"_id": 0})
+        .sort("created_at", -1)
+        .skip(skip)
+        .limit(limit)
+        .to_list(limit)
+    )
+    return docs
+
+
+@api_router.get("/audit-logs/meta", tags=["Audit"], summary="Audit filter options")
+async def audit_meta():
+    """Static filter options for the Audit Log UI."""
+    return {"entity_types": AUDIT_ENTITY_TYPES, "actions": AUDIT_ACTIONS}
 
 
 # ---------------------------------------------------------------------------
@@ -202,6 +327,13 @@ async def create_office(payload: OfficeCreate):
     await _assert_unique(payload.code, payload.name)
     office = Office(**payload.model_dump())
     await db.offices.insert_one(_office_to_doc(office))
+    await log_audit(
+        "create", "office", entity_id=office.id,
+        entity_label=f"{office.code} — {office.name}",
+        summary=f"Created office {office.code} — {office.name}",
+        method="POST", path="/api/offices", status_code=201,
+        request=payload.model_dump(), response={"id": office.id},
+    )
     return office
 
 
@@ -243,6 +375,13 @@ async def bulk_delete_offices(payload: BulkDeleteRequest):
             ),
         )
     result = await db.offices.delete_many({"id": {"$in": payload.ids}})
+    await log_audit(
+        "bulk_delete", "office",
+        summary=f"Bulk-deleted {result.deleted_count} office(s)",
+        method="POST", path="/api/offices/bulk-delete", status_code=200,
+        request={"ids": payload.ids}, response={"deleted": result.deleted_count},
+        metadata={"count": result.deleted_count},
+    )
     return {"success": True, "deleted": result.deleted_count}
 
 
@@ -267,8 +406,17 @@ async def update_office(office_id: str, payload: OfficeUpdate):
     if "code" in updates or "name" in updates:
         await _assert_unique(new_code, new_name, exclude_id=office_id)
     updates["updated_at"] = datetime.now(timezone.utc).isoformat()
+    changes = _diff_changes(doc, updates)
     await db.offices.update_one({"id": office_id}, {"$set": updates})
     doc.update(updates)
+    await log_audit(
+        "update", "office", entity_id=office_id,
+        entity_label=f"{doc['code']} — {doc['name']}",
+        summary=f"Updated office {doc['code']} — {doc['name']}",
+        method="PUT", path=f"/api/offices/{office_id}", status_code=200,
+        request=payload.model_dump(exclude_unset=True), response={"id": office_id},
+        changes=changes,
+    )
     return Office(**doc)
 
 
@@ -283,6 +431,7 @@ async def delete_office(
     still assigned to active users — unless `reassign_to` is provided, in which
     case those users are moved to the target office first.
     """
+    office_doc = await db.offices.find_one({"id": office_id}, {"_id": 0, "code": 1, "name": 1})
     linked = await db.users.count_documents({"office_id": office_id, "deleted_at": None})
     if linked:
         if not reassign_to:
@@ -305,7 +454,20 @@ async def delete_office(
     result = await db.offices.delete_one({"id": office_id})
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Office not found")
-    return {"success": True, "reassigned": linked if reassign_to else 0}
+    reassigned = linked if reassign_to else 0
+    label = f"{office_doc['code']} — {office_doc['name']}" if office_doc else office_id
+    await log_audit(
+        "reassign" if reassigned else "delete", "office", entity_id=office_id,
+        entity_label=label,
+        summary=(
+            f"Reassigned {reassigned} user(s) then deleted office {label}"
+            if reassigned else f"Deleted office {label}"
+        ),
+        method="DELETE", path=f"/api/offices/{office_id}", status_code=200,
+        request={"reassign_to": reassign_to}, response={"reassigned": reassigned},
+        metadata={"linked_users": linked, "reassign_to": reassign_to},
+    )
+    return {"success": True, "reassigned": reassigned}
 
 
 # ---------------------------------------------------------------------------
@@ -441,6 +603,12 @@ async def create_role(payload: RoleCreate):
     await _validate_level(payload.level_id)
     role = Role(**payload.model_dump())
     await db.roles.insert_one(_role_to_doc(role))
+    await log_audit(
+        "create", "role", entity_id=role.id, entity_label=role.name,
+        summary=f"Created role {role.name}",
+        method="POST", path="/api/roles", status_code=201,
+        request=payload.model_dump(), response={"id": role.id},
+    )
     return role
 
 
@@ -498,6 +666,13 @@ async def bulk_delete_roles(payload: BulkDeleteRequest):
         ops.append(UpdateOne({"id": rid}, {"$set": {"parent_id": p, "updated_at": now}}))
     if ops:
         await db.roles.bulk_write(ops, ordered=False)
+    await log_audit(
+        "bulk_delete", "role",
+        summary=f"Bulk-deleted {result.deleted_count} role(s)",
+        method="POST", path="/api/roles/bulk-delete", status_code=200,
+        request={"ids": payload.ids}, response={"deleted": result.deleted_count},
+        metadata={"count": result.deleted_count, "children_promoted": len(ops)},
+    )
     return {"success": True, "deleted": result.deleted_count}
 
 
@@ -526,8 +701,16 @@ async def update_role(role_id: str, payload: RoleUpdate):
     if "level_id" in updates:
         await _validate_level(updates["level_id"])
     updates["updated_at"] = datetime.now(timezone.utc).isoformat()
+    changes = _diff_changes(doc, updates)
     await db.roles.update_one({"id": role_id}, {"$set": updates})
     doc.update(updates)
+    await log_audit(
+        "update", "role", entity_id=role_id, entity_label=doc["name"],
+        summary=f"Updated role {doc['name']}",
+        method="PUT", path=f"/api/roles/{role_id}", status_code=200,
+        request=payload.model_dump(exclude_unset=True), response={"id": role_id},
+        changes=changes,
+    )
     return Role(**doc)
 
 
@@ -575,6 +758,18 @@ async def delete_role(
         {"dotted_parent_id": role_id},
         {"$set": {"dotted_parent_id": None, "updated_at": now}},
     )
+    reassigned = linked if reassign_to else 0
+    await log_audit(
+        "reassign" if reassigned else "delete", "role", entity_id=role_id,
+        entity_label=doc.get("name"),
+        summary=(
+            f"Reassigned {reassigned} user(s) then deleted role {doc.get('name')}"
+            if reassigned else f"Deleted role {doc.get('name')}"
+        ),
+        method="DELETE", path=f"/api/roles/{role_id}", status_code=200,
+        request={"reassign_to": reassign_to}, response={"reassigned": reassigned},
+        metadata={"linked_users": linked, "reassign_to": reassign_to},
+    )
     return {"success": True}
 
 
@@ -602,6 +797,12 @@ async def create_level(payload: LevelCreate):
     await _assert_level_name_unique(payload.name)
     level = Level(**payload.model_dump())
     await db.levels.insert_one(_level_to_doc(level))
+    await log_audit(
+        "create", "level", entity_id=level.id, entity_label=level.name,
+        summary=f"Created level {level.name}",
+        method="POST", path="/api/levels", status_code=201,
+        request=payload.model_dump(), response={"id": level.id},
+    )
     return level
 
 
@@ -634,14 +835,23 @@ async def update_level(level_id: str, payload: LevelUpdate):
     if "name" in updates:
         await _assert_level_name_unique(updates["name"], exclude_id=level_id)
     updates["updated_at"] = datetime.now(timezone.utc).isoformat()
+    changes = _diff_changes(doc, updates)
     await db.levels.update_one({"id": level_id}, {"$set": updates})
     doc.update(updates)
+    await log_audit(
+        "update", "level", entity_id=level_id, entity_label=doc["name"],
+        summary=f"Updated level {doc['name']}",
+        method="PUT", path=f"/api/levels/{level_id}", status_code=200,
+        request=payload.model_dump(exclude_unset=True), response={"id": level_id},
+        changes=changes,
+    )
     return Level(**doc)
 
 
 @api_router.delete("/levels/{level_id}", tags=["Levels"], summary="Delete level")
 async def delete_level(level_id: str):
     """Delete a level and detach it from any roles referencing it."""
+    doc = await db.levels.find_one({"id": level_id}, {"_id": 0, "name": 1})
     result = await db.levels.delete_one({"id": level_id})
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Level not found")
@@ -649,6 +859,13 @@ async def delete_level(level_id: str):
     await db.roles.update_many(
         {"level_id": level_id},
         {"$set": {"level_id": None, "updated_at": now}},
+    )
+    await log_audit(
+        "delete", "level", entity_id=level_id,
+        entity_label=doc.get("name") if doc else level_id,
+        summary=f"Deleted level {doc.get('name') if doc else level_id}",
+        method="DELETE", path=f"/api/levels/{level_id}", status_code=200,
+        response={"success": True},
     )
     return {"success": True}
 
@@ -829,6 +1046,13 @@ async def create_user(payload: UserCreate):
     }
     await db.users.insert_one(doc)
     roles, offices = await _enrich_maps([doc])
+    await log_audit(
+        "create", "user", entity_id=doc["id"],
+        entity_label=f"{doc['name']} <{doc['email']}>",
+        summary=f"Created user {doc['name']} <{doc['email']}>",
+        method="POST", path="/api/users", status_code=201,
+        request=data, response={"id": doc["id"]},
+    )
     return _user_public(doc, roles, offices)
 
 
@@ -859,6 +1083,13 @@ async def bulk_delete_users(payload: BulkDeleteRequest):
         {"id": {"$in": payload.ids}, "deleted_at": None},
         {"$set": {"deleted_at": now, "updated_at": now}},
     )
+    await log_audit(
+        "bulk_delete", "user",
+        summary=f"Bulk soft-deleted {result.modified_count} user(s)",
+        method="POST", path="/api/users/bulk-delete", status_code=200,
+        request={"ids": payload.ids}, response={"deleted": result.modified_count},
+        metadata={"count": result.modified_count},
+    )
     return {"success": True, "deleted": result.modified_count}
 
 
@@ -883,8 +1114,17 @@ async def update_user(user_id: str, payload: UserUpdate):
         await _assert_user_unique({**doc, **updates}, exclude_id=user_id)
         await _validate_role_office(updates.get("role_id"), updates.get("office_id"))
         updates["updated_at"] = datetime.now(timezone.utc).isoformat()
+        changes = _diff_changes(doc, updates)
         await db.users.update_one({"id": user_id}, {"$set": updates})
         doc.update(updates)
+        await log_audit(
+            "update", "user", entity_id=user_id,
+            entity_label=f"{doc['name']} <{doc['email']}>",
+            summary=f"Updated user {doc['name']} <{doc['email']}>",
+            method="PUT", path=f"/api/users/{user_id}", status_code=200,
+            request=payload.model_dump(exclude_unset=True), response={"id": user_id},
+            changes=changes,
+        )
     roles, offices = await _enrich_maps([doc])
     return _user_public(doc, roles, offices)
 
@@ -919,6 +1159,13 @@ async def change_password(user_id: str, payload: ChangePasswordRequest):
             "updated_at": now_iso,
         }},
     )
+    await log_audit(
+        "change_password", "user", entity_id=user_id,
+        entity_label=f"{doc['name']} <{doc['email']}>",
+        summary=f"Changed password for {doc['name']} <{doc['email']}>",
+        method="POST", path=f"/api/users/{user_id}/change-password", status_code=200,
+        request={"new_password": "«redacted»"}, response={"success": True},
+    )
     return {"success": True}
 
 
@@ -946,12 +1193,22 @@ async def reset_password(user_id: str, payload: ResetPasswordRequest):
             "updated_at": now_iso,
         }},
     )
+    await log_audit(
+        "reset_password", "user", entity_id=user_id,
+        entity_label=f"{doc['name']} <{doc['email']}>",
+        summary=f"Admin reset password for {doc['name']} <{doc['email']}>",
+        method="POST", path=f"/api/users/{user_id}/reset-password", status_code=200,
+        request={"new_password": "«redacted»"},
+        response={"must_change_password": True},
+        metadata={"to_default": payload.new_password is None},
+    )
     return {"success": True, "must_change_password": True}
 
 
 @api_router.delete("/users/{user_id}", tags=["Users"], summary="Soft-delete user")
 async def delete_user(user_id: str):
     """Soft-delete a user (sets deleted_at); 404 if not found or already deleted."""
+    doc = await db.users.find_one({"id": user_id, "deleted_at": None}, {"_id": 0, "name": 1, "email": 1})
     now = datetime.now(timezone.utc).isoformat()
     result = await db.users.update_one(
         {"id": user_id, "deleted_at": None},
@@ -959,6 +1216,13 @@ async def delete_user(user_id: str):
     )
     if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="User not found")
+    label = f"{doc['name']} <{doc['email']}>" if doc else user_id
+    await log_audit(
+        "delete", "user", entity_id=user_id, entity_label=label,
+        summary=f"Soft-deleted user {label}",
+        method="DELETE", path=f"/api/users/{user_id}", status_code=200,
+        response={"success": True},
+    )
     return {"success": True}
 
 
@@ -1115,6 +1379,14 @@ async def import_offices(file: UploadFile = File(...)):
     if errors:
         _abort_import(errors)
     created, updated = await _apply_offices(items)
+    await log_audit(
+        "import", "office",
+        summary=f"Imported offices: {created} created, {updated} updated",
+        method="POST", path="/api/offices/import", status_code=200,
+        request={"filename": file.filename, "rows": len(items)},
+        response={"created": created, "updated": updated, "total": len(items)},
+        metadata={"created": created, "updated": updated, "total": len(items)},
+    )
     return {"success": True, "created": created, "updated": updated, "total": len(items)}
 
 
@@ -1225,6 +1497,14 @@ async def import_roles(file: UploadFile = File(...)):
     if errors:
         _abort_import(errors)
     created, updated = await _apply_roles(items)
+    await log_audit(
+        "import", "role",
+        summary=f"Imported roles: {created} created, {updated} updated",
+        method="POST", path="/api/roles/import", status_code=200,
+        request={"filename": file.filename, "rows": len(items)},
+        response={"created": created, "updated": updated, "total": len(items)},
+        metadata={"created": created, "updated": updated, "total": len(items)},
+    )
     return {"success": True, "created": created, "updated": updated, "total": len(items)}
 
 
@@ -1374,6 +1654,14 @@ async def import_users(file: UploadFile = File(...)):
     if errors:
         _abort_import(errors)
     created, updated = await _apply_users(items)
+    await log_audit(
+        "import", "user",
+        summary=f"Imported users: {created} created, {updated} updated",
+        method="POST", path="/api/users/import", status_code=200,
+        request={"filename": file.filename, "rows": len(items)},
+        response={"created": created, "updated": updated, "total": len(items)},
+        metadata={"created": created, "updated": updated, "total": len(items)},
+    )
     return {"success": True, "created": created, "updated": updated, "total": len(items)}
 
 
