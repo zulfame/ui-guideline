@@ -16,7 +16,7 @@ import { EmptyState } from "@/components/composite/EmptyState";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -186,35 +186,37 @@ export default function DatabasePage() {
     <div className="space-y-6" data-testid="database-page">
       {/* Row 1: Backup + Restore */}
       <div className="grid gap-4 md:grid-cols-2">
-        <Card data-testid="database-backup-card">
+        <Card data-testid="database-backup-card" className="flex flex-col">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <DatabaseBackup className="size-4" /> Backup
             </CardTitle>
-            <CardDescription>
+          </CardHeader>
+          <CardContent className="flex-1">
+            <p className="text-sm text-muted-foreground">
               Create a full snapshot of the entire database. The file is stored on the server and
               downloaded to your device.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
+            </p>
+          </CardContent>
+          <CardFooter className="border-t pt-4">
             <Button onClick={createBackup} disabled={backingUp} data-testid="database-backup-btn">
               {backingUp ? <Loader2 className="size-4 animate-spin" /> : <DatabaseBackup className="size-4" />}
               {backingUp ? "Creating backup..." : "Create backup"}
             </Button>
-          </CardContent>
+          </CardFooter>
         </Card>
 
-        <Card data-testid="database-restore-card">
+        <Card data-testid="database-restore-card" className="flex flex-col">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <HardDriveDownload className="size-4" /> Restore
             </CardTitle>
-            <CardDescription>
+          </CardHeader>
+          <CardContent className="flex-1 space-y-3">
+            <p className="text-sm text-muted-foreground">
               Restore from a backup file you upload. You'll verify its contents and choose a mode
               before anything changes.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
+            </p>
             <input
               ref={fileRef}
               type="file"
@@ -223,6 +225,8 @@ export default function DatabasePage() {
               className="block w-full rounded-md border border-input bg-background text-sm text-foreground file:mr-3 file:cursor-pointer file:border-0 file:bg-muted file:px-3 file:py-2 file:text-sm file:font-medium hover:file:bg-muted/80"
               data-testid="database-restore-file"
             />
+          </CardContent>
+          <CardFooter className="border-t pt-4">
             <Button
               variant="outline"
               disabled={!file}
@@ -231,7 +235,7 @@ export default function DatabasePage() {
             >
               <Upload className="size-4" /> Verify &amp; restore
             </Button>
-          </CardContent>
+          </CardFooter>
         </Card>
       </div>
 
