@@ -353,7 +353,10 @@ function LevelManagerDialog({ open, onOpenChange, levels, onChanged }) {
       const d = {};
       levels.forEach((l) => (d[l.id] = { name: l.name, order: l.order }));
       setDrafts(d);
-      setNewLevel({ name: "", order: 0 });
+      const nextOrder = levels.length
+        ? Math.max(...levels.map((l) => Number(l.order) || 0)) + 1
+        : 1;
+      setNewLevel({ name: "", order: nextOrder });
     }
   }, [open, levels]);
 
@@ -400,7 +403,6 @@ function LevelManagerDialog({ open, onOpenChange, levels, onChanged }) {
         order: Number(newLevel.order) || 0,
       });
       toast.success("Level created");
-      setNewLevel({ name: "", order: 0 });
       onChanged();
     } catch (err) {
       toast.error(err?.response?.data?.detail || "Failed to create level");
