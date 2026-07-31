@@ -11,6 +11,8 @@ import OfficesPage from "@/pages/app/OfficesPage";
 import RolesPage from "@/pages/app/RolesPage";
 import ComponentsPage from "@/pages/ComponentsPage";
 import DesignTokensPage from "@/pages/DesignTokensPage";
+import DevelopmentOverviewPage from "@/pages/development/DevelopmentOverviewPage";
+import DevelopmentGuidelinePage from "@/pages/development/DevelopmentGuidelinePage";
 import DataTableLayoutPage from "@/pages/layouts/DataTableLayoutPage";
 import FormElementsPage from "@/pages/layouts/FormElementsPage";
 import FormLayoutPage from "@/pages/layouts/FormLayoutPage";
@@ -43,6 +45,11 @@ function App() {
           <Route path="/offices" element={<OfficesPage />} />
           <Route path="/account" element={<PlaceholderPage />} />
           <Route path="/settings" element={<PlaceholderPage />} />
+          <Route path="/development" element={<DevelopmentOverviewPage />} />
+          <Route
+            path="/development/:groupId"
+            element={<DevelopmentGuidelinePage />}
+          />
           <Route
             path="/design-system/components"
             element={<ComponentsPage />}

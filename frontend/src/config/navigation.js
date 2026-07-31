@@ -10,7 +10,10 @@ import {
   Users,
   ShieldCheck,
   Building2,
+  BookOpenCheck,
 } from "lucide-react";
+
+import { guidelineGroups } from "./developmentGuidelines";
 
 /**
  * Central navigation config — organized into top-level AREAS shown via the
@@ -90,6 +93,29 @@ export const navAreas = [
       },
     ],
   },
+  {
+    id: "development",
+    label: "Development Guidelines",
+    icon: BookOpenCheck,
+    sections: [
+      {
+        label: "Development Guidelines",
+        items: [
+          {
+            title: "Overview",
+            to: "/development",
+            icon: LayoutDashboard,
+            end: true,
+          },
+          ...guidelineGroups.map((group) => ({
+            title: group.title,
+            to: `/development/${group.id}`,
+            icon: group.icon,
+          })),
+        ],
+      },
+    ],
+  },
 ];
 
 /** Backward-compatible flat sections (used by the Sidebar sample block preview). */
@@ -105,8 +131,11 @@ export const navRoutes = navAreas.flatMap((area) =>
 );
 
 /** Which area a pathname belongs to (route-derived active area). */
-export const getAreaIdForPath = (pathname) =>
-  pathname.startsWith("/design-system") ? "design-system" : "application";
+export const getAreaIdForPath = (pathname) => {
+  if (pathname.startsWith("/design-system")) return "design-system";
+  if (pathname.startsWith("/development")) return "development";
+  return "application";
+};
 
 /** Resolve an area by id (falls back to the first area). */
 export const getArea = (id) =>
