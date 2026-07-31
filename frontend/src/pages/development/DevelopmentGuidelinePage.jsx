@@ -130,7 +130,7 @@ export default function DevelopmentGuidelinePage() {
     return (
       <div className="space-y-6" data-testid="development-guideline-page">
         <PageHeader
-          title="Development Guidelines"
+          title="Dev Guidelines"
           description="Guideline group not found."
         />
         <EmptyState

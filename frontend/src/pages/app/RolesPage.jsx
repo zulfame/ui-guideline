@@ -679,7 +679,7 @@ export default function RolesPage() {
 
   const loadLevels = async () => {
     try {
-      const { data } = await API.get("/levels");
+      const { data } = await API.get("/levels", { params: { limit: 500 } });
       setLevels(data);
     } catch {
       /* levels are optional; ignore */
@@ -689,7 +689,10 @@ export default function RolesPage() {
   const load = async () => {
     setStatus("loading");
     try {
-      const [rolesRes] = await Promise.all([API.get("/roles"), loadLevels()]);
+      const [rolesRes] = await Promise.all([
+        API.get("/roles", { params: { limit: 500 } }),
+        loadLevels(),
+      ]);
       setRoles(rolesRes.data);
       setStatus("ready");
     } catch {

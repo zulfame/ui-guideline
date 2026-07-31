@@ -21,7 +21,7 @@ export default function DevelopmentOverviewPage() {
   return (
     <div className="space-y-6" data-testid="development-overview-page">
       <PageHeader
-        title="Development Guidelines"
+        title="Dev Guidelines"
         description="Mandatory software engineering standards — code, database, data access, API, security, performance, files, monitoring, backup, and documentation."
       >
         <Badge variant="secondary" className="font-normal">

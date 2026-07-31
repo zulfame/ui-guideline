@@ -102,7 +102,66 @@
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
 
-user_problem_statement: "Test the Dashboard shell of a frontend-only prototype (design system app). Base URL redirects '/' -> '/login'. Test login->dashboard redirect, desktop sidebar navigation, mobile drawer, breadcrumbs, and active states."
+user_problem_statement: "Test the Dashboard shell of a frontend-only prototype (design system app). Base URL redirects '/' -> '/login'. Test login->dashboard redirect, desktop sidebar navigation, mobile drawer, breadcrumbs, and active states. LATEST: backend compliance remediation applied (Development/Dev Guidelines audit) — bounded pagination (limit/skip + X-Total-Count) on offices/roles/levels, new /api/health readiness endpoint, safer CORS (no wildcard+credentials), batched bulk-delete role promotion via bulk_write, lifespan handler, removed template /status endpoints. Verify all Offices/Roles/Levels CRUD + new behavior still works."
+
+backend:
+  - task: "Compliance Remediation - Bounded Pagination (offices/roles/levels)"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "Added ?skip & ?limit (default 100, max 500) to GET /api/offices, /api/roles, /api/levels. Response stays a plain array (backward compatible); total count returned in X-Total-Count header (exposed via CORS). Replaced magic .to_list(1000/10000). Verify: default returns array; limit/skip work; X-Total-Count present; sort order preserved (offices by created_at desc, roles by name asc, levels by order asc)."
+        - working: true
+          agent: "testing"
+          comment: "VERIFIED: Bounded pagination working perfectly on all 3 endpoints (offices/roles/levels). Tested 27 scenarios (9 per endpoint): (1) Default pagination returns 200 with JSON array; (2) X-Total-Count header present and correct; (3) limit=2 works correctly; (4) skip=1&limit=2 works correctly; (5) limit>500 returns 422 validation error; (6) limit<1 returns 422 validation error; (7) skip<0 returns 422 validation error; (8) Sort order preserved correctly - offices by created_at DESC, roles by name ASC (verified: ['Test Role A', 'Test Role B', 'Test Role C', 'Test Role D', 'Test Role E']), levels by order ASC (verified: [0, 1, 2, 3, 4]). Response body is backward compatible plain JSON array. All pagination tests passed."
+  - task: "Compliance Remediation - Health Endpoint"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: false
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "New GET /api/health pings MongoDB and returns {status: ok, database: connected}; 503 if DB unreachable. Verified locally via curl returns ok."
+        - working: true
+          agent: "testing"
+          comment: "VERIFIED: Health endpoint working correctly. GET /api/health returns 200 OK with JSON body {\"status\":\"ok\",\"database\":\"connected\"}. All 3 assertions passed: (1) Status code 200; (2) status field equals 'ok'; (3) database field equals 'connected'. Endpoint ready for readiness probes."
+  - task: "Compliance Remediation - CORS hardening + lifespan + remove /status"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: false
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "CORS now disables allow_credentials when origins=='*' (wildcard+credentials is invalid/insecure). Migrated @app.on_event startup/shutdown to lifespan (ensures indexes incl offices.created_at). Removed unused template /status endpoints & StatusCheck model. Verify no regression to existing endpoints."
+        - working: true
+          agent: "testing"
+          comment: "VERIFIED: CORS hardening and lifespan migration working correctly. (1) X-Total-Count header is properly exposed via CORS (verified in all pagination tests); (2) Database indexes are created correctly on startup (offices.code, offices.name, offices.created_at, roles.name, levels.name all working); (3) No regression to existing endpoints - all 66 CRUD tests passed. CORS configuration allows X-Total-Count header exposure. Lifespan handler ensures indexes before API requests. No /status endpoints present (removed as intended)."
+  - task: "Regression - Offices/Roles/Levels CRUD (unique 409, validation 400/422, FK cleanup, bulk-delete promotion via bulk_write)"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "Business logic unchanged except bulk_delete_roles now applies child promotions via a single batched bulk_write (was per-item update_one). All 45 repo pytest pass in serial (-n 0). NOTE: parallel run (-n 2 loadscope) shows 7 pre-existing failures in tests/test_levels.py due to a module-scoped `state` fixture shared across two classes that loadscope distributes to different workers — a test-harness/fixture-scope issue, NOT a code regression (file not modified by main). Please validate CRUD + bulk-delete via API sequentially."
+        - working: true
+          agent: "testing"
+          comment: "VERIFIED: All CRUD operations working correctly. Tested 36 scenarios across Offices/Roles/Levels. OFFICES (17 tests): Create 201, duplicate code/name 409, validation 422 (longitude out of [-180,180], latitude out of [-90,90], negative radius, empty code/name), GET 200/404, PUT 200/409/404, DELETE 200/404, bulk-delete works. ROLES (13 tests): Create 201, duplicate name 409, invalid parent_id/level_id/dotted_parent_id 400, self-parent/self-dotted 400, DELETE promotes children to parent's parent, DELETE clears dotted_parent_id references, bulk-delete with batched bulk_write promotes orphans correctly (verified C1 and C2 promoted to GP after deleting P1 and P2). LEVELS (6 tests): Create 201, duplicate name 409, PUT 200, DELETE 200/404, DELETE detaches roles (sets level_id to null). All 66 backend tests passed. Test data cleaned up successfully."
+
 
 frontend:
   - task: "Dashboard Shell - Login to Dashboard Redirect"
@@ -575,16 +634,14 @@ frontend:
 
 metadata:
   created_by: "testing_agent"
-  version: "8.0"
-  test_sequence: 8
+  version: "9.0"
+  test_sequence: 9
   run_ui: true
   test_date: "2026-07-28"
-  last_test: "Chart Pages Rendering Verification (Part A & Part B)"
+  last_test: "Backend Compliance Remediation - Full API Test Suite"
 
 test_plan:
-  current_focus:
-    - "Dashboard Placeholder Content - Real Tall Block Rendering"
-    - "Chart Pages - Tooltips Charts Rendering"
+  current_focus: []
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
@@ -604,3 +661,7 @@ agent_communication:
       message: "DASHBOARD PLACEHOLDER CONTENT TEST - ISSUE FOUND. Tested the Dashboard page at root '/' with real placeholder content at desktop viewport 1440x900. FINDINGS: (1) 3 muted blocks render correctly (368x207px each, aspect-ratio 16/9, bg-muted/50 visible at rgba(245,245,245,0.5)); (2) TALL BLOCK ISSUE: Found in DOM but has 0px height (offsetHeight: 0, computedHeight: '0px', computedMinHeight: 'min-content' instead of '100vh'). Content is NOT scrollable (scrollHeight: 835 = clientHeight: 835). ROOT CAUSE: DashboardPage.jsx line 16 has className='min-h-[100vh] flex-1 rounded-xl bg-muted/50 md:min-h-min'. The 'md:min-h-min' class overrides 'min-h-[100vh]' at desktop breakpoint (>=768px), setting minHeight to 'min-content'. Combined with empty self-closing div and flex-1, the element collapses to 0 height. VERIFICATION: After injecting 2000px tall content into the tall block, scroll behavior works PERFECTLY - header stays fixed at top (0px before/after), content scrolls (900px), window doesn't scroll (0px). This confirms the layout structure is correct. FIX REQUIRED: In /app/frontend/src/pages/DashboardPage.jsx line 16, remove 'md:min-h-min' class from the tall block div OR add actual inner content OR use fixed height. The underlying scroll mechanism works correctly; only the placeholder content height is the issue."
     - agent: "testing"
       message: "PART A & PART B VERIFICATION TEST COMPLETED. PART A (Fixed header while scrolling at '/'): ✅ PASS - Header stayed fixed at top (0px before/after, diff: 0px), Sidebar stayed fixed (15.25px before/after, diff: 0px), Content scrolled successfully (0px -> 651px), Window did not scroll (0px before/after). Content is scrollable (scrollHeight: 1486px > clientHeight: 835px). Layout implementation correct. HOWEVER, CRITICAL ISSUE FOUND: DashboardPage component is NOT rendering ANY content. The content div has 0 children and 0 placeholder blocks. The DashboardPage.jsx file exists with proper code but React is not rendering it. No h1 or placeholder blocks appear in DOM. This is a complete rendering failure. PART B (Chart pages at 1440x900): ✅ Area Charts PASS (2 SVG, 510x286.875px each), ✅ Bar Charts PASS (2 SVG, 510x286.875px each), ✅ Line Charts PASS (2 SVG, 510x286.875px each), ✅ Pie Charts PASS (2 SVG, 320x320px each), ✅ Radar Charts PASS (2 SVG, 320x320px each), ✅ Radial Charts PASS (2 SVG, 320x320px each), ❌ Tooltips FAIL (0 SVG, 4 empty chart containers). Tooltips page structure correct (h1, 4 ChartCard containers with titles) but recharts-responsive-container divs are EMPTY. Comparison with working Bar Charts shows responsive-container should have recharts-wrapper with SVG. ROOT CAUSE: TooltipDemo function component (wrapper) is not rendering its BarChart return value. Only 1 non-critical console error (Cloudflare RUM). URGENT FIXES NEEDED: (1) DashboardPage not rendering at all, (2) Tooltips page charts not rendering."
+    - agent: "main"
+      message: "BACKEND COMPLIANCE REMEDIATION — please test the API sequentially (not the parallel pytest). Focus: (1) GET /api/health returns {status:ok, database:connected}; (2) GET /api/offices, /api/roles, /api/levels return a JSON array AND include header X-Total-Count; support ?limit & ?skip (limit>500 should clamp/422 via le=500); sort order preserved; (3) Full CRUD for Offices (create 201, duplicate code/name 409, validation 422 for bad lat/long/radius, get 404, update, delete 404); Roles (create 201, unique 409, invalid parent/level 400, cycle 400, delete promotes children & clears dotted refs, bulk-delete promotes orphans); Levels (create 201, dup 409, update, delete detaches roles). Business logic unchanged except roles bulk-delete now uses batched bulk_write. Note: repo pytest passes 45/45 serially; the 7 parallel failures in test_levels.py are a pre-existing fixture-scope/xdist issue, not a regression."
+    - agent: "testing"
+      message: "BACKEND COMPLIANCE REMEDIATION TEST COMPLETED SUCCESSFULLY ✅ All 66 backend API tests passed! Tested sequentially via live API at https://ui-rules.preview.emergentagent.com/api. RESULTS: (1) HEALTH ENDPOINT (3/3 passed): GET /api/health returns 200 with {status:ok, database:connected}. (2) BOUNDED PAGINATION (27/27 passed): All 3 endpoints (offices/roles/levels) return JSON array with X-Total-Count header, support ?skip/?limit, validate limit 1-500 (422 for out of range), validate skip>=0 (422 for negative), sort order preserved (offices by created_at DESC, roles by name ASC, levels by order ASC). (3) OFFICES CRUD (17/17 passed): Create 201, duplicate code/name 409, validation 422 (longitude/latitude/radius/empty fields), GET 200/404, PUT 200/409/404, DELETE 200/404, bulk-delete works. (4) ROLES CRUD (13/13 passed): Create 201, duplicate name 409, invalid parent/level/dotted 400, self-parent/self-dotted 400, DELETE promotes children & clears dotted refs, bulk-delete with batched bulk_write promotes orphans correctly (verified C1 and C2 promoted to GP). (5) LEVELS CRUD (6/6 passed): Create 201, duplicate name 409, PUT 200, DELETE 200/404, DELETE detaches roles (sets level_id to null). All test data cleaned up. No issues found. Backend compliance remediation is production-ready."

@@ -1,7 +1,9 @@
-from fastapi import FastAPI, APIRouter, HTTPException
+from fastapi import FastAPI, APIRouter, HTTPException, Query, Response
+from contextlib import asynccontextmanager
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
+from pymongo import UpdateOne
 import os
 import logging
 from pathlib import Path
@@ -14,64 +16,84 @@ from datetime import datetime, timezone
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
-# MongoDB connection
+# Configure logging (Guideline: Application Logging — structured, leveled).
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+)
+logger = logging.getLogger(__name__)
+
+# MongoDB connection (Guideline: Configuration Management — from environment only).
 mongo_url = os.environ['MONGO_URL']
 client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ['DB_NAME']]
 
-# Create the main app without a prefix
-app = FastAPI()
+# Pagination bound (Guideline: Data Pagination — never return an unbounded list).
+MAX_PAGE_SIZE = 500
+DEFAULT_PAGE_SIZE = 100
 
-# Create a router with the /api prefix
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    """App lifecycle (replaces deprecated @app.on_event).
+
+    Startup: ensure DB-level unique indexes + query indexes.
+    Shutdown: close the Mongo client cleanly.
+    """
+    await db.offices.create_index("code", unique=True)
+    await db.offices.create_index("name", unique=True)
+    await db.offices.create_index("created_at")  # supports the list sort
+    await db.roles.create_index("name", unique=True)
+    await db.levels.create_index("name", unique=True)
+    logger.info("Startup complete: indexes ensured.")
+    yield
+    client.close()
+    logger.info("Shutdown complete: Mongo client closed.")
+
+
+app = FastAPI(
+    title="UI Guidelines CMS API",
+    version="1.0.0",
+    description="Backend for the UI Guidelines / Design System app (Offices, Roles, Levels).",
+    lifespan=lifespan,
+)
+
+# Router with the /api prefix (Guideline: API Design — ingress routing rule).
 api_router = APIRouter(prefix="/api")
 
 
-# Define Models
-class StatusCheck(BaseModel):
-    model_config = ConfigDict(extra="ignore")  # Ignore MongoDB's _id field
-    
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    client_name: str
-    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-
-class StatusCheckCreate(BaseModel):
-    client_name: str
-
-# Add your routes to the router instead of directly to app
-@api_router.get("/")
+# ---------------------------------------------------------------------------
+# System (Guideline: Health Monitoring)
+# ---------------------------------------------------------------------------
+@api_router.get("/", tags=["System"], summary="Service liveness")
 async def root():
+    """Simple liveness probe — the process is up."""
     return {"message": "Hello World"}
 
-@api_router.post("/status", response_model=StatusCheck)
-async def create_status_check(input: StatusCheckCreate):
-    status_dict = input.model_dump()
-    status_obj = StatusCheck(**status_dict)
-    
-    # Convert to dict and serialize datetime to ISO string for MongoDB
-    doc = status_obj.model_dump()
-    doc['timestamp'] = doc['timestamp'].isoformat()
-    
-    _ = await db.status_checks.insert_one(doc)
-    return status_obj
 
-@api_router.get("/status", response_model=List[StatusCheck])
-async def get_status_checks():
-    # Exclude MongoDB's _id field from the query results
-    status_checks = await db.status_checks.find({}, {"_id": 0}).to_list(1000)
-    
-    # Convert ISO string timestamps back to datetime objects
-    for check in status_checks:
-        if isinstance(check['timestamp'], str):
-            check['timestamp'] = datetime.fromisoformat(check['timestamp'])
-    
-    return status_checks
+@api_router.get("/health", tags=["System"], summary="Health & readiness")
+async def health():
+    """Readiness probe — verifies the database connection is reachable."""
+    try:
+        await db.command("ping")
+    except Exception as exc:  # pragma: no cover - defensive
+        logger.error("Health check failed: %s", exc)
+        raise HTTPException(status_code=503, detail="Database unavailable")
+    return {"status": "ok", "database": "connected"}
+
+
+# ---------------------------------------------------------------------------
+# Shared
+# ---------------------------------------------------------------------------
+class BulkDeleteRequest(BaseModel):
+    ids: List[str]
 
 
 # ---------------------------------------------------------------------------
 # Offices (CMS) — FastAPI + MongoDB CRUD
 # ---------------------------------------------------------------------------
 class Office(BaseModel):
-    model_config = ConfigDict(extra="ignore")
+    model_config = ConfigDict(extra="ignore")  # Ignore MongoDB's _id field
 
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     code: str
@@ -108,10 +130,6 @@ class OfficeUpdate(BaseModel):
     note: Optional[str] = None
 
 
-class BulkDeleteRequest(BaseModel):
-    ids: List[str]
-
-
 def _office_to_doc(office: Office) -> dict:
     doc = office.model_dump()
     doc["created_at"] = doc["created_at"].isoformat()
@@ -120,7 +138,7 @@ def _office_to_doc(office: Office) -> dict:
 
 
 async def _assert_unique(code: str, name: str, exclude_id: Optional[str] = None):
-    """Enforce unique code & name (2a)."""
+    """Enforce unique code & name (app-level check complements the unique index)."""
     query = {"$or": [{"code": code}, {"name": name}]}
     if exclude_id:
         query = {"$and": [{"id": {"$ne": exclude_id}}, query]}
@@ -130,36 +148,53 @@ async def _assert_unique(code: str, name: str, exclude_id: Optional[str] = None)
         raise HTTPException(status_code=409, detail=f"Office {field} already exists")
 
 
-@api_router.post("/offices", response_model=Office, status_code=201)
+@api_router.post("/offices", response_model=Office, status_code=201, tags=["Offices"], summary="Create office")
 async def create_office(payload: OfficeCreate):
+    """Create an office. Returns 409 if the code or name already exists."""
     await _assert_unique(payload.code, payload.name)
     office = Office(**payload.model_dump())
     await db.offices.insert_one(_office_to_doc(office))
     return office
 
 
-@api_router.get("/offices", response_model=List[Office])
-async def list_offices():
-    docs = await db.offices.find({}, {"_id": 0}).sort("created_at", -1).to_list(1000)
+@api_router.get("/offices", response_model=List[Office], tags=["Offices"], summary="List offices (paginated)")
+async def list_offices(
+    response: Response,
+    skip: int = Query(0, ge=0, description="Records to skip"),
+    limit: int = Query(DEFAULT_PAGE_SIZE, ge=1, le=MAX_PAGE_SIZE, description="Max records to return"),
+):
+    """List offices, newest first. Bounded by `limit` (max 500); total count in `X-Total-Count`."""
+    total = await db.offices.count_documents({})
+    response.headers["X-Total-Count"] = str(total)
+    docs = (
+        await db.offices.find({}, {"_id": 0})
+        .sort("created_at", -1)
+        .skip(skip)
+        .limit(limit)
+        .to_list(limit)
+    )
     return [Office(**d) for d in docs]
 
 
-@api_router.post("/offices/bulk-delete")
+@api_router.post("/offices/bulk-delete", tags=["Offices"], summary="Bulk delete offices")
 async def bulk_delete_offices(payload: BulkDeleteRequest):
+    """Delete multiple offices by id in a single operation."""
     result = await db.offices.delete_many({"id": {"$in": payload.ids}})
     return {"success": True, "deleted": result.deleted_count}
 
 
-@api_router.get("/offices/{office_id}", response_model=Office)
+@api_router.get("/offices/{office_id}", response_model=Office, tags=["Offices"], summary="Get office")
 async def get_office(office_id: str):
+    """Fetch a single office by id (404 if not found)."""
     doc = await db.offices.find_one({"id": office_id}, {"_id": 0})
     if not doc:
         raise HTTPException(status_code=404, detail="Office not found")
     return Office(**doc)
 
 
-@api_router.put("/offices/{office_id}", response_model=Office)
+@api_router.put("/offices/{office_id}", response_model=Office, tags=["Offices"], summary="Update office")
 async def update_office(office_id: str, payload: OfficeUpdate):
+    """Update an office. Returns 404 if missing, 409 on code/name conflict."""
     doc = await db.offices.find_one({"id": office_id}, {"_id": 0})
     if not doc:
         raise HTTPException(status_code=404, detail="Office not found")
@@ -174,8 +209,9 @@ async def update_office(office_id: str, payload: OfficeUpdate):
     return Office(**doc)
 
 
-@api_router.delete("/offices/{office_id}")
+@api_router.delete("/offices/{office_id}", tags=["Offices"], summary="Delete office")
 async def delete_office(office_id: str):
+    """Delete an office by id (404 if not found)."""
     result = await db.offices.delete_one({"id": office_id})
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Office not found")
@@ -183,7 +219,7 @@ async def delete_office(office_id: str):
 
 
 # ---------------------------------------------------------------------------
-# Roles / Jabatan (CMS) — hierarchical tree via parent_id
+# Levels / Tingkatan (CMS) — org-chart swimlanes (id + name + order)
 # ---------------------------------------------------------------------------
 class Level(BaseModel):
     model_config = ConfigDict(extra="ignore")
@@ -208,6 +244,9 @@ class LevelUpdate(BaseModel):
     color: Optional[str] = None
 
 
+# ---------------------------------------------------------------------------
+# Roles / Jabatan (CMS) — hierarchical tree via parent_id
+# ---------------------------------------------------------------------------
 class Role(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
@@ -303,8 +342,9 @@ async def _validate_level(level_id: Optional[str]):
         raise HTTPException(status_code=400, detail="Level not found")
 
 
-@api_router.post("/roles", response_model=Role, status_code=201)
+@api_router.post("/roles", response_model=Role, status_code=201, tags=["Roles"], summary="Create role")
 async def create_role(payload: RoleCreate):
+    """Create a role. Validates unique name, parent/dotted-parent/level existence & cycles."""
     await _assert_role_name_unique(payload.name)
     await _validate_parent(payload.parent_id)
     await _validate_dotted_parent(payload.dotted_parent_id)
@@ -314,41 +354,64 @@ async def create_role(payload: RoleCreate):
     return role
 
 
-@api_router.get("/roles", response_model=List[Role])
-async def list_roles():
-    docs = await db.roles.find({}, {"_id": 0}).sort("name", 1).to_list(10000)
+@api_router.get("/roles", response_model=List[Role], tags=["Roles"], summary="List roles (paginated)")
+async def list_roles(
+    response: Response,
+    skip: int = Query(0, ge=0, description="Records to skip"),
+    limit: int = Query(DEFAULT_PAGE_SIZE, ge=1, le=MAX_PAGE_SIZE, description="Max records to return"),
+):
+    """List roles by name. Bounded by `limit` (max 500); total count in `X-Total-Count`.
+
+    The org-chart consumer requests the full set (up to the cap) via `?limit=500`.
+    """
+    total = await db.roles.count_documents({})
+    response.headers["X-Total-Count"] = str(total)
+    docs = (
+        await db.roles.find({}, {"_id": 0})
+        .sort("name", 1)
+        .skip(skip)
+        .limit(limit)
+        .to_list(limit)
+    )
     return [Role(**d) for d in docs]
 
 
-@api_router.post("/roles/bulk-delete")
+@api_router.post("/roles/bulk-delete", tags=["Roles"], summary="Bulk delete roles")
 async def bulk_delete_roles(payload: BulkDeleteRequest):
+    """Delete roles and promote orphaned children to their nearest surviving ancestor.
+
+    Child promotions are applied via a single batched `bulk_write` (Guideline:
+    Batch Processing) to reduce round-trips and the partial-failure window.
+    """
     deleted_set = set(payload.ids)
     pmap = await _role_parent_map()
     result = await db.roles.delete_many({"id": {"$in": payload.ids}})
-    # Promote orphaned children to their nearest surviving ancestor.
     now = datetime.now(timezone.utc).isoformat()
+    ops = []
     for rid, parent in pmap.items():
         if rid in deleted_set or parent not in deleted_set:
             continue
         p = parent
         while p is not None and p in deleted_set:
             p = pmap.get(p)
-        await db.roles.update_one(
-            {"id": rid}, {"$set": {"parent_id": p, "updated_at": now}}
-        )
+        ops.append(UpdateOne({"id": rid}, {"$set": {"parent_id": p, "updated_at": now}}))
+    if ops:
+        await db.roles.bulk_write(ops, ordered=False)
     return {"success": True, "deleted": result.deleted_count}
 
 
-@api_router.get("/roles/{role_id}", response_model=Role)
+@api_router.get("/roles/{role_id}", response_model=Role, tags=["Roles"], summary="Get role")
 async def get_role(role_id: str):
+    """Fetch a single role by id (404 if not found)."""
     doc = await db.roles.find_one({"id": role_id}, {"_id": 0})
     if not doc:
         raise HTTPException(status_code=404, detail="Role not found")
     return Role(**doc)
 
 
-@api_router.put("/roles/{role_id}", response_model=Role)
+@api_router.put("/roles/{role_id}", response_model=Role, tags=["Roles"], summary="Update role")
 async def update_role(role_id: str, payload: RoleUpdate):
+    """Update a role. Validates unique name, parent/dotted-parent/level & cycles."""
     doc = await db.roles.find_one({"id": role_id}, {"_id": 0})
     if not doc:
         raise HTTPException(status_code=404, detail="Role not found")
@@ -367,12 +430,12 @@ async def update_role(role_id: str, payload: RoleUpdate):
     return Role(**doc)
 
 
-@api_router.delete("/roles/{role_id}")
+@api_router.delete("/roles/{role_id}", tags=["Roles"], summary="Delete role")
 async def delete_role(role_id: str):
+    """Delete a role: promote direct children to this role's parent, clear dotted refs."""
     doc = await db.roles.find_one({"id": role_id}, {"_id": 0})
     if not doc:
         raise HTTPException(status_code=404, detail="Role not found")
-    # Promote direct children up to this role's parent, then delete.
     now = datetime.now(timezone.utc).isoformat()
     await db.roles.delete_one({"id": role_id})
     await db.roles.update_many(
@@ -388,7 +451,7 @@ async def delete_role(role_id: str):
 
 
 # ---------------------------------------------------------------------------
-# Levels / Tingkatan (CMS) — org-chart swimlanes (id + name + order)
+# Levels CRUD
 # ---------------------------------------------------------------------------
 def _level_to_doc(level: Level) -> dict:
     doc = level.model_dump()
@@ -405,22 +468,37 @@ async def _assert_level_name_unique(name: str, exclude_id: Optional[str] = None)
         raise HTTPException(status_code=409, detail="Level name already exists")
 
 
-@api_router.post("/levels", response_model=Level, status_code=201)
+@api_router.post("/levels", response_model=Level, status_code=201, tags=["Levels"], summary="Create level")
 async def create_level(payload: LevelCreate):
+    """Create a level (409 if the name already exists)."""
     await _assert_level_name_unique(payload.name)
     level = Level(**payload.model_dump())
     await db.levels.insert_one(_level_to_doc(level))
     return level
 
 
-@api_router.get("/levels", response_model=List[Level])
-async def list_levels():
-    docs = await db.levels.find({}, {"_id": 0}).sort("order", 1).to_list(10000)
+@api_router.get("/levels", response_model=List[Level], tags=["Levels"], summary="List levels (paginated)")
+async def list_levels(
+    response: Response,
+    skip: int = Query(0, ge=0, description="Records to skip"),
+    limit: int = Query(DEFAULT_PAGE_SIZE, ge=1, le=MAX_PAGE_SIZE, description="Max records to return"),
+):
+    """List levels ordered by `order`. Bounded by `limit` (max 500); total in `X-Total-Count`."""
+    total = await db.levels.count_documents({})
+    response.headers["X-Total-Count"] = str(total)
+    docs = (
+        await db.levels.find({}, {"_id": 0})
+        .sort("order", 1)
+        .skip(skip)
+        .limit(limit)
+        .to_list(limit)
+    )
     return [Level(**d) for d in docs]
 
 
-@api_router.put("/levels/{level_id}", response_model=Level)
+@api_router.put("/levels/{level_id}", response_model=Level, tags=["Levels"], summary="Update level")
 async def update_level(level_id: str, payload: LevelUpdate):
+    """Update a level (404 if missing, 409 on name conflict)."""
     doc = await db.levels.find_one({"id": level_id}, {"_id": 0})
     if not doc:
         raise HTTPException(status_code=404, detail="Level not found")
@@ -433,12 +511,12 @@ async def update_level(level_id: str, payload: LevelUpdate):
     return Level(**doc)
 
 
-@api_router.delete("/levels/{level_id}")
+@api_router.delete("/levels/{level_id}", tags=["Levels"], summary="Delete level")
 async def delete_level(level_id: str):
+    """Delete a level and detach it from any roles referencing it."""
     result = await db.levels.delete_one({"id": level_id})
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Level not found")
-    # Detach roles from the removed level.
     now = datetime.now(timezone.utc).isoformat()
     await db.roles.update_many(
         {"level_id": level_id},
@@ -447,34 +525,18 @@ async def delete_level(level_id: str):
     return {"success": True}
 
 
-# Include the router in the main app
+# Include the router in the main app.
 app.include_router(api_router)
 
+# CORS (Guideline: Security Headers) — a wildcard origin is incompatible with
+# credentials, so only enable credentials when specific origins are configured.
+cors_origins = [o.strip() for o in os.environ.get('CORS_ORIGINS', '*').split(',') if o.strip()]
+allow_all_origins = cors_origins == ['*']
 app.add_middleware(
     CORSMiddleware,
-    allow_credentials=True,
-    allow_origins=os.environ.get('CORS_ORIGINS', '*').split(','),
+    allow_credentials=not allow_all_origins,
+    allow_origins=cors_origins,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["X-Total-Count"],
 )
-
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
-logger = logging.getLogger(__name__)
-
-
-@app.on_event("startup")
-async def ensure_indexes():
-    # DB-level integrity for Offices unique fields (complements app-level check).
-    await db.offices.create_index("code", unique=True)
-    await db.offices.create_index("name", unique=True)
-    await db.roles.create_index("name", unique=True)
-    await db.levels.create_index("name", unique=True)
-
-
-@app.on_event("shutdown")
-async def shutdown_db_client():
-    client.close()

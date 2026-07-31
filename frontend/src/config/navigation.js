@@ -95,11 +95,11 @@ export const navAreas = [
   },
   {
     id: "development",
-    label: "Development Guidelines",
+    label: "Dev Guidelines",
     icon: BookOpenCheck,
     sections: [
       {
-        label: "Development Guidelines",
+        label: "Dev Guidelines",
         items: [
           {
             title: "Overview",

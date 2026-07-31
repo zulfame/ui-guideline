@@ -388,7 +388,7 @@ export default function OfficesPage() {
   const fetchOffices = useCallback(async () => {
     setStatus("loading");
     try {
-      const { data } = await API.get("/offices");
+      const { data } = await API.get("/offices", { params: { limit: 500 } });
       setOffices(data);
       setStatus("ready");
     } catch {
