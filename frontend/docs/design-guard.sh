@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 # design-guard.sh — heuristic compact/token guard for the UI Guidelines design system.
 # Scans AUTHORED feature code (pages, composite, layout) for anti-patterns
-# (R05/R06/R09/R39, 2B.8, 2C.14). Exit 0 = clean, Exit 1 = violations.
+# (R05/R06/R09/R39/R41/R42, 2B.8, 2C.14). Exit 0 = clean, Exit 1 = violations.
+# NOTE: responsive layout (R42) is only partially automatable (#10); full sign-off
+#       still requires a VISUAL check at mobile 375 / tablet 768 / desktop >=1280.
 # Run BEFORE finishing any UI work.
 #
 # Scope note:
@@ -72,6 +74,14 @@ report "FormItem 'flex flex-col' (pakai <FormItem> polos agar field grid sejajar
 # convey optionality via placeholder so 2-col form rows stay aligned (R41).
 report "Label form verbose '(Optional)/(Opsional)' (pakai placeholder; label ringkas 1 baris) — R41" \
   "$(scan 'FormLabel>[^<]*\((Optional|Opsional)\)')"
+
+# 10) Responsive (R42): fixed pixel width >=120px WITHOUT a mobile `w-full` fallback,
+# scoped to app/CRUD pages where toolbars/filters live (avoids chart/composite widths).
+# Correct pattern: `w-full sm:w-[150px]`. This catches the Audit Log toolbar incident.
+APP_DIR="$SRC/pages/app"
+scan_app() { grep -rnE "$1" "$APP_DIR" --include=*.jsx 2>/dev/null | grep -vE "$EXCLUDE" | grep -vE '//\s*guard-allow'; }
+report "Lebar fiks >=120px tanpa fallback 'w-full' (mobile) di pages/app — R42 responsif; pakai 'w-full sm:w-[Npx]'" \
+  "$(scan_app 'className="[^"]*\bw-\[(1[2-9][0-9]|[2-9][0-9]{2}|[0-9]{4,})px\]' | grep -vE 'w-full')"
 
 echo ""
 if [ "$fail" -eq 0 ]; then

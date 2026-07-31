@@ -68,7 +68,9 @@
   Compact.**
 - Prioritaskan **konsistensi** dan **data density** — hindari whitespace berlebih
   dan efek visual berlebihan.
-- **Semua UI wajib responsif** (mobile & desktop).
+- **Semua UI wajib responsif untuk SEMUA perangkat — mobile, tablet, desktop** (mobile-first).
+  Definisi lengkap & wajib: **Bagian 12 (R42)**. Toolbar/filter, tabel, form, dan dialog
+  **harus** rapi *dan* tetap elegan di ketiga ukuran; verifikasi di **375px / 768px / ≥1280px**.
 - **Accessibility wajib**: label pada input (`Label`/`FormLabel`), `aria-*` untuk
   kontrol ikon, focus state terlihat, kontras memenuhi WCAG AA, HTML semantik.
 
@@ -149,7 +151,9 @@ Combobox, Date Picker, Password Input. Composite =
 - [ ] Tidak ada file di `src/components/ui/` yang dimodifikasi tanpa persetujuan.
 - [ ] Semua warna memakai design token (tidak ada warna hardcode).
 - [ ] Token tetap HSL; tema shadcn tidak diubah tanpa izin.
-- [ ] Responsif (mobile + desktop) dan aksesibel (label, aria, focus, kontras).
+- [ ] Responsif (**mobile 375px + tablet 768px + desktop ≥1280px**) — rapi & tetap elegan
+      di ketiga ukuran (toolbar menumpuk, tabel scroll, dialog stack) — **R42** — dan aksesibel
+      (label, aria, focus, kontras).
 - [ ] Konten generik (tanpa konten bisnis).
 - [ ] Jika ada kebutuhan di luar design system → sudah dilaporkan & disetujui,
       bukan diimprovisasi.
@@ -233,6 +237,8 @@ Alur kerja **wajib** setiap kali menyentuh UI — dirancang agar aturan tidak "l
 4. **SEBELUM SELESAI (Definition of Done):**
    - Jalankan **`bash frontend/docs/design-guard.sh`** → harus **lolos (exit 0)**.
    - Centang **Checklist Bagian 7** (termasuk item COMPACT & GUARD).
+   - **Verifikasi RESPONSIF (R42):** cek tampilan di **mobile 375px, tablet 768px, desktop ≥1280px** —
+     rapi & elegan, tanpa elemen terpotong/overflow/berdempetan (khususnya toolbar/filter, tabel, dialog).
    - Verifikasi visual via screenshot (halaman baru) atau ≥2–3 konsumen (modifikasi komponen, R38).
 
 5. **JIKA RAGU / DI LUAR REGISTRY:** BERHENTI & lapor (Bagian 4). Jangan berimprovisasi.
@@ -245,7 +251,40 @@ Alur kerja **wajib** setiap kali menyentuh UI — dirancang agar aturan tidak "l
 
 ---
 
-## 11. Governance Lanjutan (rujukan — SSOT di `DESIGN_SYSTEM.md`)
+## 12. Aturan Responsif — SEMUA Perangkat (R42, Non-Negotiable)
+
+> Ditambahkan setelah insiden toolbar Audit Log yang berantakan di layar HP.
+> **Setiap UI WAJIB diperiksa & dibuat rapi + elegan di mobile, tablet, dan desktop.**
+
+**Pendekatan: mobile-first.** Tulis gaya dasar untuk layar terkecil dulu, lalu tambah
+breakpoint ke atas. Breakpoint Tailwind: `sm=640px`, `md=768px`, `lg=1024px`, `xl=1280px`.
+
+**Ukuran verifikasi WAJIB (Definition of Done):** **mobile 375px**, **tablet 768px**,
+**desktop ≥1280px**. Tidak boleh ada elemen yang terpotong, tumpang tindih, meluber
+(overflow horizontal pada halaman), atau tombol/teks yang berdempetan.
+
+**Pola WAJIB per konteks:**
+
+| Konteks | Aturan |
+|---|---|
+| **Toolbar / baris filter** | Menumpuk di mobile lalu jadi baris di layar lebar: `flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between`. **Dilarang** satu baris `flex` horizontal yang tidak menumpuk. |
+| **Grup ≥2 kontrol kecil (mis. 2 date input)** | Bagi rata di mobile: `grid grid-cols-2 gap-2 sm:flex sm:flex-wrap`. Tombol lebar penuh di mobile via `col-span-2 sm:col-auto`. |
+| **Lebar kontrol** | **Dilarang lebar fiks (`w-[Npx]`) ≥120px tanpa fallback mobile.** Pakai `w-full sm:w-[Npx]`. Search: `w-full lg:max-w-xs`. |
+| **Tabel** | Wajib bisa scroll horizontal di dalam wadahnya (shadcn `Table` sudah `overflow-auto`) — jangan biarkan tabel merusak lebar halaman. |
+| **CardHeader (judul + aksi)** | `flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between`; grup tombol `flex flex-wrap gap-2` (R40). |
+| **Dialog / form multi-kolom** | Grid menumpuk di mobile: `grid-cols-1 sm:grid-cols-2` (R41). Teks panjang (mis. path) pakai `break-all`/`break-words`. Konten panjang `overflow-auto` dengan `max-h-*`. |
+| **Sidebar/navigasi** | Pakai komponen `sidebar`/`sheet` resmi (sudah responsif); jangan bikin sendiri. |
+
+**Prinsip:** *Compact & elegant on every screen.* Jangan memaksa layout desktop ke mobile,
+dan jangan menambah label/elemen yang membuat toolbar "gendut" — jaga tetap **compact**
+(lihat R39) sambil tetap **rapi di semua ukuran**.
+
+Dicek sebagian otomatis oleh `design-guard.sh` (#10 — lebar fiks tanpa fallback pada
+`pages/app`), sisanya **verifikasi visual di 3 breakpoint** adalah bagian dari Definition of Done.
+
+---
+
+## 13. Governance Lanjutan (rujukan — SSOT di `DESIGN_SYSTEM.md`)
 
 Bagian ini hanya **penunjuk**; definisi lengkap & otoritatif ada di `DESIGN_SYSTEM.md`:
 
@@ -260,5 +299,6 @@ Bagian ini hanya **penunjuk**; definisi lengkap & otoritatif ada di `DESIGN_SYST
 - **Performance Guideline** (Lazy/Memo/Virtualization/Bundle/Chart/Large Table) → **2C.23**.
 - **Application CRUD Page Pattern** (Card+DataTable, `DialogBody`, Delete destructive, states, `lib/api.js`) → **R40**; model backend & API → `ARCHITECTURE.md` §11.
 - **Form Field Grid Pattern** (field utama full-width; field pendek terkait di `grid grid-cols-1 sm:grid-cols-2 items-start gap-4`; **`<FormItem>` polos konsisten** untuk semua field — dilarang campur `flex flex-col`; label ringkas 1 baris, opsionalitas via placeholder) → **R41**; dicek otomatis oleh `design-guard.sh` (#8/#9).
+- **Responsive Design** (mobile-first; toolbar/filter menumpuk `flex-col sm:flex-row`; ≥2 kontrol kecil `grid grid-cols-2 sm:flex`; lebar kontrol `w-full sm:w-[Npx]` — dilarang fiks ≥120px tanpa fallback; tabel `overflow-auto`; dialog stack `sm:grid-cols-2`; verifikasi 375/768/≥1280px) → **R42 (Bagian 12)**; dicek sebagian oleh `design-guard.sh` (#10, scope `pages/app`).
 
 > Setiap perubahan komponen/pattern **wajib** tunduk pada Versioning (2C.15) & tercatat di Changelog.
