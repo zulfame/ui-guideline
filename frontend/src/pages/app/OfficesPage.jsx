@@ -417,8 +417,8 @@ export default function OfficesPage() {
       toast.success("Office deleted", { description: deleteTarget.name });
       setDeleteTarget(null);
       fetchOffices();
-    } catch {
-      toast.error("Failed to delete office");
+    } catch (err) {
+      toast.error(err?.response?.data?.detail || "Failed to delete office");
     }
   };
 
@@ -430,8 +430,8 @@ export default function OfficesPage() {
       setBulkOpen(false);
       setRowSelection({});
       fetchOffices();
-    } catch {
-      toast.error("Failed to delete offices");
+    } catch (err) {
+      toast.error(err?.response?.data?.detail || "Failed to delete offices");
     }
   };
 
