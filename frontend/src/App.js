@@ -9,6 +9,7 @@ import DashboardPage from "@/pages/DashboardPage";
 import PlaceholderPage from "@/pages/PlaceholderPage";
 import OfficesPage from "@/pages/app/OfficesPage";
 import RolesPage from "@/pages/app/RolesPage";
+import UsersPage from "@/pages/app/UsersPage";
 import ComponentsPage from "@/pages/ComponentsPage";
 import DesignTokensPage from "@/pages/DesignTokensPage";
 import DevelopmentOverviewPage from "@/pages/development/DevelopmentOverviewPage";
@@ -40,7 +41,7 @@ function App() {
         {/* App shell + nested pages */}
         <Route element={<AppLayout />}>
           <Route path="/" element={<DashboardPage />} />
-          <Route path="/users" element={<PlaceholderPage />} />
+          <Route path="/users" element={<UsersPage />} />
           <Route path="/roles" element={<RolesPage />} />
           <Route path="/offices" element={<OfficesPage />} />
           <Route path="/account" element={<PlaceholderPage />} />
