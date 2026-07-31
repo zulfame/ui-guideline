@@ -1,4 +1,5 @@
-import { useParams, Link } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
+import { useParams, useSearchParams, Link } from "react-router-dom";
 import { Check, X, CheckCircle2, ChevronLeft } from "lucide-react";
 
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -124,7 +125,27 @@ function TopicBody({ topic }) {
 
 export default function DevelopmentGuidelinePage() {
   const { groupId } = useParams();
+  const [searchParams] = useSearchParams();
+  const focusTopic = searchParams.get("topic");
   const group = guidelineGroupById[groupId];
+
+  // Controlled accordion — seed the open item from the ?topic= deep-link.
+  const [openItems, setOpenItems] = useState(focusTopic ? [focusTopic] : []);
+  const topicRefs = useRef({});
+
+  useEffect(() => {
+    if (focusTopic) {
+      setOpenItems((prev) => (prev.includes(focusTopic) ? prev : [...prev, focusTopic]));
+      const el = topicRefs.current[focusTopic];
+      if (el) {
+        const t = setTimeout(
+          () => el.scrollIntoView({ behavior: "smooth", block: "start" }),
+          200,
+        );
+        return () => clearTimeout(t);
+      }
+    }
+  }, [focusTopic, groupId]);
 
   if (!group) {
     return (
@@ -180,11 +201,17 @@ export default function DevelopmentGuidelinePage() {
         <CardContent>
           <Accordion
             type="multiple"
+            value={openItems}
+            onValueChange={setOpenItems}
             className="w-full"
             data-testid={`guideline-accordion-${group.id}`}
           >
             {group.topics.map((topic) => (
-              <AccordionItem key={topic.id} value={topic.id}>
+              <AccordionItem
+                key={topic.id}
+                value={topic.id}
+                ref={(el) => (topicRefs.current[topic.id] = el)}
+              >
                 <AccordionTrigger className="text-left text-sm font-medium hover:no-underline">
                   {topic.title}
                 </AccordionTrigger>

@@ -12,7 +12,7 @@ if not BASE_URL:
 API = f"{BASE_URL}/api"
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="class")
 def state():
     s = {"levels": [], "roles": []}
     yield s
@@ -71,6 +71,19 @@ class TestLevelsCRUD:
 
 
 class TestRoleNewFields:
+    @pytest.fixture(scope="class", autouse=True)
+    def _seed_levels(self, state):
+        """Self-contained setup: this class creates its OWN levels so it never
+        depends on TestLevelsCRUD. With `--dist loadscope` each class may run on a
+        different xdist worker (state is class-scoped), so cross-class sharing is
+        unsafe — every class seeds what it needs. Unique names avoid 409 clashes.
+        """
+        for name, order in [("TEST_RF_LVL_A", 1), ("TEST_RF_LVL_B", 2)]:
+            r = requests.post(f"{API}/levels", json={"name": name, "order": order}, timeout=10)
+            if r.status_code == 201:
+                state["levels"].append(r.json()["id"])
+        yield
+
     def test_create_role_with_level_and_order(self, state):
         lid = state["levels"][0]
         r = requests.post(f"{API}/roles", json={
