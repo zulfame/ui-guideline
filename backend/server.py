@@ -185,6 +185,26 @@ async def delete_office(office_id: str):
 # ---------------------------------------------------------------------------
 # Roles / Jabatan (CMS) — hierarchical tree via parent_id
 # ---------------------------------------------------------------------------
+class Level(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    name: str
+    order: int = 0
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+
+class LevelCreate(BaseModel):
+    name: str = Field(..., min_length=1)
+    order: int = 0
+
+
+class LevelUpdate(BaseModel):
+    name: Optional[str] = Field(None, min_length=1)
+    order: Optional[int] = None
+
+
 class Role(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
@@ -192,7 +212,7 @@ class Role(BaseModel):
     name: str
     parent_id: Optional[str] = None
     dotted_parent_id: Optional[str] = None
-    level: Optional[int] = None
+    level_id: Optional[str] = None
     order: int = 0
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
@@ -202,7 +222,7 @@ class RoleCreate(BaseModel):
     name: str = Field(..., min_length=1)
     parent_id: Optional[str] = None
     dotted_parent_id: Optional[str] = None
-    level: Optional[int] = Field(None, ge=1)
+    level_id: Optional[str] = None
     order: int = 0
 
 
@@ -210,7 +230,7 @@ class RoleUpdate(BaseModel):
     name: Optional[str] = Field(None, min_length=1)
     parent_id: Optional[str] = None
     dotted_parent_id: Optional[str] = None
-    level: Optional[int] = Field(None, ge=1)
+    level_id: Optional[str] = None
     order: Optional[int] = None
 
 
@@ -261,10 +281,31 @@ async def _validate_parent(parent_id: Optional[str], role_id: Optional[str] = No
             )
 
 
+async def _validate_dotted_parent(dotted_parent_id: Optional[str], role_id: Optional[str] = None):
+    """Dotted-line superior must exist and cannot be the role itself."""
+    if dotted_parent_id is None:
+        return
+    if dotted_parent_id == role_id:
+        raise HTTPException(
+            status_code=400, detail="A role cannot be its own dotted-line superior"
+        )
+    if not await db.roles.find_one({"id": dotted_parent_id}, {"_id": 0, "id": 1}):
+        raise HTTPException(status_code=400, detail="Dotted-line superior not found")
+
+
+async def _validate_level(level_id: Optional[str]):
+    if level_id is None:
+        return
+    if not await db.levels.find_one({"id": level_id}, {"_id": 0, "id": 1}):
+        raise HTTPException(status_code=400, detail="Level not found")
+
+
 @api_router.post("/roles", response_model=Role, status_code=201)
 async def create_role(payload: RoleCreate):
     await _assert_role_name_unique(payload.name)
     await _validate_parent(payload.parent_id)
+    await _validate_dotted_parent(payload.dotted_parent_id)
+    await _validate_level(payload.level_id)
     role = Role(**payload.model_dump())
     await db.roles.insert_one(_role_to_doc(role))
     return role
@@ -313,6 +354,10 @@ async def update_role(role_id: str, payload: RoleUpdate):
         await _assert_role_name_unique(updates["name"], exclude_id=role_id)
     if "parent_id" in updates:
         await _validate_parent(updates["parent_id"], role_id=role_id)
+    if "dotted_parent_id" in updates:
+        await _validate_dotted_parent(updates["dotted_parent_id"], role_id=role_id)
+    if "level_id" in updates:
+        await _validate_level(updates["level_id"])
     updates["updated_at"] = datetime.now(timezone.utc).isoformat()
     await db.roles.update_one({"id": role_id}, {"$set": updates})
     doc.update(updates)
@@ -330,6 +375,71 @@ async def delete_role(role_id: str):
     await db.roles.update_many(
         {"parent_id": role_id},
         {"$set": {"parent_id": doc.get("parent_id"), "updated_at": now}},
+    )
+    # Clear dotted-line references pointing to the deleted role.
+    await db.roles.update_many(
+        {"dotted_parent_id": role_id},
+        {"$set": {"dotted_parent_id": None, "updated_at": now}},
+    )
+    return {"success": True}
+
+
+# ---------------------------------------------------------------------------
+# Levels / Tingkatan (CMS) — org-chart swimlanes (id + name + order)
+# ---------------------------------------------------------------------------
+def _level_to_doc(level: Level) -> dict:
+    doc = level.model_dump()
+    doc["created_at"] = doc["created_at"].isoformat()
+    doc["updated_at"] = doc["updated_at"].isoformat()
+    return doc
+
+
+async def _assert_level_name_unique(name: str, exclude_id: Optional[str] = None):
+    query = {"name": name}
+    if exclude_id:
+        query = {"$and": [{"id": {"$ne": exclude_id}}, {"name": name}]}
+    if await db.levels.find_one(query, {"_id": 0}):
+        raise HTTPException(status_code=409, detail="Level name already exists")
+
+
+@api_router.post("/levels", response_model=Level, status_code=201)
+async def create_level(payload: LevelCreate):
+    await _assert_level_name_unique(payload.name)
+    level = Level(**payload.model_dump())
+    await db.levels.insert_one(_level_to_doc(level))
+    return level
+
+
+@api_router.get("/levels", response_model=List[Level])
+async def list_levels():
+    docs = await db.levels.find({}, {"_id": 0}).sort("order", 1).to_list(10000)
+    return [Level(**d) for d in docs]
+
+
+@api_router.put("/levels/{level_id}", response_model=Level)
+async def update_level(level_id: str, payload: LevelUpdate):
+    doc = await db.levels.find_one({"id": level_id}, {"_id": 0})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Level not found")
+    updates = payload.model_dump(exclude_unset=True)
+    if "name" in updates:
+        await _assert_level_name_unique(updates["name"], exclude_id=level_id)
+    updates["updated_at"] = datetime.now(timezone.utc).isoformat()
+    await db.levels.update_one({"id": level_id}, {"$set": updates})
+    doc.update(updates)
+    return Level(**doc)
+
+
+@api_router.delete("/levels/{level_id}")
+async def delete_level(level_id: str):
+    result = await db.levels.delete_one({"id": level_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Level not found")
+    # Detach roles from the removed level.
+    now = datetime.now(timezone.utc).isoformat()
+    await db.roles.update_many(
+        {"level_id": level_id},
+        {"$set": {"level_id": None, "updated_at": now}},
     )
     return {"success": True}
 
@@ -359,6 +469,7 @@ async def ensure_indexes():
     await db.offices.create_index("code", unique=True)
     await db.offices.create_index("name", unique=True)
     await db.roles.create_index("name", unique=True)
+    await db.levels.create_index("name", unique=True)
 
 
 @app.on_event("shutdown")

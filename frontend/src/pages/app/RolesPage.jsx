@@ -12,6 +12,7 @@ import {
 import {
   ChevronLeft,
   ChevronRight,
+  Layers,
   MoreHorizontal,
   Network,
   Pencil,
@@ -63,6 +64,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Combobox } from "@/components/composite/Combobox";
+import { OrgChart } from "@/components/composite/OrgChart";
 import {
   Select,
   SelectContent,
@@ -89,6 +91,9 @@ const NONE = "__none__";
 const roleSchema = z.object({
   name: z.string().min(1, "Name is required"),
   parent_id: z.string().optional(),
+  dotted_parent_id: z.string().optional(),
+  level_id: z.string().optional(),
+  order: z.coerce.number().int("Whole number").min(0, "Must be ≥ 0"),
 });
 
 /** Build a pre-order (tree) ordering with depth + ancestor chain per role. */
@@ -100,7 +105,7 @@ function buildTree(roles) {
     (byParent[key] ||= []).push(r);
   });
   Object.values(byParent).forEach((list) =>
-    list.sort((a, b) => a.name.localeCompare(b.name)),
+    list.sort((a, b) => a.order - b.order || a.name.localeCompare(b.name)),
   );
 
   const out = [];
@@ -130,70 +135,16 @@ function descendantIds(roles, rootId) {
   return out;
 }
 
-/** Nested forest (roots → children) for the org chart. */
-function buildForest(roles) {
-  const byId = {};
-  roles.forEach((r) => (byId[r.id] = { ...r, children: [] }));
-  const roots = [];
-  roles.forEach((r) => {
-    const parent = r.parent_id && byId[r.parent_id];
-    if (parent) parent.children.push(byId[r.id]);
-    else roots.push(byId[r.id]);
-  });
-  const sortRec = (n) => {
-    n.children.sort((a, b) => a.name.localeCompare(b.name));
-    n.children.forEach(sortRec);
-  };
-  roots.sort((a, b) => a.name.localeCompare(b.name));
-  roots.forEach(sortRec);
-  return roots;
-}
-
-/** Build org-chart <li> elements iteratively (no recursive JSX component —
- *  avoids visual-edits babel plugin stack overflow). Returns root <li> array. */
-function buildOrgTree(forest) {
-  const pre = [];
-  const stack = [...forest];
-  while (stack.length) {
-    const n = stack.pop();
-    pre.push(n);
-    for (let i = n.children.length - 1; i >= 0; i--) stack.push(n.children[i]);
-  }
-  const liById = new Map();
-  for (let i = pre.length - 1; i >= 0; i--) {
-    const n = pre[i];
-    const box = React.createElement(
-      "div",
-      {
-        className:
-          "inline-flex max-w-[11rem] items-center justify-center whitespace-normal rounded-md border bg-card px-3 py-1.5 text-center text-xs font-medium text-card-foreground shadow-sm",
-      },
-      n.name,
-    );
-    const childrenUl = n.children.length
-      ? React.createElement(
-          "ul",
-          null,
-          n.children.map((c) => liById.get(c.id)),
-        )
-      : null;
-    liById.set(
-      n.id,
-      React.createElement(
-        "li",
-        { key: n.id, "data-testid": `org-node-${n.id}` },
-        box,
-        childrenUl,
-      ),
-    );
-  }
-  return forest.map((r) => liById.get(r.id));
-}
-
-function RoleFormDialog({ open, onOpenChange, editing, roles, onSaved }) {
+function RoleFormDialog({ open, onOpenChange, editing, roles, levels, onSaved }) {
   const form = useForm({
     resolver: zodResolver(roleSchema),
-    defaultValues: { name: "", parent_id: NONE },
+    defaultValues: {
+      name: "",
+      parent_id: NONE,
+      dotted_parent_id: NONE,
+      level_id: NONE,
+      order: 0,
+    },
   });
   const [submitting, setSubmitting] = useState(false);
 
@@ -202,6 +153,9 @@ function RoleFormDialog({ open, onOpenChange, editing, roles, onSaved }) {
       form.reset({
         name: editing?.name || "",
         parent_id: editing?.parent_id || NONE,
+        dotted_parent_id: editing?.dotted_parent_id || NONE,
+        level_id: editing?.level_id || NONE,
+        order: editing?.order ?? 0,
       });
     }
   }, [open, editing]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -220,11 +174,33 @@ function RoleFormDialog({ open, onOpenChange, editing, roles, onSaved }) {
     [parentOptions],
   );
 
+  const dottedComboOptions = useMemo(
+    () => [
+      { value: NONE, label: "None" },
+      ...roles
+        .filter((r) => r.id !== editing?.id)
+        .map((r) => ({ value: r.id, label: r.name })),
+    ],
+    [roles, editing],
+  );
+
+  const levelComboOptions = useMemo(
+    () => [
+      { value: NONE, label: "None" },
+      ...levels.map((l) => ({ value: l.id, label: l.name })),
+    ],
+    [levels],
+  );
+
   const onSubmit = async (data) => {
     setSubmitting(true);
+    const clean = (v) => (v && v !== NONE ? v : null);
     const payload = {
       name: data.name.trim(),
-      parent_id: data.parent_id && data.parent_id !== NONE ? data.parent_id : null,
+      parent_id: clean(data.parent_id),
+      dotted_parent_id: clean(data.dotted_parent_id),
+      level_id: clean(data.level_id),
+      order: Number(data.order) || 0,
     };
     try {
       if (editing) {
@@ -251,8 +227,8 @@ function RoleFormDialog({ open, onOpenChange, editing, roles, onSaved }) {
             <DialogHeader>
               <DialogTitle>{editing ? "Edit role" : "Add role"}</DialogTitle>
               <DialogDescription>
-                A role represents a position (jabatan). Pick a direct superior to
-                place it in the hierarchy.
+                A role represents a position (jabatan). Configure its superior,
+                level and order to place it in the org chart.
               </DialogDescription>
             </DialogHeader>
             <DialogBody>
@@ -288,6 +264,64 @@ function RoleFormDialog({ open, onOpenChange, editing, roles, onSaved }) {
                   </FormItem>
                 )}
               />
+              <FormField
+                control={form.control}
+                name="dotted_parent_id"
+                render={({ field }) => (
+                  <FormItem className="flex flex-col">
+                    <FormLabel>Dotted-line superior (Optional)</FormLabel>
+                    <Combobox
+                      options={dottedComboOptions}
+                      value={field.value || NONE}
+                      onChange={(v) => field.onChange(v || NONE)}
+                      placeholder="(Optional)"
+                      searchPlaceholder="Search role..."
+                      emptyText="No role found."
+                      data-testid="role-dotted-select"
+                    />
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <div className="grid grid-cols-2 gap-3">
+                <FormField
+                  control={form.control}
+                  name="level_id"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-col">
+                      <FormLabel>Level (Optional)</FormLabel>
+                      <Combobox
+                        options={levelComboOptions}
+                        value={field.value || NONE}
+                        onChange={(v) => field.onChange(v || NONE)}
+                        placeholder="(Optional)"
+                        searchPlaceholder="Search level..."
+                        emptyText="No level found."
+                        data-testid="role-level-select"
+                      />
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="order"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Order (left→right)</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          min={0}
+                          {...field}
+                          data-testid="role-order-input"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
             </DialogBody>
             <DialogFooter>
               <Button
@@ -309,8 +343,181 @@ function RoleFormDialog({ open, onOpenChange, editing, roles, onSaved }) {
   );
 }
 
+function LevelManagerDialog({ open, onOpenChange, levels, onChanged }) {
+  const [drafts, setDrafts] = useState({});
+  const [newLevel, setNewLevel] = useState({ name: "", order: 0 });
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (open) {
+      const d = {};
+      levels.forEach((l) => (d[l.id] = { name: l.name, order: l.order }));
+      setDrafts(d);
+      setNewLevel({ name: "", order: 0 });
+    }
+  }, [open, levels]);
+
+  const setDraft = (id, patch) =>
+    setDrafts((prev) => ({ ...prev, [id]: { ...prev[id], ...patch } }));
+
+  const saveLevel = async (id) => {
+    const d = drafts[id];
+    if (!d?.name?.trim()) return toast.error("Level name is required");
+    setBusy(true);
+    try {
+      await API.put(`/levels/${id}`, {
+        name: d.name.trim(),
+        order: Number(d.order) || 0,
+      });
+      toast.success("Level updated");
+      onChanged();
+    } catch (err) {
+      toast.error(err?.response?.data?.detail || "Failed to update level");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const deleteLevel = async (id) => {
+    setBusy(true);
+    try {
+      await API.delete(`/levels/${id}`);
+      toast.success("Level deleted");
+      onChanged();
+    } catch (err) {
+      toast.error(err?.response?.data?.detail || "Failed to delete level");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const addLevel = async () => {
+    if (!newLevel.name.trim()) return toast.error("Level name is required");
+    setBusy(true);
+    try {
+      await API.post("/levels", {
+        name: newLevel.name.trim(),
+        order: Number(newLevel.order) || 0,
+      });
+      toast.success("Level created");
+      setNewLevel({ name: "", order: 0 });
+      onChanged();
+    } catch (err) {
+      toast.error(err?.response?.data?.detail || "Failed to create level");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-lg" data-testid="levels-dialog">
+        <DialogHeader>
+          <DialogTitle>Manage levels</DialogTitle>
+          <DialogDescription>
+            Levels define the org-chart swimlanes (e.g. Direktur, Kepala Bagian,
+            Kepala Seksi). Lower order appears higher in the chart.
+          </DialogDescription>
+        </DialogHeader>
+        <DialogBody className="max-h-[60vh] space-y-3 overflow-auto">
+          <div className="grid grid-cols-[1fr_5rem_auto] items-center gap-2 text-xs font-medium text-muted-foreground">
+            <span>Name</span>
+            <span>Order</span>
+            <span className="sr-only">Actions</span>
+          </div>
+          {levels.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No levels yet.</p>
+          ) : (
+            levels.map((l) => (
+              <div
+                key={l.id}
+                className="grid grid-cols-[1fr_5rem_auto] items-center gap-2"
+                data-testid={`level-row-${l.id}`}
+              >
+                <Input
+                  value={drafts[l.id]?.name ?? ""}
+                  onChange={(e) => setDraft(l.id, { name: e.target.value })}
+                  data-testid={`level-name-${l.id}`}
+                />
+                <Input
+                  type="number"
+                  min={0}
+                  value={drafts[l.id]?.order ?? 0}
+                  onChange={(e) => setDraft(l.id, { order: e.target.value })}
+                  data-testid={`level-order-${l.id}`}
+                />
+                <div className="flex gap-1">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={busy}
+                    onClick={() => saveLevel(l.id)}
+                    data-testid={`level-save-${l.id}`}
+                  >
+                    Save
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="size-8 text-destructive hover:text-destructive"
+                    disabled={busy}
+                    onClick={() => deleteLevel(l.id)}
+                    aria-label="Delete level"
+                    data-testid={`level-delete-${l.id}`}
+                  >
+                    <Trash2 className="size-4" />
+                  </Button>
+                </div>
+              </div>
+            ))
+          )}
+          <div className="border-t pt-3">
+            <div className="grid grid-cols-[1fr_5rem_auto] items-center gap-2">
+              <Input
+                placeholder="New level name"
+                value={newLevel.name}
+                onChange={(e) =>
+                  setNewLevel((p) => ({ ...p, name: e.target.value }))
+                }
+                data-testid="level-new-name"
+              />
+              <Input
+                type="number"
+                min={0}
+                value={newLevel.order}
+                onChange={(e) =>
+                  setNewLevel((p) => ({ ...p, order: e.target.value }))
+                }
+                data-testid="level-new-order"
+              />
+              <Button
+                size="sm"
+                disabled={busy}
+                onClick={addLevel}
+                data-testid="level-add"
+              >
+                <Plus className="size-4" /> Add
+              </Button>
+            </div>
+          </div>
+        </DialogBody>
+        <DialogFooter>
+          <Button
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            data-testid="levels-close"
+          >
+            Close
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export default function RolesPage() {
   const [roles, setRoles] = useState([]);
+  const [levels, setLevels] = useState([]);
   const [status, setStatus] = useState("loading");
   const [globalFilter, setGlobalFilter] = useState("");
   const [rowSelection, setRowSelection] = useState({});
@@ -319,12 +526,22 @@ export default function RolesPage() {
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [bulkOpen, setBulkOpen] = useState(false);
   const [structureOpen, setStructureOpen] = useState(false);
+  const [levelsOpen, setLevelsOpen] = useState(false);
+
+  const loadLevels = async () => {
+    try {
+      const { data } = await API.get("/levels");
+      setLevels(data);
+    } catch {
+      /* levels are optional; ignore */
+    }
+  };
 
   const load = async () => {
     setStatus("loading");
     try {
-      const { data } = await API.get("/roles");
-      setRoles(data);
+      const [rolesRes] = await Promise.all([API.get("/roles"), loadLevels()]);
+      setRoles(rolesRes.data);
       setStatus("ready");
     } catch {
       setStatus("error");
@@ -335,8 +552,13 @@ export default function RolesPage() {
     load();
   }, []);
 
+  const levelName = useMemo(() => {
+    const m = {};
+    levels.forEach((l) => (m[l.id] = l.name));
+    return m;
+  }, [levels]);
+
   const treeData = useMemo(() => buildTree(roles), [roles]);
-  const forest = useMemo(() => buildForest(roles), [roles]);
 
   const openCreate = () => {
     setEditing(null);
@@ -359,9 +581,7 @@ export default function RolesPage() {
   };
 
   const confirmBulkDelete = async () => {
-    const ids = table
-      .getSelectedRowModel()
-      .rows.map((r) => r.original.id);
+    const ids = table.getSelectedRowModel().rows.map((r) => r.original.id);
     try {
       await API.post("/roles/bulk-delete", { ids });
       toast.success(`Deleted ${ids.length} role(s)`);
@@ -422,22 +642,23 @@ export default function RolesPage() {
         cell: ({ row }) => {
           const chain = row.original._chain || [];
           const parent = chain.length ? chain[chain.length - 1] : null;
-          return (
-            <span className="text-muted-foreground">{parent || "—"}</span>
-          );
+          return <span className="text-muted-foreground">{parent || "—"}</span>;
         },
       },
       {
-        id: "chain",
-        header: "Superiors (top ↑)",
+        id: "level",
+        header: "Level",
         cell: ({ row }) => {
-          const chain = [...(row.original._chain || [])].reverse();
-          if (!chain.length)
-            return <span className="text-muted-foreground">Top level</span>;
-          return (
-            <span className="text-muted-foreground">{chain.join(" › ")}</span>
-          );
+          const name = levelName[row.original.level_id];
+          return <span className="text-muted-foreground">{name || "—"}</span>;
         },
+      },
+      {
+        id: "order",
+        header: "Order",
+        cell: ({ row }) => (
+          <span className="text-muted-foreground">{row.original.order ?? 0}</span>
+        ),
       },
       {
         id: "actions",
@@ -474,7 +695,7 @@ export default function RolesPage() {
         enableSorting: false,
       },
     ],
-    [],
+    [levelName],
   );
 
   const table = useReactTable({
@@ -503,6 +724,14 @@ export default function RolesPage() {
         <CardHeader className="flex flex-row items-center justify-between space-y-0">
           <CardTitle className="text-base">Role List</CardTitle>
           <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setLevelsOpen(true)}
+              data-testid="roles-levels-btn"
+            >
+              <Layers className="size-4" /> Levels
+            </Button>
             <Button
               variant="outline"
               size="sm"
@@ -685,7 +914,15 @@ export default function RolesPage() {
         onOpenChange={setDialogOpen}
         editing={editing}
         roles={roles}
+        levels={levels}
         onSaved={load}
+      />
+
+      <LevelManagerDialog
+        open={levelsOpen}
+        onOpenChange={setLevelsOpen}
+        levels={levels}
+        onChanged={loadLevels}
       />
 
       <AlertDialog
@@ -747,17 +984,12 @@ export default function RolesPage() {
           <DialogHeader>
             <DialogTitle>Role structure</DialogTitle>
             <DialogDescription>
-              Hierarki jabatan berdasarkan atasan langsung (parent).
+              Org chart per level (swimlane). Solid = atasan langsung, garis
+              putus-putus = atasan dotted-line.
             </DialogDescription>
           </DialogHeader>
           <DialogBody className="max-h-[75vh] overflow-auto">
-            {forest.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No roles yet.</p>
-            ) : (
-              <div className="min-w-max py-2">
-                <ul className="org-chart">{buildOrgTree(forest)}</ul>
-              </div>
-            )}
+            <OrgChart roles={roles} levels={levels} />
           </DialogBody>
         </DialogContent>
       </Dialog>
