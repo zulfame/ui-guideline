@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/card";
 import {
   Dialog,
+  DialogBody,
   DialogClose,
   DialogContent,
   DialogDescription,
@@ -108,7 +109,7 @@ function AddUserDialog() {
               </DialogDescription>
             </DialogHeader>
 
-            <div className="space-y-[var(--field-gap)] px-6 py-4">
+            <DialogBody>
               <FormField
                 control={form.control}
                 name="fullName"
@@ -157,7 +158,7 @@ function AddUserDialog() {
                   </FormItem>
                 )}
               />
-            </div>
+            </DialogBody>
 
             <DialogFooter>
               <DialogClose asChild>

@@ -45,6 +45,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import {
   Dialog,
+  DialogBody,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -174,16 +175,16 @@ function RoleFormDialog({ open, onOpenChange, editing, roles, onSaved }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md" data-testid="role-form-dialog">
-        <DialogHeader>
-          <DialogTitle>{editing ? "Edit role" : "Add role"}</DialogTitle>
-          <DialogDescription>
-            A role represents a position (jabatan). Pick a direct superior to place
-            it in the hierarchy.
-          </DialogDescription>
-        </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)}>
-            <div className="space-y-[var(--field-gap)] py-2">
+            <DialogHeader>
+              <DialogTitle>{editing ? "Edit role" : "Add role"}</DialogTitle>
+              <DialogDescription>
+                A role represents a position (jabatan). Pick a direct superior to
+                place it in the hierarchy.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogBody>
               <FormField
                 control={form.control}
                 name="name"
@@ -225,7 +226,7 @@ function RoleFormDialog({ open, onOpenChange, editing, roles, onSaved }) {
                   </FormItem>
                 )}
               />
-            </div>
+            </DialogBody>
             <DialogFooter>
               <Button
                 type="button"

@@ -64,6 +64,17 @@ const DialogFooter = ({
 )
 DialogFooter.displayName = "DialogFooter"
 
+// Standard form/content body for dialogs. DialogContent is p-0, so the body
+// MUST provide its own padding — use this instead of a hand-rolled div so
+// header/body/footer stay perfectly aligned (px-6) and vertical rhythm is
+// consistent (space-y field gap, density-aware). See DESIGN_SYSTEM 2B.10.
+const DialogBody = ({ className, ...props }) => (
+  <div
+    className={cn("space-y-[var(--field-gap)] px-6 py-4", className)}
+    {...props} />
+)
+DialogBody.displayName = "DialogBody"
+
 const DialogTitle = React.forwardRef(({ className, ...props }, ref) => (
   <DialogPrimitive.Title
     ref={ref}
@@ -89,6 +100,7 @@ export {
   DialogContent,
   DialogHeader,
   DialogFooter,
+  DialogBody,
   DialogTitle,
   DialogDescription,
 }

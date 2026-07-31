@@ -54,6 +54,7 @@ import {
 } from "@/components/ui/select";
 import {
   Dialog,
+  DialogBody,
   DialogClose,
   DialogContent,
   DialogDescription,
@@ -217,7 +218,7 @@ function OfficeFormDialog({ open, onOpenChange, mode, initialValues, onSaved }) 
               </DialogDescription>
             </DialogHeader>
 
-            <div className="space-y-[var(--field-gap)] px-6 py-4">
+            <DialogBody>
               <div className="grid gap-4 sm:grid-cols-2">
                 <FormField
                   control={form.control}
@@ -332,7 +333,7 @@ function OfficeFormDialog({ open, onOpenChange, mode, initialValues, onSaved }) 
                   </FormItem>
                 )}
               />
-            </div>
+            </DialogBody>
 
             <DialogFooter>
               <DialogClose asChild>
