@@ -191,6 +191,7 @@ class Level(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     name: str
     order: int = 0
+    color: Optional[str] = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
@@ -198,11 +199,13 @@ class Level(BaseModel):
 class LevelCreate(BaseModel):
     name: str = Field(..., min_length=1)
     order: int = 0
+    color: Optional[str] = None
 
 
 class LevelUpdate(BaseModel):
     name: Optional[str] = Field(None, min_length=1)
     order: Optional[int] = None
+    color: Optional[str] = None
 
 
 class Role(BaseModel):

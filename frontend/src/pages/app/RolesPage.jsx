@@ -10,6 +10,10 @@ import {
   flexRender,
 } from "@tanstack/react-table";
 import {
+  ArrowDown,
+  ArrowLeft,
+  ArrowRight,
+  ArrowUp,
   ChevronLeft,
   ChevronRight,
   Layers,
@@ -66,6 +70,11 @@ import {
 import { Combobox } from "@/components/composite/Combobox";
 import { OrgChart } from "@/components/composite/OrgChart";
 import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -87,6 +96,67 @@ import { EmptyState } from "@/components/composite/EmptyState";
 import { DensityToggle } from "@/components/density-toggle";
 
 const NONE = "__none__";
+
+const PALETTE = [
+  // guard-allow: org-chart swimlane colors are user-facing data, not design tokens
+  { name: "Blue", hex: "#3b82f6" }, // guard-allow
+  { name: "Cyan", hex: "#06b6d4" }, // guard-allow
+  { name: "Teal", hex: "#14b8a6" }, // guard-allow
+  { name: "Green", hex: "#22c55e" }, // guard-allow
+  { name: "Lime", hex: "#84cc16" }, // guard-allow
+  { name: "Amber", hex: "#f59e0b" }, // guard-allow
+  { name: "Orange", hex: "#f97316" }, // guard-allow
+  { name: "Rose", hex: "#f43f5e" }, // guard-allow
+  { name: "Violet", hex: "#8b5cf6" }, // guard-allow
+  { name: "Slate", hex: "#64748b" }, // guard-allow
+];
+
+function ColorSwatch({ value, onChange, testid }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          className="size-8 shrink-0 rounded-md border"
+          style={{ backgroundColor: value || "transparent" }}
+          aria-label="Pick color"
+          data-testid={testid}
+        />
+      </PopoverTrigger>
+      <PopoverContent className="w-auto p-2" align="start">
+        <div className="grid grid-cols-5 gap-1.5">
+          {PALETTE.map((c) => (
+            <button
+              key={c.hex}
+              type="button"
+              onClick={() => {
+                onChange(c.hex);
+                setOpen(false);
+              }}
+              className="size-6 rounded-md border"
+              style={{ backgroundColor: c.hex }}
+              aria-label={c.name}
+              title={c.name}
+              data-testid={`swatch-${c.name.toLowerCase()}`}
+            />
+          ))}
+        </div>
+        <button
+          type="button"
+          onClick={() => {
+            onChange(null);
+            setOpen(false);
+          }}
+          className="mt-2 w-full rounded-md border px-2 py-1 text-xs text-muted-foreground hover:bg-muted"
+        >
+          No color
+        </button>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 
 const roleSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -245,51 +315,53 @@ function RoleFormDialog({ open, onOpenChange, editing, roles, levels, onSaved })
                   </FormItem>
                 )}
               />
-              <FormField
-                control={form.control}
-                name="parent_id"
-                render={({ field }) => (
-                  <FormItem className="flex flex-col">
-                    <FormLabel>Direct superior (Optional)</FormLabel>
-                    <Combobox
-                      options={parentComboOptions}
-                      value={field.value || NONE}
-                      onChange={(v) => field.onChange(v || NONE)}
-                      placeholder="(Optional)"
-                      searchPlaceholder="Search role..."
-                      emptyText="No role found."
-                      data-testid="role-parent-select"
-                    />
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="dotted_parent_id"
-                render={({ field }) => (
-                  <FormItem className="flex flex-col">
-                    <FormLabel>Dotted-line superior (Optional)</FormLabel>
-                    <Combobox
-                      options={dottedComboOptions}
-                      value={field.value || NONE}
-                      onChange={(v) => field.onChange(v || NONE)}
-                      placeholder="(Optional)"
-                      searchPlaceholder="Search role..."
-                      emptyText="No role found."
-                      data-testid="role-dotted-select"
-                    />
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <div className="grid grid-cols-2 gap-3">
+                <FormField
+                  control={form.control}
+                  name="parent_id"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-col">
+                      <FormLabel>Direct superior</FormLabel>
+                      <Combobox
+                        options={parentComboOptions}
+                        value={field.value || NONE}
+                        onChange={(v) => field.onChange(v || NONE)}
+                        placeholder="(Optional)"
+                        searchPlaceholder="Search role..."
+                        emptyText="No role found."
+                        data-testid="role-parent-select"
+                      />
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="dotted_parent_id"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-col">
+                      <FormLabel>Dotted-line superior</FormLabel>
+                      <Combobox
+                        options={dottedComboOptions}
+                        value={field.value || NONE}
+                        onChange={(v) => field.onChange(v || NONE)}
+                        placeholder="(Optional)"
+                        searchPlaceholder="Search role..."
+                        emptyText="No role found."
+                        data-testid="role-dotted-select"
+                      />
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
               <div className="grid grid-cols-2 gap-3">
                 <FormField
                   control={form.control}
                   name="level_id"
                   render={({ field }) => (
                     <FormItem className="flex flex-col">
-                      <FormLabel>Level (Optional)</FormLabel>
+                      <FormLabel>Level</FormLabel>
                       <Combobox
                         options={levelComboOptions}
                         value={field.value || NONE}
@@ -345,18 +417,18 @@ function RoleFormDialog({ open, onOpenChange, editing, roles, levels, onSaved })
 
 function LevelManagerDialog({ open, onOpenChange, levels, onChanged }) {
   const [drafts, setDrafts] = useState({});
-  const [newLevel, setNewLevel] = useState({ name: "", order: 0 });
+  const [newLevel, setNewLevel] = useState({ name: "", order: 0, color: null });
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     if (open) {
       const d = {};
-      levels.forEach((l) => (d[l.id] = { name: l.name, order: l.order }));
+      levels.forEach((l) => (d[l.id] = { name: l.name, order: l.order, color: l.color || null }));
       setDrafts(d);
       const nextOrder = levels.length
         ? Math.max(...levels.map((l) => Number(l.order) || 0)) + 1
         : 1;
-      setNewLevel({ name: "", order: nextOrder });
+      setNewLevel({ name: "", order: nextOrder, color: null });
     }
   }, [open, levels]);
 
@@ -371,11 +443,42 @@ function LevelManagerDialog({ open, onOpenChange, levels, onChanged }) {
       await API.put(`/levels/${id}`, {
         name: d.name.trim(),
         order: Number(d.order) || 0,
+        color: d.color || null,
       });
       toast.success("Level updated");
       onChanged();
     } catch (err) {
       toast.error(err?.response?.data?.detail || "Failed to update level");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const setColorNow = async (id, hex) => {
+    setDraft(id, { color: hex });
+    try {
+      await API.put(`/levels/${id}`, { color: hex });
+      onChanged();
+    } catch {
+      toast.error("Failed to set color");
+    }
+  };
+
+  const moveLevel = async (index, dir) => {
+    const a = levels[index];
+    const b = levels[index + dir];
+    if (!a || !b) return;
+    setBusy(true);
+    try {
+      const aOrder = Number(a.order) || 0;
+      const bOrder = Number(b.order) || 0;
+      await Promise.all([
+        API.put(`/levels/${a.id}`, { order: bOrder }),
+        API.put(`/levels/${b.id}`, { order: aOrder }),
+      ]);
+      onChanged();
+    } catch {
+      toast.error("Failed to reorder level");
     } finally {
       setBusy(false);
     }
@@ -401,6 +504,7 @@ function LevelManagerDialog({ open, onOpenChange, levels, onChanged }) {
       await API.post("/levels", {
         name: newLevel.name.trim(),
         order: Number(newLevel.order) || 0,
+        color: newLevel.color || null,
       });
       toast.success("Level created");
       onChanged();
@@ -413,32 +517,33 @@ function LevelManagerDialog({ open, onOpenChange, levels, onChanged }) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg" data-testid="levels-dialog">
+      <DialogContent className="sm:max-w-2xl" data-testid="levels-dialog">
         <DialogHeader>
           <DialogTitle>Manage levels</DialogTitle>
           <DialogDescription>
             Levels define the org-chart swimlanes (e.g. Direktur, Kepala Bagian,
-            Kepala Seksi). Lower order appears higher in the chart.
+            Kepala Seksi). Use the arrows to reorder; pick a color for each swimlane.
           </DialogDescription>
         </DialogHeader>
-        <DialogBody className="max-h-[60vh] space-y-3 overflow-auto">
-          <div className="grid grid-cols-[1fr_5rem_auto] items-center gap-2 text-xs font-medium text-muted-foreground">
-            <span>Name</span>
-            <span>Order</span>
-            <span className="sr-only">Actions</span>
-          </div>
+        <DialogBody className="max-h-[60vh] space-y-2 overflow-auto">
           {levels.length === 0 ? (
             <p className="text-sm text-muted-foreground">No levels yet.</p>
           ) : (
-            levels.map((l) => (
+            levels.map((l, i) => (
               <div
                 key={l.id}
-                className="grid grid-cols-[1fr_5rem_auto] items-center gap-2"
+                className="flex items-center gap-2"
                 data-testid={`level-row-${l.id}`}
               >
+                <ColorSwatch
+                  value={drafts[l.id]?.color ?? null}
+                  onChange={(hex) => setColorNow(l.id, hex)}
+                  testid={`level-color-${l.id}`}
+                />
                 <Input
                   value={drafts[l.id]?.name ?? ""}
                   onChange={(e) => setDraft(l.id, { name: e.target.value })}
+                  className="flex-1"
                   data-testid={`level-name-${l.id}`}
                 />
                 <Input
@@ -446,61 +551,85 @@ function LevelManagerDialog({ open, onOpenChange, levels, onChanged }) {
                   min={0}
                   value={drafts[l.id]?.order ?? 0}
                   onChange={(e) => setDraft(l.id, { order: e.target.value })}
+                  className="w-16"
                   data-testid={`level-order-${l.id}`}
                 />
-                <div className="flex gap-1">
+                <div className="flex">
                   <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={busy}
-                    onClick={() => saveLevel(l.id)}
-                    data-testid={`level-save-${l.id}`}
+                    variant="ghost"
+                    size="icon"
+                    className="size-8"
+                    disabled={busy || i === 0}
+                    onClick={() => moveLevel(i, -1)}
+                    aria-label="Move level up"
+                    data-testid={`level-up-${l.id}`}
                   >
-                    Save
+                    <ArrowUp className="size-4" />
                   </Button>
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="size-8 text-destructive hover:text-destructive"
-                    disabled={busy}
-                    onClick={() => deleteLevel(l.id)}
-                    aria-label="Delete level"
-                    data-testid={`level-delete-${l.id}`}
+                    className="size-8"
+                    disabled={busy || i === levels.length - 1}
+                    onClick={() => moveLevel(i, 1)}
+                    aria-label="Move level down"
+                    data-testid={`level-down-${l.id}`}
                   >
-                    <Trash2 className="size-4" />
+                    <ArrowDown className="size-4" />
                   </Button>
                 </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={busy}
+                  onClick={() => saveLevel(l.id)}
+                  data-testid={`level-save-${l.id}`}
+                >
+                  Save
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="size-8 text-destructive hover:text-destructive"
+                  disabled={busy}
+                  onClick={() => deleteLevel(l.id)}
+                  aria-label="Delete level"
+                  data-testid={`level-delete-${l.id}`}
+                >
+                  <Trash2 className="size-4" />
+                </Button>
               </div>
             ))
           )}
-          <div className="border-t pt-3">
-            <div className="grid grid-cols-[1fr_5rem_auto] items-center gap-2">
-              <Input
-                placeholder="New level name"
-                value={newLevel.name}
-                onChange={(e) =>
-                  setNewLevel((p) => ({ ...p, name: e.target.value }))
-                }
-                data-testid="level-new-name"
-              />
-              <Input
-                type="number"
-                min={0}
-                value={newLevel.order}
-                onChange={(e) =>
-                  setNewLevel((p) => ({ ...p, order: e.target.value }))
-                }
-                data-testid="level-new-order"
-              />
-              <Button
-                size="sm"
-                disabled={busy}
-                onClick={addLevel}
-                data-testid="level-add"
-              >
-                <Plus className="size-4" /> Add
-              </Button>
-            </div>
+          <div className="mt-1 flex items-center gap-2 border-t pt-3">
+            <ColorSwatch
+              value={newLevel.color}
+              onChange={(hex) => setNewLevel((p) => ({ ...p, color: hex }))}
+              testid="level-new-color"
+            />
+            <Input
+              placeholder="New level name"
+              value={newLevel.name}
+              onChange={(e) => setNewLevel((p) => ({ ...p, name: e.target.value }))}
+              className="flex-1"
+              data-testid="level-new-name"
+            />
+            <Input
+              type="number"
+              min={0}
+              value={newLevel.order}
+              onChange={(e) => setNewLevel((p) => ({ ...p, order: e.target.value }))}
+              className="w-16"
+              data-testid="level-new-order"
+            />
+            <Button
+              size="sm"
+              disabled={busy}
+              onClick={addLevel}
+              data-testid="level-add"
+            >
+              <Plus className="size-4" /> Add
+            </Button>
           </div>
         </DialogBody>
         <DialogFooter>
@@ -569,6 +698,29 @@ export default function RolesPage() {
   const openEdit = (role) => {
     setEditing(role);
     setDialogOpen(true);
+  };
+
+  const moveRole = async (role, dir) => {
+    const sibs = roles
+      .filter((r) => (r.level_id || null) === (role.level_id || null))
+      .sort((a, b) => a.order - b.order || a.name.localeCompare(b.name));
+    const idx = sibs.findIndex((r) => r.id === role.id);
+    const j = idx + dir;
+    if (j < 0 || j >= sibs.length) return;
+    const arr = [...sibs];
+    [arr[idx], arr[j]] = [arr[j], arr[idx]];
+    try {
+      await Promise.all(
+        arr
+          .map((r, k) =>
+            (Number(r.order) || 0) !== k ? API.put(`/roles/${r.id}`, { order: k }) : null,
+          )
+          .filter(Boolean),
+      );
+      load();
+    } catch {
+      toast.error("Failed to reorder role");
+    }
   };
 
   const confirmDelete = async () => {
@@ -679,6 +831,18 @@ export default function RolesPage() {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem
+                onClick={() => moveRole(row.original, -1)}
+                data-testid={`roles-move-left-${row.original.id}`}
+              >
+                <ArrowLeft className="size-4" /> Move left
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => moveRole(row.original, 1)}
+                data-testid={`roles-move-right-${row.original.id}`}
+              >
+                <ArrowRight className="size-4" /> Move right
+              </DropdownMenuItem>
+              <DropdownMenuItem
                 onClick={() => openEdit(row.original)}
                 data-testid={`roles-edit-${row.original.id}`}
               >
@@ -697,7 +861,7 @@ export default function RolesPage() {
         enableSorting: false,
       },
     ],
-    [levelName],
+    [levelName, roles], // eslint-disable-line react-hooks/exhaustive-deps
   );
 
   const table = useReactTable({
