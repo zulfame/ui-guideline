@@ -13,7 +13,6 @@
 | ID | Item | Alasan ditunda | Trigger aktivasi | Status |
 |----|------|----------------|------------------|--------|
 | B3 | **Reduced Motion** (`prefers-reduced-motion`) | Peningkatan aksesibilitas gerak; belum kritikal untuk scope saat ini | Ada kebutuhan a11y gerak / audit aksesibilitas | 🔒 |
-| B4 | **Comfortable Density mode** (switch berbasis token, P4) | Default sistem = Compact; mode Comfortable belum diminta | Permintaan mode kepadatan alternatif | 🔒 |
 | B5 | **Saved Filter** (DataTable) | Butuh persistensi (localStorage/backend) & UX manajemen filter | Halaman data nyata + kebutuhan simpan filter | 🔒 |
 | B6 | **Virtualization** tabel/list besar | Data mock kecil (client-side cukup); butuh dependency baru (R37) | Dataset besar (> ~100–200 baris) / backend nyata | 🔒 |
 
@@ -44,6 +43,7 @@ Dipertimbangkan hanya bila Design System dipakai lintas-tim atau dipublikasikan.
 | Alert form-level | ✅ Established | `LoginForm` (variant `destructive`). |
 | Dark Mode Toggle (B1) | ✅ Established | Token 2-layer + `ThemeProvider`/`ModeToggle` (R28, Update 37). |
 | Empty State pattern (B2 / BR2) | ✅ Established | `No Data Available` + klasifikasi 2C.18 + composite `EmptyState`. |
+| Comfortable Density mode (B4) | ✅ Established | Default **Dense** ⇄ **Comfortable** runtime via `DensityProvider`/`DensityToggle` (CSS var, `localStorage`). 2B.21/2C.4, Update 68/69. |
 
 ---
 

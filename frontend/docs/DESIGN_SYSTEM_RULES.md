@@ -120,6 +120,11 @@ Data Grid, Code Block, Markdown, Phone Input, Input Mask, Kanban, Sortable, Empt
 Combobox, Date Picker, Password Input. Composite =
 **komposisi** dari primitives di atas (+ dependency yang diizinkan R37); **bukan** primitive baru.
 
+**Ekstensi & komponen app-level reusable (bukan library baru):**
+- **`DialogBody`** (`components/ui/dialog.jsx`) — wrapper body form dialog (`px-6 py-4` + `space-y-[var(--field-gap)]`). **WAJIB** dipakai di setiap form dialog (2B.10 / R40).
+- **`DensityProvider` + `DensityToggle`** (`components/`) — density global Dense⇄Comfortable (CSS var, `localStorage`), sejajar `ThemeProvider`/`ModeToggle`.
+- **Halaman Application/CMS** (`pages/app/*`: `OfficesPage`, `RolesPage`) — konsumen nyata design system (FastAPI+MongoDB), WAJIB ikut **R40** (Application CRUD Page Pattern).
+
 > Catatan: Komposisi (menggabungkan beberapa komponen di atas menjadi
 > `LoginForm`, `AuthLayout`, halaman, dsb.) **diperbolehkan** dan dianjurkan
 > demi reusability — selama tidak membuat **primitive UI baru** dan tidak
@@ -156,6 +161,9 @@ Combobox, Date Picker, Password Input. Composite =
       `space-y-3` form / `space-y-4` umum). Avatar profil `h-12 w-12`, grid form `gap-4`.
 - [ ] **GUARD:** `bash frontend/docs/design-guard.sh` sudah dijalankan & **lolos (exit 0)**
       (2C.14). Berlaku untuk **halaman/blok baru**, bukan hanya modifikasi komponen.
+- [ ] **APP CRUD (R40):** halaman `pages/app/*` mengikuti pola wajib — Card+CardHeader(title+Add),
+      toolbar, DataTable no-wrap, **form dialog pakai `<DialogBody>`**, **Delete destructive (merah)**,
+      states via `EmptyState`, data via `lib/api.js`.
 
 ---
 
@@ -242,5 +250,6 @@ Bagian ini hanya **penunjuk**; definisi lengkap & otoritatif ada di `DESIGN_SYST
 - **Permission Pattern** (Hide/Disable/Read-only/Forbidden) → **2C.21**.
 - **Testing Standard** (Visual/A11y/Interaction/Responsive — aturan saja) → **2C.22**.
 - **Performance Guideline** (Lazy/Memo/Virtualization/Bundle/Chart/Large Table) → **2C.23**.
+- **Application CRUD Page Pattern** (Card+DataTable, `DialogBody`, Delete destructive, states, `lib/api.js`) → **R40**; model backend & API → `ARCHITECTURE.md` §11.
 
 > Setiap perubahan komponen/pattern **wajib** tunduk pada Versioning (2C.15) & tercatat di Changelog.
