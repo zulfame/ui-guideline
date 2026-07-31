@@ -9,9 +9,13 @@ from pymongo import UpdateOne, InsertOne
 import os
 import io
 import re
+import ssl
 import json
+import asyncio
+import smtplib
 import logging
 import bcrypt
+import httpx
 from pathlib import Path
 from openpyxl import Workbook, load_workbook
 from pydantic import BaseModel, Field, ConfigDict
@@ -93,6 +97,7 @@ async def lifespan(_app: FastAPI):
     await db.audit_logs.create_index([("created_at", -1)])
     await db.audit_logs.create_index("entity_type")
     await db.audit_logs.create_index("action")
+    await db.broadcast_configs.create_index("key", unique=True)
     logger.info("Startup complete: indexes ensured.")
     if AUTO_SEED:
         try:
@@ -147,7 +152,10 @@ class BulkDeleteRequest(BaseModel):
 # Schema is request/response-shaped so it doubles as an API activity log later.
 # ---------------------------------------------------------------------------
 AUDIT_ACTOR_SYSTEM = "System"  # placeholder until real auth is wired
-_REDACT_KEYS = {"password", "new_password", "password_history", "confirm"}
+_REDACT_KEYS = {
+    "password", "new_password", "password_history", "confirm",
+    "bot_token", "webhook_url", "secret", "header_value", "url",
+}
 
 
 def _redact(obj):
@@ -211,11 +219,11 @@ async def log_audit(
         logger.error("Audit log write failed (non-fatal): %s", exc)
 
 
-AUDIT_ENTITY_TYPES = ["user", "role", "office", "level", "database"]
+AUDIT_ENTITY_TYPES = ["user", "role", "office", "level", "database", "broadcast"]
 AUDIT_ACTIONS = [
     "create", "update", "delete", "bulk_delete",
     "import", "reassign", "change_password", "reset_password",
-    "backup", "restore",
+    "backup", "restore", "configure", "test",
 ]
 
 
@@ -1979,6 +1987,334 @@ async def restore_from_server(req: ServerRestoreRequest):
         raise HTTPException(status_code=404, detail="Backup not found")
     payload = _parse_backup_bytes(await stream.read())
     return await _restore_response(payload, req.mode, req.dry_run, source=stream.filename)
+
+
+# ---------------------------------------------------------------------------
+# Broadcast Channels (Guideline: Integration / Notification) — configure and
+# live-test outbound notification channels. Secrets are never returned to the
+# client and are redacted in the audit log.
+# ---------------------------------------------------------------------------
+BROADCAST_CHANNELS = [
+    {
+        "key": "telegram",
+        "label": "Telegram",
+        "description": "Send notifications through a Telegram bot.",
+        "fields": [
+            {"name": "bot_token", "label": "Bot Token", "type": "password", "required": True, "secret": True,
+             "placeholder": "123456:ABC-DEF..."},
+            {"name": "chat_id", "label": "Chat ID", "type": "text", "required": True,
+             "placeholder": "-1001234567890"},
+            {"name": "message_thread_id", "label": "Thread ID", "type": "text", "required": False,
+             "placeholder": "Optional — topic/thread id"},
+        ],
+    },
+    {
+        "key": "discord",
+        "label": "Discord",
+        "description": "Post messages to a Discord channel via an incoming webhook.",
+        "fields": [
+            {"name": "webhook_url", "label": "Webhook URL", "type": "password", "required": True, "secret": True,
+             "placeholder": "https://discord.com/api/webhooks/..."},
+        ],
+    },
+    {
+        "key": "slack",
+        "label": "Slack",
+        "description": "Post messages to Slack via an incoming webhook.",
+        "fields": [
+            {"name": "webhook_url", "label": "Webhook URL", "type": "password", "required": True, "secret": True,
+             "placeholder": "https://hooks.slack.com/services/..."},
+        ],
+    },
+    {
+        "key": "webhook",
+        "label": "Webhook",
+        "description": "Send a JSON payload to a custom HTTP endpoint.",
+        "fields": [
+            {"name": "url", "label": "URL", "type": "text", "required": True, "secret": True,
+             "placeholder": "https://example.com/hook"},
+            {"name": "header_name", "label": "Custom Header Name", "type": "text", "required": False,
+             "placeholder": "Optional — e.g. X-Signature"},
+            {"name": "header_value", "label": "Custom Header Value", "type": "password", "required": False, "secret": True,
+             "placeholder": "Optional — header value / secret"},
+        ],
+    },
+    {
+        "key": "email",
+        "label": "Email (SMTP)",
+        "description": "Send email notifications through an SMTP server.",
+        "fields": [
+            {"name": "host", "label": "SMTP Host", "type": "text", "required": True,
+             "placeholder": "smtp.example.com"},
+            {"name": "port", "label": "Port", "type": "number", "required": True, "placeholder": "587"},
+            {"name": "username", "label": "Username", "type": "text", "required": True},
+            {"name": "password", "label": "Password", "type": "password", "required": True, "secret": True},
+            {"name": "from_address", "label": "From Address", "type": "text", "required": True,
+             "placeholder": "noreply@example.com"},
+            {"name": "use_tls", "label": "Implicit TLS (port 465)", "type": "boolean", "required": False},
+            {"name": "starttls", "label": "STARTTLS (port 587)", "type": "boolean", "required": False},
+        ],
+    },
+]
+_BROADCAST_BY_KEY = {c["key"]: c for c in BROADCAST_CHANNELS}
+
+
+class BroadcastConfigRequest(BaseModel):
+    config: dict = Field(default_factory=dict)
+
+
+def _channel_or_404(key: str) -> dict:
+    channel = _BROADCAST_BY_KEY.get(key)
+    if not channel:
+        raise HTTPException(status_code=404, detail="Unknown broadcast channel")
+    return channel
+
+
+def _merge_config(channel: dict, stored: dict, incoming: dict) -> dict:
+    """Merge incoming values over stored ones. Empty secret fields keep the
+    stored value so the client never needs to resend secrets."""
+    merged = dict(stored or {})
+    for f in channel["fields"]:
+        name = f["name"]
+        if name not in incoming:
+            continue
+        val = incoming.get(name)
+        if f.get("secret") and (val is None or val == ""):
+            continue  # keep the stored secret
+        merged[name] = val
+    return merged
+
+
+def _is_configured(channel: dict, config: dict) -> bool:
+    for f in channel["fields"]:
+        if f.get("required"):
+            val = (config or {}).get(f["name"])
+            if val is None or val == "":
+                return False
+    return True
+
+
+def _public_config(channel: dict, config: dict) -> dict:
+    """Config for the client: secret fields are blanked; a `*_set` flag tells
+    the UI a secret is already stored so it can show a 'leave blank' hint."""
+    config = config or {}
+    out = {}
+    for f in channel["fields"]:
+        name = f["name"]
+        if f.get("secret"):
+            out[name] = ""
+            out[f"{name}_set"] = bool(config.get(name))
+        else:
+            out[name] = config.get(name, "" if f["type"] != "boolean" else False)
+    return out
+
+
+def _serialize_channel(channel: dict, doc: Optional[dict]) -> dict:
+    config = (doc or {}).get("config", {})
+    return {
+        "key": channel["key"],
+        "label": channel["label"],
+        "description": channel["description"],
+        "fields": channel["fields"],
+        "config": _public_config(channel, config),
+        "status": (doc or {}).get("status", "not_configured"),
+        "last_tested_at": (doc or {}).get("last_tested_at"),
+        "last_error": (doc or {}).get("last_error"),
+        "updated_at": (doc or {}).get("updated_at"),
+    }
+
+
+# --- Live connection tests -------------------------------------------------
+async def _test_telegram(cfg: dict):
+    token = (cfg.get("bot_token") or "").strip()
+    if not token:
+        return False, "Bot Token is required."
+    try:
+        async with httpx.AsyncClient(timeout=15) as c:
+            r = await c.get(f"https://api.telegram.org/bot{token}/getMe")
+        data = r.json()
+    except Exception as exc:
+        return False, f"Request failed: {exc}"
+    if r.status_code == 200 and data.get("ok"):
+        uname = data.get("result", {}).get("username")
+        return True, f"Connected to bot @{uname}." if uname else "Connected."
+    return False, data.get("description") or f"HTTP {r.status_code}"
+
+
+async def _test_discord(cfg: dict):
+    url = (cfg.get("webhook_url") or "").strip()
+    if not url:
+        return False, "Webhook URL is required."
+    try:
+        async with httpx.AsyncClient(timeout=15) as c:
+            r = await c.get(url)  # GET returns webhook metadata — no message sent
+    except Exception as exc:
+        return False, f"Request failed: {exc}"
+    if r.status_code == 200:
+        try:
+            name = r.json().get("name")
+        except Exception:
+            name = None
+        return True, f"Webhook valid ({name})." if name else "Webhook valid."
+    return False, f"Invalid webhook (HTTP {r.status_code})."
+
+
+async def _test_slack(cfg: dict):
+    url = (cfg.get("webhook_url") or "").strip()
+    if not url:
+        return False, "Webhook URL is required."
+    try:
+        async with httpx.AsyncClient(timeout=15) as c:
+            r = await c.post(url, json={"text": "✅ Test connection from CMS Broadcast."})
+    except Exception as exc:
+        return False, f"Request failed: {exc}"
+    if r.status_code == 200 and r.text.strip().lower() == "ok":
+        return True, "Test message delivered."
+    return False, f"{r.text[:120] or 'Request failed'} (HTTP {r.status_code})."
+
+
+async def _test_webhook(cfg: dict):
+    url = (cfg.get("url") or "").strip()
+    if not url:
+        return False, "URL is required."
+    headers = {}
+    hn = (cfg.get("header_name") or "").strip()
+    hv = cfg.get("header_value") or ""
+    if hn and hv:
+        headers[hn] = hv
+    payload = {
+        "event": "test_connection",
+        "message": "Test connection from CMS Broadcast.",
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    }
+    try:
+        async with httpx.AsyncClient(timeout=15) as c:
+            r = await c.post(url, json=payload, headers=headers)
+    except Exception as exc:
+        return False, f"Request failed: {exc}"
+    if 200 <= r.status_code < 300:
+        return True, f"Endpoint responded HTTP {r.status_code}."
+    return False, f"Endpoint responded HTTP {r.status_code}."
+
+
+def _smtp_login_only(cfg: dict) -> None:
+    ctx = ssl.create_default_context()
+    host = cfg.get("host")
+    port = int(cfg.get("port") or 587)
+    username = cfg.get("username")
+    password = cfg.get("password")
+    if cfg.get("use_tls"):
+        with smtplib.SMTP_SSL(host, port, context=ctx, timeout=20) as s:
+            s.login(username, password)
+        return
+    with smtplib.SMTP(host, port, timeout=20) as s:
+        s.ehlo()
+        if cfg.get("starttls", True):
+            s.starttls(context=ctx)
+            s.ehlo()
+        s.login(username, password)
+
+
+async def _test_email(cfg: dict):
+    for req in ("host", "port", "username", "password", "from_address"):
+        if not cfg.get(req):
+            return False, "Host, port, username, password and from address are required."
+    try:
+        await asyncio.to_thread(_smtp_login_only, cfg)
+    except smtplib.SMTPAuthenticationError:
+        return False, "SMTP authentication failed."
+    except Exception as exc:
+        return False, f"SMTP connection failed: {exc}"
+    return True, "SMTP login succeeded."
+
+
+_BROADCAST_TESTERS = {
+    "telegram": _test_telegram,
+    "discord": _test_discord,
+    "slack": _test_slack,
+    "webhook": _test_webhook,
+    "email": _test_email,
+}
+
+
+@api_router.get("/broadcast/channels", tags=["Broadcast"], summary="List broadcast channels + status")
+async def list_broadcast_channels():
+    """All channels with their saved (secret-free) config and connection status."""
+    docs = {d["key"]: d async for d in db.broadcast_configs.find({}, {"_id": 0})}
+    return [_serialize_channel(ch, docs.get(ch["key"])) for ch in BROADCAST_CHANNELS]
+
+
+@api_router.get("/broadcast/channels/{key}", tags=["Broadcast"], summary="Get one broadcast channel")
+async def get_broadcast_channel(key: str):
+    channel = _channel_or_404(key)
+    doc = await db.broadcast_configs.find_one({"key": key}, {"_id": 0})
+    return _serialize_channel(channel, doc)
+
+
+async def _upsert_channel(key: str, config: dict, status: str,
+                          last_error: Optional[str] = None) -> dict:
+    now = datetime.now(timezone.utc).isoformat()
+    existing = await db.broadcast_configs.find_one({"key": key})
+    update = {
+        "config": config,
+        "status": status,
+        "last_error": last_error,
+        "updated_at": now,
+    }
+    if status == "connected":
+        update["last_tested_at"] = now
+    if existing:
+        await db.broadcast_configs.update_one({"key": key}, {"$set": update})
+    else:
+        update["id"] = str(uuid.uuid4())
+        update["key"] = key
+        update["created_at"] = now
+        await db.broadcast_configs.insert_one(update)
+    return await db.broadcast_configs.find_one({"key": key}, {"_id": 0})
+
+
+@api_router.put("/broadcast/channels/{key}", tags=["Broadcast"], summary="Save a channel config")
+async def save_broadcast_channel(key: str, body: BroadcastConfigRequest):
+    """Persist channel credentials. Status resets to configured/not_configured;
+    use the test endpoint to verify and mark it Connected."""
+    channel = _channel_or_404(key)
+    existing = await db.broadcast_configs.find_one({"key": key})
+    stored = (existing or {}).get("config", {})
+    merged = _merge_config(channel, stored, body.config)
+    status = "configured" if _is_configured(channel, merged) else "not_configured"
+    doc = await _upsert_channel(key, merged, status, last_error=None)
+    await log_audit(
+        "configure", "broadcast",
+        entity_id=key, entity_label=channel["label"],
+        summary=f"Saved {channel['label']} configuration",
+        method="PUT", path=f"/api/broadcast/channels/{key}", status_code=200,
+        request={"config": merged}, metadata={"status": status},
+    )
+    return _serialize_channel(channel, doc)
+
+
+@api_router.post("/broadcast/channels/{key}/test", tags=["Broadcast"], summary="Live-test a channel")
+async def test_broadcast_channel(key: str, body: BroadcastConfigRequest):
+    """Run a live connection test with the given (or stored) config, persist it,
+    and update the channel status to `connected` or `error`."""
+    channel = _channel_or_404(key)
+    existing = await db.broadcast_configs.find_one({"key": key})
+    stored = (existing or {}).get("config", {})
+    merged = _merge_config(channel, stored, body.config)
+    if not _is_configured(channel, merged):
+        raise HTTPException(status_code=400, detail="Please fill in all required fields before testing.")
+    ok, message = await _BROADCAST_TESTERS[key](merged)
+    status = "connected" if ok else "error"
+    doc = await _upsert_channel(key, merged, status, last_error=None if ok else message)
+    await log_audit(
+        "test", "broadcast",
+        entity_id=key, entity_label=channel["label"],
+        summary=f"Tested {channel['label']} connection — {'success' if ok else 'failed'}",
+        method="POST", path=f"/api/broadcast/channels/{key}/test",
+        status_code=200 if ok else 400,
+        metadata={"ok": ok, "message": message},
+    )
+    return {"ok": ok, "message": message, "channel": _serialize_channel(channel, doc)}
 
 
 # Include the router in the main app.
