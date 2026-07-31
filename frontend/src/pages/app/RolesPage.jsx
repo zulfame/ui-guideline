@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -13,6 +13,7 @@ import {
   ChevronLeft,
   ChevronRight,
   MoreHorizontal,
+  Network,
   Pencil,
   Plus,
   Search,
@@ -127,6 +128,66 @@ function descendantIds(roles, rootId) {
     });
   }
   return out;
+}
+
+/** Nested forest (roots → children) for the org chart. */
+function buildForest(roles) {
+  const byId = {};
+  roles.forEach((r) => (byId[r.id] = { ...r, children: [] }));
+  const roots = [];
+  roles.forEach((r) => {
+    const parent = r.parent_id && byId[r.parent_id];
+    if (parent) parent.children.push(byId[r.id]);
+    else roots.push(byId[r.id]);
+  });
+  const sortRec = (n) => {
+    n.children.sort((a, b) => a.name.localeCompare(b.name));
+    n.children.forEach(sortRec);
+  };
+  roots.sort((a, b) => a.name.localeCompare(b.name));
+  roots.forEach(sortRec);
+  return roots;
+}
+
+/** Build org-chart <li> elements iteratively (no recursive JSX component —
+ *  avoids visual-edits babel plugin stack overflow). Returns root <li> array. */
+function buildOrgTree(forest) {
+  const pre = [];
+  const stack = [...forest];
+  while (stack.length) {
+    const n = stack.pop();
+    pre.push(n);
+    for (let i = n.children.length - 1; i >= 0; i--) stack.push(n.children[i]);
+  }
+  const liById = new Map();
+  for (let i = pre.length - 1; i >= 0; i--) {
+    const n = pre[i];
+    const box = React.createElement(
+      "div",
+      {
+        className:
+          "inline-flex max-w-[11rem] items-center justify-center whitespace-normal rounded-md border bg-card px-3 py-1.5 text-center text-xs font-medium text-card-foreground shadow-sm",
+      },
+      n.name,
+    );
+    const childrenUl = n.children.length
+      ? React.createElement(
+          "ul",
+          null,
+          n.children.map((c) => liById.get(c.id)),
+        )
+      : null;
+    liById.set(
+      n.id,
+      React.createElement(
+        "li",
+        { key: n.id, "data-testid": `org-node-${n.id}` },
+        box,
+        childrenUl,
+      ),
+    );
+  }
+  return forest.map((r) => liById.get(r.id));
 }
 
 function RoleFormDialog({ open, onOpenChange, editing, roles, onSaved }) {
@@ -257,6 +318,7 @@ export default function RolesPage() {
   const [editing, setEditing] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [bulkOpen, setBulkOpen] = useState(false);
+  const [structureOpen, setStructureOpen] = useState(false);
 
   const load = async () => {
     setStatus("loading");
@@ -274,6 +336,7 @@ export default function RolesPage() {
   }, []);
 
   const treeData = useMemo(() => buildTree(roles), [roles]);
+  const forest = useMemo(() => buildForest(roles), [roles]);
 
   const openCreate = () => {
     setEditing(null);
@@ -438,10 +501,20 @@ export default function RolesPage() {
     <div className="space-y-6" data-testid="roles-page">
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0">
-          <CardTitle className="text-base">Roles</CardTitle>
-          <Button size="sm" onClick={openCreate} data-testid="roles-add">
-            <Plus className="size-4" /> Add Role
-          </Button>
+          <CardTitle className="text-base">Role List</CardTitle>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setStructureOpen(true)}
+              data-testid="roles-structure-btn"
+            >
+              <Network className="size-4" /> Structure
+            </Button>
+            <Button size="sm" onClick={openCreate} data-testid="roles-add">
+              <Plus className="size-4" /> Add Role
+            </Button>
+          </div>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -665,6 +738,29 @@ export default function RolesPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={structureOpen} onOpenChange={setStructureOpen}>
+        <DialogContent
+          className="w-[95vw] max-w-[95vw]"
+          data-testid="roles-structure-dialog"
+        >
+          <DialogHeader>
+            <DialogTitle>Role structure</DialogTitle>
+            <DialogDescription>
+              Hierarki jabatan berdasarkan atasan langsung (parent).
+            </DialogDescription>
+          </DialogHeader>
+          <DialogBody className="max-h-[75vh] overflow-auto">
+            {forest.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No roles yet.</p>
+            ) : (
+              <div className="min-w-max py-2">
+                <ul className="org-chart">{buildOrgTree(forest)}</ul>
+              </div>
+            )}
+          </DialogBody>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

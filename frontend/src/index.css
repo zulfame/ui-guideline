@@ -189,3 +189,73 @@ code {
         border-bottom-color: inherit;
     }
 }
+
+/* ── Org chart (Roles structure) — pure-CSS top-down tree, monochrome tokens ── */
+.org-chart,
+.org-chart ul {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 0;
+    margin: 0;
+    list-style: none;
+}
+.org-chart ul {
+    position: relative;
+    padding-top: 1.25rem;
+}
+.org-chart li {
+    list-style: none;
+    position: relative;
+    padding: 1.25rem 0.5rem 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+/* horizontal connectors between siblings */
+.org-chart li::before,
+.org-chart li::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    width: 50%;
+    height: 1.25rem;
+    border-top: 1px solid hsl(var(--border));
+}
+.org-chart li::before {
+    right: 50%;
+}
+.org-chart li::after {
+    left: 50%;
+    border-left: 1px solid hsl(var(--border));
+}
+.org-chart li:first-child::before,
+.org-chart li:last-child::after {
+    border: 0 none;
+}
+.org-chart li:last-child::before {
+    border-right: 1px solid hsl(var(--border));
+}
+.org-chart li:only-child::before,
+.org-chart li:only-child::after {
+    display: none;
+}
+/* vertical drop from a parent to its children row */
+.org-chart ul::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 50%;
+    height: 1.25rem;
+    width: 0;
+    border-left: 1px solid hsl(var(--border));
+}
+/* root row: no incoming connectors */
+.org-chart > li {
+    padding-top: 0;
+}
+.org-chart > li::before,
+.org-chart > li::after {
+    display: none;
+}
