@@ -16,6 +16,7 @@ import {
   ArrowUp,
   ChevronLeft,
   ChevronRight,
+  FilterX,
   Layers,
   MoreHorizontal,
   Network,
@@ -935,6 +936,16 @@ export default function RolesPage() {
                   <Trash2 className="size-4" /> Delete ({selectedCount})
                 </Button>
               )}
+              {globalFilter.trim().length > 0 && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setGlobalFilter("")}
+                  data-testid="roles-reset"
+                >
+                  <FilterX className="size-4" /> Reset
+                </Button>
+              )}
               <DensityToggle />
             </div>
           </div>
@@ -1011,8 +1022,18 @@ export default function RolesPage() {
                     ))
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={colSpan} className="h-24 text-center text-muted-foreground">
-                        No roles match your search.
+                      <TableCell colSpan={colSpan} className="h-24 text-center">
+                        <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                          <span>No roles match your search.</span>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setGlobalFilter("")}
+                            data-testid="roles-empty-reset"
+                          >
+                            <FilterX className="size-4" /> Reset
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   )}

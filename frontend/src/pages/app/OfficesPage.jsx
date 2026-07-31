@@ -584,6 +584,16 @@ export default function OfficesPage() {
                   <Trash2 className="size-4" /> Delete ({selectedCount})
                 </Button>
               )}
+              {hasSearch && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setGlobalFilter("")}
+                  data-testid="offices-reset"
+                >
+                  <FilterX className="size-4" /> Reset
+                </Button>
+              )}
               <DensityToggle />
             </div>
           </div>
@@ -660,7 +670,7 @@ export default function OfficesPage() {
                           onClick={() => setGlobalFilter("")}
                           data-testid="offices-clear-search"
                         >
-                          <FilterX className="size-4" /> Clear search
+                          <FilterX className="size-4" /> Reset
                         </Button>
                       </div>
                     </TableCell>

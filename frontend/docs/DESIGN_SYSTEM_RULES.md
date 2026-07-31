@@ -162,8 +162,9 @@ Combobox, Date Picker, Password Input. Composite =
 - [ ] **GUARD:** `bash frontend/docs/design-guard.sh` sudah dijalankan & **lolos (exit 0)**
       (2C.14). Berlaku untuk **halaman/blok baru**, bukan hanya modifikasi komponen.
 - [ ] **APP CRUD (R40):** halaman `pages/app/*` mengikuti pola wajib — Card+CardHeader(title+Add),
-      toolbar, DataTable no-wrap, **form dialog pakai `<DialogBody>`**, **Delete destructive (merah)**,
-      states via `EmptyState`, data via `lib/api.js`.
+      toolbar (search + **Reset** `FilterX` yang muncul saat search/filter aktif → reset `globalFilter`(+`columnFilters`) + Density),
+      DataTable no-wrap, **form dialog pakai `<DialogBody>`**, **Delete destructive (merah)**,
+      states via `EmptyState` (no-match tampilkan tombol **Reset** juga), data via `lib/api.js`.
 - [ ] **FORM GRID (R41):** field form disusun rapi & sejajar — field utama (mis. Name) full-width,
       field pendek terkait dikelompokkan dalam baris **`grid grid-cols-1 sm:grid-cols-2 items-start gap-4`**.
       **Pakai `<FormItem>` polos untuk SEMUA field** (Combobox sudah block-level & `w-full`);
