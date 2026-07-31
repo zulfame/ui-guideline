@@ -212,7 +212,7 @@ function UserFormDialog({ open, onOpenChange, mode, initialValues, roles, office
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl" data-testid="user-form-dialog">
+      <DialogContent className="sm:max-w-3xl" data-testid="user-form-dialog">
         <Form {...form}>
           <form onSubmit={form.handleSubmit(submit)} noValidate>
             <DialogHeader>
@@ -225,7 +225,7 @@ function UserFormDialog({ open, onOpenChange, mode, initialValues, roles, office
             </DialogHeader>
 
             <DialogBody>
-              <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2">
+              <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 <FormField
                   control={form.control}
                   name="name"
@@ -371,7 +371,7 @@ function UserFormDialog({ open, onOpenChange, mode, initialValues, roles, office
                 <h4 className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                   Device &amp; Integration
                 </h4>
-                <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2">
+                <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2 lg:grid-cols-3">
                   <FormField
                     control={form.control}
                     name="device_identifier"
