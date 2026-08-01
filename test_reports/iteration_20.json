@@ -1,0 +1,29 @@
+{
+  "summary": "Frontend-only verification of Clients CRUD UI and login brute-force lockout message. All specified flows PASS.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "verified_flows": [
+    "Admin login (admin/admin123) succeeds; sidebar shows Manage > Clients.",
+    "GET /clients renders 'API Clients' card + New Client button (clients-add) with empty state (clients-empty-add). No crash.",
+    "Create client 'Mobile App' with scopes read+users -> key-reveal dialog shows key starting with 'ak_' in client-key-value (ak_286c511d...). Copy icon click works (no error). Done closes dialog; row appears with masked key, read/users badges, Active status.",
+    "Regenerate: confirm dialog appears; new key dialog shows a DIFFERENT ak_ key (ak_857226487...); client remains Active.",
+    "Revoke: confirm dialog; status badge switches to 'Revoked'; revoke button disappears for inactive client.",
+    "Delete: confirm dialog; row removed from table.",
+    "Brute-force lockout on throwaway 'lockme2@example.com': attempts 1-2 show 'Invalid credentials.', attempts 3-4 show '2/1 attempt(s) left before lockout.', attempt 5 returns HTTP 429 with 'Too many failed attempts. Login locked for 15 minutes.' rendered in login-error-alert.",
+    "After brute-force, admin/admin123 login still works (per IP+identifier lockout scope confirmed)."
+  ],
+  "test_report_links": [],
+  "action_items": [],
+  "critical_code_review_comments": [],
+  "updated_files": [],
+  "success_rate": {"backend": "n/a (skipped per request)", "frontend": "100% (7/7 flows)"},
+  "test_credentials": "admin/admin123 (admin). Brute-force throwaway: lockme2@example.com (locked for ~15m).",
+  "seed_data_creation": "One temporary client 'Mobile App' created and deleted during test. lockme2@example.com is now IP+identifier locked for ~15 min.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Login submit testid is 'login-submit-button' (not 'login-submit'). Backend surfaces graduated lockout warnings ('N attempt(s) left before lockout.') then final 429 'Too many failed attempts. Login locked for 15 minutes.' — both surfaced via login-error-alert."
+}

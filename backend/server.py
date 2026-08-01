@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter, HTTPException, Query, Response, UploadFile, File, Form, Depends, Header
+from fastapi import FastAPI, APIRouter, HTTPException, Query, Response, UploadFile, File, Form, Depends, Header, Request
 from fastapi.responses import StreamingResponse, PlainTextResponse, Response, JSONResponse
 from contextlib import asynccontextmanager
 from dotenv import load_dotenv
@@ -18,6 +18,8 @@ import logging
 import bcrypt
 import httpx
 import jwt
+import secrets
+import hashlib
 from pathlib import Path
 from openpyxl import Workbook, load_workbook
 from pydantic import BaseModel, Field, ConfigDict
@@ -2954,18 +2956,87 @@ async def _get_current_user(authorization: Optional[str] = Header(None)):
     return doc
 
 
+# ---------------------------------------------------------------------------
+# Brute-force protection — throttle repeated failed logins per IP+identifier.
+# ---------------------------------------------------------------------------
+LOGIN_MAX_ATTEMPTS = int(os.environ.get("LOGIN_MAX_ATTEMPTS") or "5")
+LOGIN_LOCKOUT_MINUTES = int(os.environ.get("LOGIN_LOCKOUT_MINUTES") or "15")
+
+
+def _client_ip(request: Request) -> str:
+    xff = request.headers.get("x-forwarded-for")
+    if xff:
+        return xff.split(",")[0].strip()
+    return request.client.host if request.client else "unknown"
+
+
+async def _login_locked_until(key: str):
+    doc = await db.login_attempts.find_one({"_id": key})
+    if not doc or not doc.get("locked_until"):
+        return None
+    try:
+        lu = datetime.fromisoformat(doc["locked_until"])
+    except Exception:
+        return None
+    return lu if lu > datetime.now(timezone.utc) else None
+
+
+async def _record_login_failure(key: str, ident: str):
+    now = datetime.now(timezone.utc)
+    doc = await db.login_attempts.find_one({"_id": key})
+    fails = 1
+    if doc and doc.get("last_fail_at"):
+        try:
+            within_window = (now - datetime.fromisoformat(doc["last_fail_at"])) < timedelta(minutes=LOGIN_LOCKOUT_MINUTES)
+        except Exception:
+            within_window = False
+        if within_window:
+            fails = int(doc.get("fails", 0)) + 1
+    update = {"fails": fails, "last_fail_at": now.isoformat(), "identifier": ident, "locked_until": None}
+    locked = fails >= LOGIN_MAX_ATTEMPTS
+    if locked:
+        update["locked_until"] = (now + timedelta(minutes=LOGIN_LOCKOUT_MINUTES)).isoformat()
+    await db.login_attempts.update_one({"_id": key}, {"$set": update}, upsert=True)
+    return fails, locked
+
+
+async def _clear_login_attempts(key: str):
+    await db.login_attempts.delete_one({"_id": key})
+
+
 class LoginRequest(BaseModel):
     identifier: str = Field(..., description="Email, username, or phone")
     password: str
 
 
 @api_router.post("/auth/login", tags=["Auth"], summary="Login with email/username/phone + password")
-async def login(payload: LoginRequest):
-    """Authenticate by email, username, or phone; return a JWT Bearer token."""
+async def login(payload: LoginRequest, request: Request):
+    """Authenticate by email, username, or phone; return a JWT Bearer token.
+
+    Applies brute-force throttling: after LOGIN_MAX_ATTEMPTS failures the
+    IP+identifier is locked for LOGIN_LOCKOUT_MINUTES. Failures and lockouts
+    are recorded in the audit log.
+    """
     ident = (payload.identifier or "").strip()
     if not ident or not payload.password:
         raise HTTPException(status_code=400, detail="Identifier and password are required.")
     ident_lower = ident.lower()
+    ip = _client_ip(request)
+    key = f"{ip}:{ident_lower}"
+
+    locked_until = await _login_locked_until(key)
+    if locked_until:
+        remaining = max(1, int((locked_until - datetime.now(timezone.utc)).total_seconds() // 60) + 1)
+        await log_audit(
+            "login_locked", "auth", entity_label=ident,
+            summary=f"Blocked login (locked) for {ident} from {ip}",
+            method="POST", path="/api/auth/login", status_code=429, actor=ident,
+        )
+        raise HTTPException(
+            status_code=429,
+            detail=f"Too many failed attempts. Try again in about {remaining} minute(s).",
+        )
+
     doc = await db.users.find_one({
         "deleted_at": None,
         "$or": [
@@ -2976,19 +3047,35 @@ async def login(payload: LoginRequest):
         ],
     })
     if not doc or not _verify_password(payload.password, doc.get("password") or ""):
+        fails, locked = await _record_login_failure(key, ident)
         await log_audit(
             "login_failed", "auth", entity_label=ident,
-            summary=f"Failed login for {ident}",
-            method="POST", path="/api/auth/login", status_code=401,
-            actor=ident,
+            summary=f"Failed login for {ident} from {ip} (attempt {fails}/{LOGIN_MAX_ATTEMPTS})",
+            method="POST", path="/api/auth/login", status_code=401, actor=ident,
         )
-        raise HTTPException(status_code=401, detail="Invalid credentials.")
+        if locked:
+            await log_audit(
+                "login_locked", "auth", entity_label=ident,
+                summary=f"Account locked for {ident} from {ip} after {fails} failed attempts",
+                method="POST", path="/api/auth/login", status_code=429, actor=ident,
+            )
+            raise HTTPException(
+                status_code=429,
+                detail=f"Too many failed attempts. Login locked for {LOGIN_LOCKOUT_MINUTES} minutes.",
+            )
+        left = max(0, LOGIN_MAX_ATTEMPTS - fails)
+        detail = "Invalid credentials."
+        if left <= 2:
+            detail = f"Invalid credentials. {left} attempt(s) left before lockout."
+        raise HTTPException(status_code=401, detail=detail)
+
+    await _clear_login_attempts(key)
     token = _create_access_token(doc["id"])
     roles, offices = await _enrich_maps([doc])
     await log_audit(
         "login", "auth", entity_id=doc["id"],
         entity_label=f"{doc.get('name')} <{doc.get('email')}>",
-        summary=f"Login {doc.get('email')}",
+        summary=f"Login {doc.get('email')} from {ip}",
         method="POST", path="/api/auth/login", status_code=200,
         actor=doc.get("email") or doc.get("name") or doc["id"],
     )
@@ -3011,6 +3098,179 @@ async def auth_me(current=Depends(_get_current_user)):
 @api_router.post("/auth/logout", tags=["Auth"], summary="Logout (client discards its token)")
 async def logout():
     """Stateless JWT logout — the client simply discards the token."""
+    return {"success": True}
+
+
+async def _require_admin(authorization: Optional[str] = Header(None)):
+    """Dependency: resolve the Bearer user and require the admin role."""
+    user = await _get_current_user(authorization)
+    if not user.get("is_admin"):
+        raise HTTPException(status_code=403, detail="Admin privileges required")
+    return user
+
+
+# ---------------------------------------------------------------------------
+# API Clients — admin-managed API credentials with scoped access.
+# ---------------------------------------------------------------------------
+AVAILABLE_SCOPES = ["read", "write", "users", "roles", "offices", "broadcast", "audit"]
+
+
+class ClientCreate(BaseModel):
+    name: str = Field(..., min_length=1, max_length=120)
+    scopes: List[str] = Field(default_factory=list)
+
+
+class ClientUpdate(BaseModel):
+    name: Optional[str] = Field(None, min_length=1, max_length=120)
+    scopes: Optional[List[str]] = None
+    active: Optional[bool] = None
+
+
+def _sanitize_scopes(scopes):
+    seen, out = set(), []
+    for s in (scopes or []):
+        if s in AVAILABLE_SCOPES and s not in seen:
+            seen.add(s)
+            out.append(s)
+    return out
+
+
+def _generate_api_key():
+    key = f"ak_{secrets.token_hex(24)}"
+    key_hash = hashlib.sha256(key.encode("utf-8")).hexdigest()
+    return key, key_hash, key[:10], key[-4:]
+
+
+def _client_public(doc):
+    return {
+        "id": doc["id"],
+        "name": doc.get("name"),
+        "scopes": doc.get("scopes", []),
+        "active": bool(doc.get("active", True)),
+        "key_prefix": doc.get("key_prefix"),
+        "key_last4": doc.get("key_last4"),
+        "key_masked": f"{doc.get('key_prefix', '')}…{doc.get('key_last4', '')}",
+        "last_used_at": doc.get("last_used_at"),
+        "created_at": doc.get("created_at"),
+        "created_by": doc.get("created_by"),
+        "revoked_at": doc.get("revoked_at"),
+    }
+
+
+@api_router.get("/clients/scopes", tags=["Clients"], summary="List available API scopes")
+async def list_client_scopes(current=Depends(_require_admin)):
+    return {"scopes": AVAILABLE_SCOPES}
+
+
+@api_router.get("/clients", tags=["Clients"], summary="List API clients")
+async def list_clients(current=Depends(_require_admin)):
+    docs = await db.api_clients.find({}, {"_id": 0}).sort("created_at", -1).to_list(1000)
+    return [_client_public(d) for d in docs]
+
+
+@api_router.post("/clients", tags=["Clients"], status_code=201, summary="Create an API client (returns the key once)")
+async def create_client(payload: ClientCreate, current=Depends(_require_admin)):
+    key, key_hash, prefix, last4 = _generate_api_key()
+    now = datetime.now(timezone.utc).isoformat()
+    doc = {
+        "id": str(uuid.uuid4()),
+        "name": payload.name.strip(),
+        "scopes": _sanitize_scopes(payload.scopes),
+        "active": True,
+        "key_hash": key_hash,
+        "key_prefix": prefix,
+        "key_last4": last4,
+        "last_used_at": None,
+        "created_at": now,
+        "created_by": current.get("email"),
+        "revoked_at": None,
+    }
+    await db.api_clients.insert_one(dict(doc))
+    await log_audit(
+        "create", "api_client", entity_id=doc["id"], entity_label=doc["name"],
+        summary=f"Created API client {doc['name']}", method="POST", path="/api/clients",
+        status_code=201, actor=current.get("email"),
+    )
+    pub = _client_public(doc)
+    pub["api_key"] = key  # plaintext shown only once
+    return pub
+
+
+@api_router.put("/clients/{client_id}", tags=["Clients"], summary="Update an API client")
+async def update_client(client_id: str, payload: ClientUpdate, current=Depends(_require_admin)):
+    doc = await db.api_clients.find_one({"id": client_id})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Client not found.")
+    update = {}
+    if payload.name is not None:
+        update["name"] = payload.name.strip()
+    if payload.scopes is not None:
+        update["scopes"] = _sanitize_scopes(payload.scopes)
+    if payload.active is not None:
+        update["active"] = bool(payload.active)
+    if update:
+        await db.api_clients.update_one({"id": client_id}, {"$set": update})
+        await log_audit(
+            "update", "api_client", entity_id=client_id,
+            entity_label=update.get("name", doc.get("name")),
+            summary=f"Updated API client {doc.get('name')}", method="PUT",
+            path=f"/api/clients/{client_id}", status_code=200, actor=current.get("email"),
+        )
+    fresh = await db.api_clients.find_one({"id": client_id}, {"_id": 0})
+    return _client_public(fresh)
+
+
+@api_router.post("/clients/{client_id}/revoke", tags=["Clients"], summary="Revoke an API client")
+async def revoke_client(client_id: str, current=Depends(_require_admin)):
+    doc = await db.api_clients.find_one({"id": client_id})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Client not found.")
+    await db.api_clients.update_one(
+        {"id": client_id},
+        {"$set": {"active": False, "revoked_at": datetime.now(timezone.utc).isoformat()}},
+    )
+    await log_audit(
+        "revoke", "api_client", entity_id=client_id, entity_label=doc.get("name"),
+        summary=f"Revoked API client {doc.get('name')}", method="POST",
+        path=f"/api/clients/{client_id}/revoke", status_code=200, actor=current.get("email"),
+    )
+    fresh = await db.api_clients.find_one({"id": client_id}, {"_id": 0})
+    return _client_public(fresh)
+
+
+@api_router.post("/clients/{client_id}/regenerate", tags=["Clients"], summary="Regenerate an API client key (returns the new key once)")
+async def regenerate_client(client_id: str, current=Depends(_require_admin)):
+    doc = await db.api_clients.find_one({"id": client_id})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Client not found.")
+    key, key_hash, prefix, last4 = _generate_api_key()
+    await db.api_clients.update_one(
+        {"id": client_id},
+        {"$set": {"key_hash": key_hash, "key_prefix": prefix, "key_last4": last4,
+                  "active": True, "revoked_at": None}},
+    )
+    await log_audit(
+        "regenerate", "api_client", entity_id=client_id, entity_label=doc.get("name"),
+        summary=f"Regenerated key for API client {doc.get('name')}", method="POST",
+        path=f"/api/clients/{client_id}/regenerate", status_code=200, actor=current.get("email"),
+    )
+    fresh = await db.api_clients.find_one({"id": client_id}, {"_id": 0})
+    pub = _client_public(fresh)
+    pub["api_key"] = key
+    return pub
+
+
+@api_router.delete("/clients/{client_id}", tags=["Clients"], summary="Delete an API client")
+async def delete_client(client_id: str, current=Depends(_require_admin)):
+    doc = await db.api_clients.find_one({"id": client_id})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Client not found.")
+    await db.api_clients.delete_one({"id": client_id})
+    await log_audit(
+        "delete", "api_client", entity_id=client_id, entity_label=doc.get("name"),
+        summary=f"Deleted API client {doc.get('name')}", method="DELETE",
+        path=f"/api/clients/{client_id}", status_code=200, actor=current.get("email"),
+    )
     return {"success": True}
 
 
