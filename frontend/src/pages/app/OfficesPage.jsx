@@ -467,7 +467,7 @@ export default function OfficesPage() {
 
   const columns = useMemo(
     () => [
-      {
+      ...(isAdmin ? [{
         id: "select",
         header: ({ table }) => (
           <Checkbox
@@ -488,7 +488,7 @@ export default function OfficesPage() {
           />
         ),
         enableSorting: false,
-      },
+      }] : []),
       {
         accessorKey: "code",
         header: ({ column }) => <SortableHeader column={column}>Code</SortableHeader>,

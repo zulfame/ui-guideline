@@ -826,7 +826,7 @@ export default function RolesPage() {
 
   const columns = useMemo(
     () => [
-      {
+      ...(isAdmin ? [{
         id: "select",
         header: ({ table }) => (
           <Checkbox
@@ -848,7 +848,7 @@ export default function RolesPage() {
           />
         ),
         enableSorting: false,
-      },
+      }] : []),
       {
         accessorKey: "name",
         header: ({ column }) => <SortableHeader column={column}>Name</SortableHeader>,
@@ -974,33 +974,40 @@ export default function RolesPage() {
       <Card>
         <CardHeader className="flex flex-col gap-3 space-y-0 sm:flex-row sm:items-center sm:justify-between">
           <CardTitle className="text-base">Role List</CardTitle>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button size="sm" data-testid="roles-actions-btn">
-                <Settings2 className="size-4" /> Actions
-                <ChevronDown className="size-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              {isAdmin && (
-                <>
-                  <DropdownMenuItem onClick={openCreate} data-testid="roles-add">
-                    <Plus className="size-4" /> Add role
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setImportOpen(true)} data-testid="roles-import">
-                    <Upload className="size-4" /> Import
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => setLevelsOpen(true)} data-testid="roles-levels-btn">
-                    <Layers className="size-4" /> Levels
-                  </DropdownMenuItem>
-                </>
-              )}
-              <DropdownMenuItem onClick={() => setStructureOpen(true)} data-testid="roles-structure-btn">
-                <Network className="size-4" /> Structure
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          {isAdmin ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button size="sm" data-testid="roles-actions-btn">
+                  <Settings2 className="size-4" /> Actions
+                  <ChevronDown className="size-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={openCreate} data-testid="roles-add">
+                  <Plus className="size-4" /> Add role
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setImportOpen(true)} data-testid="roles-import">
+                  <Upload className="size-4" /> Import
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => setLevelsOpen(true)} data-testid="roles-levels-btn">
+                  <Layers className="size-4" /> Levels
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setStructureOpen(true)} data-testid="roles-structure-btn">
+                  <Network className="size-4" /> Structure
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setStructureOpen(true)}
+              data-testid="roles-structure-btn"
+            >
+              <Network className="size-4" /> Structure
+            </Button>
+          )}
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">

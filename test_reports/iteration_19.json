@@ -1,0 +1,27 @@
+{
+  "summary": "Narrow re-test after iteration_18 for RolesPage role-based UI fixes. Verified /roles does NOT crash for either role, admin sees Actions dropdown + row-actions + select-all, staff sees read-only Structure button that opens the org-structure dialog with no Actions/row-actions/select-all. Also confirmed checkbox column is hidden on /users and /offices for non-admin staff while present for admin. All 3 targeted behaviours pass.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [],
+  "action_items": [],
+  "critical_code_review_comments": [],
+  "updated_files": [],
+  "success_rate": {"backend": "N/A (skipped per request)", "frontend": "100% (3/3 scenarios)"},
+  "test_credentials": "admin/admin123 (admin), staff@bpr.co.id/staff123 (non-admin)",
+  "seed_data_creation": "None",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "iteration_19 validated RolesPage role-based UI and checkbox column hiding on Users/Offices for non-admin. Admin at /roles: actions-btn=True, structure-btn=False, select-all=True, row-actions=True. Staff at /roles: actions-btn=False, structure-btn=True, select-all=False, row-actions=False; clicking Structure opens the org dialog successfully. /users and /offices select-all: True for admin, False for staff. No console errors, no ErrorBoundary. Token key 'app.token'.",
+  "detailed_results": {
+    "admin_roles": {"crashed": false, "roles-actions-btn": true, "roles-structure-btn": false, "roles-select-all": true, "roles-row-actions": true},
+    "staff_roles": {"crashed": false, "roles-actions-btn": false, "roles-structure-btn": true, "roles-select-all": false, "roles-row-actions": false, "structure_dialog_opens": true},
+    "admin_users_select_all": true,
+    "admin_offices_select_all": true,
+    "staff_users_select_all": false,
+    "staff_offices_select_all": false
+  }
+}

@@ -663,7 +663,7 @@ export default function UsersPage() {
 
   const columns = useMemo(
     () => [
-      {
+      ...(isAdmin ? [{
         id: "select",
         header: ({ table }) => (
           <Checkbox
@@ -684,7 +684,7 @@ export default function UsersPage() {
           />
         ),
         enableSorting: false,
-      },
+      }] : []),
       {
         accessorKey: "name",
         header: ({ column }) => <SortableHeader column={column}>Name</SortableHeader>,
