@@ -349,7 +349,8 @@ Dicek otomatis oleh `design-guard.sh` (**#13** — `text-xl/2xl/3xl/4xl…` di `
 3. **Sorting lintas seluruh dataset** untuk tabel berpaginasi server (mis. Audit Log) → kirim
    `sort_by` & `sort_dir` ke API (bukan hanya sort halaman aktif).
 4. **Pengecualian:** sub-tabel detail di dalam dialog (mis. diff `Field/From/To`, daftar koleksi
-   pada dialog restore) dan tabel **hierarki/tree** yang urutannya bermakna (mis. Role List, urut by `order`).
+   pada dialog restore). Tabel **hierarki/tree** (mis. Role List) TETAP menyediakan header sortable;
+   saat sort aktif, urutan pohon di-flatten sementara mengikuti kolom yang dipilih (indentasi tetap tampil).
 5. Verifikasi via review/`testing_agent` (tidak diauto-guard karena deteksi sortable tidak andal via regex).
 
 **Prinsip:** *Compact & elegant on every screen.* Jangan memaksa layout desktop ke mobile,

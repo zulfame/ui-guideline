@@ -7,6 +7,7 @@ import {
   getCoreRowModel,
   getFilteredRowModel,
   getPaginationRowModel,
+  getSortedRowModel,
   flexRender,
 } from "@tanstack/react-table";
 import {
@@ -14,6 +15,7 @@ import {
   ArrowLeft,
   ArrowRight,
   ArrowUp,
+  ArrowUpDown,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
@@ -655,12 +657,34 @@ function LevelManagerDialog({ open, onOpenChange, levels, onChanged }) {
   );
 }
 
+function SortableHeader({ column, children, align = "left" }) {
+  const sorted = column.getIsSorted();
+  return (
+    <button
+      type="button"
+      className={`flex h-full w-full items-center gap-1 font-medium ${align === "right" ? "justify-end text-right" : "text-left"}`}
+      data-testid={`sort-${column.id}`}
+      onClick={() => column.toggleSorting(sorted === "asc")}
+    >
+      {children}
+      {sorted === "asc" ? (
+        <ArrowUp className="size-3.5" aria-hidden="true" />
+      ) : sorted === "desc" ? (
+        <ArrowDown className="size-3.5" aria-hidden="true" />
+      ) : (
+        <ArrowUpDown className="size-3.5 opacity-50" aria-hidden="true" />
+      )}
+    </button>
+  );
+}
+
 export default function RolesPage() {
   const [roles, setRoles] = useState([]);
   const [levels, setLevels] = useState([]);
   const [status, setStatus] = useState("loading");
   const [globalFilter, setGlobalFilter] = useState("");
   const [rowSelection, setRowSelection] = useState({});
+  const [sorting, setSorting] = useState([]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
@@ -825,7 +849,7 @@ export default function RolesPage() {
       },
       {
         accessorKey: "name",
-        header: "Name",
+        header: ({ column }) => <SortableHeader column={column}>Name</SortableHeader>,
         cell: ({ row }) => {
           const d = row.original._depth || 0;
           return (
@@ -843,7 +867,11 @@ export default function RolesPage() {
       },
       {
         id: "superior",
-        header: "Direct superior",
+        accessorFn: (row) => {
+          const chain = row._chain || [];
+          return chain.length ? chain[chain.length - 1] : "";
+        },
+        header: ({ column }) => <SortableHeader column={column}>Direct superior</SortableHeader>,
         cell: ({ row }) => {
           const chain = row.original._chain || [];
           const parent = chain.length ? chain[chain.length - 1] : null;
@@ -852,7 +880,8 @@ export default function RolesPage() {
       },
       {
         id: "level",
-        header: "Level",
+        accessorFn: (row) => levelName[row.level_id] || "",
+        header: ({ column }) => <SortableHeader column={column}>Level</SortableHeader>,
         cell: ({ row }) => {
           const name = levelName[row.original.level_id];
           return <span className="text-muted-foreground">{name || "—"}</span>;
@@ -860,7 +889,8 @@ export default function RolesPage() {
       },
       {
         id: "order",
-        header: "Order",
+        accessorFn: (row) => row.order ?? 0,
+        header: ({ column }) => <SortableHeader column={column}>Order</SortableHeader>,
         cell: ({ row }) => (
           <span className="text-muted-foreground">{row.original.order ?? 0}</span>
         ),
@@ -918,14 +948,16 @@ export default function RolesPage() {
   const table = useReactTable({
     data: treeData,
     columns,
-    state: { globalFilter, rowSelection },
+    state: { globalFilter, rowSelection, sorting },
     onGlobalFilterChange: setGlobalFilter,
     onRowSelectionChange: setRowSelection,
+    onSortingChange: setSorting,
     getRowId: (row) => row.id,
     globalFilterFn: (row, _col, value) =>
       row.original.name.toLowerCase().includes(value.toLowerCase()),
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
+    getSortedRowModel: getSortedRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     initialState: { pagination: { pageSize: 10 } },
   });

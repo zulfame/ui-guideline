@@ -557,6 +557,7 @@ function SortableHeader({ column, children, align = "left" }) {
     <button
       type="button"
       className={`flex h-full w-full items-center gap-1 font-medium ${align === "right" ? "justify-end text-right" : "text-left"}`}
+      data-testid={`sort-${column.id}`}
       onClick={() => column.toggleSorting(sorted === "asc")}
     >
       {children}
