@@ -6,6 +6,7 @@ import {
   Mail,
   MessageSquare,
   Send,
+  SendHorizontal,
   Settings2,
   Webhook,
   XCircle,
@@ -21,6 +22,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
   DialogBody,
@@ -75,6 +77,14 @@ export default function BroadcastPage() {
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
   const [result, setResult] = useState(null); // {ok, message}
+
+  // Send test message dialog
+  const [sendOpen, setSendOpen] = useState(false);
+  const [sendActive, setSendActive] = useState(null);
+  const [sendTo, setSendTo] = useState("");
+  const [sendMsg, setSendMsg] = useState("");
+  const [sending, setSending] = useState(false);
+  const [sendResult, setSendResult] = useState(null);
 
   const fetchChannels = useCallback(async () => {
     try {
@@ -139,6 +149,35 @@ export default function BroadcastPage() {
     }
   };
 
+  const openSend = (channel) => {
+    setSendActive(channel);
+    setSendTo("");
+    setSendMsg("");
+    setSendResult(null);
+    setSendOpen(true);
+  };
+
+  const sendTest = async () => {
+    if (!sendActive) return;
+    setSending(true);
+    setSendResult(null);
+    try {
+      const { data } = await API.post(`/broadcast/channels/${sendActive.key}/send-test`, {
+        to: sendTo,
+        message: sendMsg,
+      });
+      setSendResult({ ok: data.ok, message: data.message });
+      if (data.ok) toast.success(`${sendActive.label}: message sent`, { description: data.message });
+      else toast.error(`${sendActive.label}: send failed`, { description: data.message });
+    } catch (err) {
+      const msg = err?.response?.data?.detail || "Send failed. Please try again.";
+      setSendResult({ ok: false, message: msg });
+      toast.error(msg);
+    } finally {
+      setSending(false);
+    }
+  };
+
   return (
     <div className="space-y-6" data-testid="broadcast-page">
       <div>
@@ -190,7 +229,7 @@ export default function BroadcastPage() {
                     </p>
                   ) : null}
                 </CardContent>
-                <CardFooter className="border-t pt-4">
+                <CardFooter className="flex flex-wrap gap-2 border-t pt-4">
                   <Button
                     variant="outline"
                     size="sm"
@@ -199,6 +238,16 @@ export default function BroadcastPage() {
                     data-testid={`broadcast-modify-${channel.key}`}
                   >
                     <Settings2 className="size-4" /> Modify
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    className="w-full sm:w-auto"
+                    disabled={channel.status === "not_configured"}
+                    onClick={() => openSend(channel)}
+                    data-testid={`broadcast-send-${channel.key}`}
+                  >
+                    <SendHorizontal className="size-4" /> Send test
                   </Button>
                 </CardFooter>
               </Card>
@@ -291,6 +340,76 @@ export default function BroadcastPage() {
                 Save
               </Button>
             </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={sendOpen} onOpenChange={setSendOpen}>
+        <DialogContent className="sm:max-w-lg" data-testid="broadcast-send-dialog">
+          <DialogHeader>
+            <DialogTitle>Send test message — {sendActive?.label}</DialogTitle>
+            <DialogDescription>
+              Delivers a real message using the saved configuration to confirm it arrives.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogBody>
+            <div className="grid grid-cols-1 gap-4">
+              {sendActive?.key === "email" ? (
+                <div className="space-y-1.5">
+                  <Label htmlFor="bc-send-to">Recipient</Label>
+                  <Input
+                    id="bc-send-to"
+                    type="email"
+                    value={sendTo}
+                    onChange={(e) => setSendTo(e.target.value)}
+                    placeholder="recipient@example.com"
+                    data-testid="broadcast-send-to"
+                  />
+                </div>
+              ) : null}
+              <div className="space-y-1.5">
+                <Label htmlFor="bc-send-message">Message</Label>
+                <Textarea
+                  id="bc-send-message"
+                  rows={4}
+                  value={sendMsg}
+                  onChange={(e) => setSendMsg(e.target.value)}
+                  placeholder="Test broadcast message from the CMS."
+                  data-testid="broadcast-send-message"
+                />
+              </div>
+
+              {sendResult ? (
+                <Alert
+                  variant={sendResult.ok ? "default" : "destructive"}
+                  data-testid="broadcast-send-result"
+                >
+                  {sendResult.ok ? (
+                    <CheckCircle2 className="size-4" />
+                  ) : (
+                    <XCircle className="size-4" />
+                  )}
+                  <AlertTitle>{sendResult.ok ? "Message sent" : "Send failed"}</AlertTitle>
+                  <AlertDescription>{sendResult.message}</AlertDescription>
+                </Alert>
+              ) : null}
+            </div>
+          </DialogBody>
+          <DialogFooter className="flex-col gap-2 sm:flex-row sm:justify-end">
+            <DialogClose asChild>
+              <Button variant="outline" className="w-full sm:w-auto" disabled={sending}>
+                Cancel
+              </Button>
+            </DialogClose>
+            <Button
+              className="w-full sm:w-auto"
+              onClick={sendTest}
+              disabled={sending}
+              data-testid="broadcast-send-submit"
+            >
+              {sending ? <Loader2 className="size-4 animate-spin" /> : <SendHorizontal className="size-4" />}
+              Send message
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

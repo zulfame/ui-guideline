@@ -13,6 +13,7 @@ import ssl
 import json
 import asyncio
 import smtplib
+from email.message import EmailMessage
 import logging
 import bcrypt
 import httpx
@@ -223,7 +224,7 @@ AUDIT_ENTITY_TYPES = ["user", "role", "office", "level", "database", "broadcast"
 AUDIT_ACTIONS = [
     "create", "update", "delete", "bulk_delete",
     "import", "reassign", "change_password", "reset_password",
-    "backup", "restore", "configure", "test",
+    "backup", "restore", "configure", "test", "send_test",
 ]
 
 
@@ -2317,6 +2318,148 @@ async def test_broadcast_channel(key: str, body: BroadcastConfigRequest):
         metadata={"ok": ok, "message": message},
     )
     return {"ok": ok, "message": message, "channel": _serialize_channel(channel, doc)}
+
+
+# --- Live message senders (actually deliver a message) ---------------------
+DEFAULT_TEST_MESSAGE = "🔔 Test broadcast message from the CMS."
+
+
+async def _send_telegram(cfg: dict, message: str):
+    token = (cfg.get("bot_token") or "").strip()
+    payload = {"chat_id": cfg.get("chat_id"), "text": message}
+    tid = (str(cfg.get("message_thread_id") or "")).strip()
+    if tid:
+        try:
+            payload["message_thread_id"] = int(tid)
+        except ValueError:
+            payload["message_thread_id"] = tid
+    try:
+        async with httpx.AsyncClient(timeout=15) as c:
+            r = await c.post(f"https://api.telegram.org/bot{token}/sendMessage", json=payload)
+        data = r.json()
+    except Exception as exc:
+        return False, f"Request failed: {exc}"
+    if r.status_code == 200 and data.get("ok"):
+        return True, "Message delivered to Telegram."
+    return False, data.get("description") or f"HTTP {r.status_code}"
+
+
+async def _send_discord(cfg: dict, message: str):
+    url = (cfg.get("webhook_url") or "").strip()
+    try:
+        async with httpx.AsyncClient(timeout=15) as c:
+            r = await c.post(url, json={"content": message})
+    except Exception as exc:
+        return False, f"Request failed: {exc}"
+    if 200 <= r.status_code < 300:
+        return True, "Message posted to Discord."
+    return False, f"HTTP {r.status_code}"
+
+
+async def _send_slack(cfg: dict, message: str):
+    url = (cfg.get("webhook_url") or "").strip()
+    try:
+        async with httpx.AsyncClient(timeout=15) as c:
+            r = await c.post(url, json={"text": message})
+    except Exception as exc:
+        return False, f"Request failed: {exc}"
+    if r.status_code == 200 and r.text.strip().lower() == "ok":
+        return True, "Message posted to Slack."
+    return False, f"{r.text[:120] or 'Request failed'} (HTTP {r.status_code})."
+
+
+async def _send_webhook(cfg: dict, message: str):
+    url = (cfg.get("url") or "").strip()
+    headers = {}
+    hn = (cfg.get("header_name") or "").strip()
+    hv = cfg.get("header_value") or ""
+    if hn and hv:
+        headers[hn] = hv
+    payload = {
+        "event": "test_message",
+        "message": message,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    }
+    try:
+        async with httpx.AsyncClient(timeout=15) as c:
+            r = await c.post(url, json=payload, headers=headers)
+    except Exception as exc:
+        return False, f"Request failed: {exc}"
+    if 200 <= r.status_code < 300:
+        return True, f"Endpoint responded HTTP {r.status_code}."
+    return False, f"Endpoint responded HTTP {r.status_code}."
+
+
+def _send_email_sync(cfg: dict, to: str, subject: str, body: str) -> None:
+    ctx = ssl.create_default_context()
+    msg = EmailMessage()
+    from_addr = cfg.get("from_address")
+    from_name = (cfg.get("from_name") or "").strip()
+    msg["From"] = f"{from_name} <{from_addr}>" if from_name else from_addr
+    msg["To"] = to
+    msg["Subject"] = subject
+    msg.set_content(body)
+    host = cfg.get("host")
+    port = int(cfg.get("port") or 587)
+    if cfg.get("use_tls"):
+        with smtplib.SMTP_SSL(host, port, context=ctx, timeout=20) as s:
+            s.login(cfg.get("username"), cfg.get("password"))
+            s.send_message(msg)
+        return
+    with smtplib.SMTP(host, port, timeout=20) as s:
+        s.ehlo()
+        if cfg.get("starttls", True):
+            s.starttls(context=ctx)
+            s.ehlo()
+        s.login(cfg.get("username"), cfg.get("password"))
+        s.send_message(msg)
+
+
+_BROADCAST_SENDERS = {
+    "telegram": _send_telegram,
+    "discord": _send_discord,
+    "slack": _send_slack,
+    "webhook": _send_webhook,
+}
+
+
+class BroadcastSendRequest(BaseModel):
+    to: Optional[str] = None
+    message: Optional[str] = None
+
+
+@api_router.post("/broadcast/channels/{key}/send-test", tags=["Broadcast"], summary="Send a real test message")
+async def send_test_broadcast(key: str, body: BroadcastSendRequest):
+    """Deliver an actual test message through the saved channel config. Email
+    requires a recipient (`to`)."""
+    channel = _channel_or_404(key)
+    doc = await db.broadcast_configs.find_one({"key": key})
+    config = (doc or {}).get("config")
+    if not config or not _is_configured(channel, config):
+        raise HTTPException(status_code=400, detail="Please configure and save this channel first.")
+    message = (body.message or "").strip() or DEFAULT_TEST_MESSAGE
+    to = (body.to or "").strip()
+    if key == "email":
+        if not to:
+            raise HTTPException(status_code=400, detail="Recipient email address is required.")
+        try:
+            await asyncio.to_thread(_send_email_sync, config, to, "CMS test message", message)
+            ok, result_msg = True, f"Email sent to {to}."
+        except smtplib.SMTPAuthenticationError:
+            ok, result_msg = False, "SMTP authentication failed."
+        except Exception as exc:
+            ok, result_msg = False, f"Send failed: {exc}"
+    else:
+        ok, result_msg = await _BROADCAST_SENDERS[key](config, message)
+    await log_audit(
+        "send_test", "broadcast",
+        entity_id=key, entity_label=channel["label"],
+        summary=f"Sent test message via {channel['label']} — {'success' if ok else 'failed'}",
+        method="POST", path=f"/api/broadcast/channels/{key}/send-test",
+        status_code=200 if ok else 400,
+        metadata={"ok": ok, "message": result_msg, "to": to or None},
+    )
+    return {"ok": ok, "message": result_msg}
 
 
 # Include the router in the main app.
