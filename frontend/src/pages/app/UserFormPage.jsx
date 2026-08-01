@@ -16,6 +16,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Select,
@@ -35,12 +36,17 @@ import {
 import { EmptyState } from "@/components/composite/EmptyState";
 
 const UNIQUE_FIELDS = ["email", "username", "phone", "alias", "mso_code", "collector_code"];
+const OPTIONAL_TEXT = [
+  "username", "phone", "alias", "mso_code", "collector_code",
+  "device_identifier", "device_name", "device_os", "fcm_token",
+];
 
 const userSchema = z.object({
   name: z.string().min(1, "Name is required"),
   email: z.string().min(1, "Email is required").email("Invalid email"),
   role_id: z.string().min(1, "Role is required"),
   office_id: z.string().min(1, "Office is required"),
+  is_active: z.boolean(),
   username: z.string().optional(),
   phone: z.string().optional(),
   alias: z.string().optional(),
@@ -53,37 +59,21 @@ const userSchema = z.object({
 });
 
 const emptyUser = {
-  name: "",
-  email: "",
-  role_id: "",
-  office_id: "",
-  username: "",
-  phone: "",
-  alias: "",
-  mso_code: "",
-  collector_code: "",
-  device_identifier: "",
-  device_name: "",
-  device_os: "",
-  fcm_token: "",
+  name: "", email: "", role_id: "", office_id: "", is_active: true,
+  username: "", phone: "", alias: "", mso_code: "", collector_code: "",
+  device_identifier: "", device_name: "", device_os: "", fcm_token: "",
 };
 
 function toUserForm(u) {
   if (!u) return emptyUser;
   return {
-    name: u.name ?? "",
-    email: u.email ?? "",
-    role_id: u.role_id ?? "",
-    office_id: u.office_id ?? "",
-    username: u.username ?? "",
-    phone: u.phone ?? "",
-    alias: u.alias ?? "",
-    mso_code: u.mso_code ?? "",
-    collector_code: u.collector_code ?? "",
-    device_identifier: u.device_identifier ?? "",
-    device_name: u.device_name ?? "",
-    device_os: u.device_os ?? "",
-    fcm_token: u.fcm_token ?? "",
+    name: u.name ?? "", email: u.email ?? "",
+    role_id: u.role_id ?? "", office_id: u.office_id ?? "",
+    is_active: u.is_active !== false,
+    username: u.username ?? "", phone: u.phone ?? "", alias: u.alias ?? "",
+    mso_code: u.mso_code ?? "", collector_code: u.collector_code ?? "",
+    device_identifier: u.device_identifier ?? "", device_name: u.device_name ?? "",
+    device_os: u.device_os ?? "", fcm_token: u.fcm_token ?? "",
   };
 }
 
@@ -93,8 +83,9 @@ function buildUserPayload(data, isEdit) {
     email: data.email.trim(),
     role_id: data.role_id,
     office_id: data.office_id,
+    is_active: data.is_active,
   };
-  ["username", "phone", "alias", "mso_code", "collector_code", "device_identifier", "device_name", "device_os", "fcm_token"].forEach((k) => {
+  OPTIONAL_TEXT.forEach((k) => {
     const v = data[k] ? data[k].trim() : "";
     if (v) payload[k] = v;
     else if (isEdit) payload[k] = null;
@@ -106,6 +97,22 @@ function fieldFromDetail(detail) {
   if (typeof detail !== "string") return null;
   return UNIQUE_FIELDS.find((f) => detail.toLowerCase().includes(f)) || null;
 }
+
+const TEXT_FIELDS = [
+  { name: "name", label: "Name" },
+  { name: "email", label: "Email", type: "email" },
+];
+const OPTIONAL_FIELDS = [
+  { name: "username", label: "Username" },
+  { name: "phone", label: "Phone" },
+  { name: "alias", label: "Alias" },
+  { name: "mso_code", label: "MSO Code" },
+  { name: "collector_code", label: "Collector Code" },
+  { name: "device_identifier", label: "Device Identifier" },
+  { name: "device_name", label: "Device Name" },
+  { name: "device_os", label: "Device OS" },
+  { name: "fcm_token", label: "FCM Token" },
+];
 
 export default function UserFormPage() {
   const navigate = useNavigate();
@@ -162,8 +169,7 @@ export default function UserFormPage() {
       if (httpStatus === 409 && field) {
         form.setError(field, { message: detail });
       } else if (httpStatus === 400 && typeof detail === "string") {
-        const f = detail.toLowerCase().includes("office") ? "office_id" : "role_id";
-        form.setError(f, { message: detail });
+        form.setError(detail.toLowerCase().includes("office") ? "office_id" : "role_id", { message: detail });
       } else {
         toast.error("Failed to save user", {
           description: typeof detail === "string" ? detail : "Please try again.",
@@ -210,8 +216,8 @@ export default function UserFormPage() {
         />
       ) : status === "loading" ? (
         <Card>
-          <CardContent className="space-y-4 pt-6" data-testid="user-form-loading">
-            {Array.from({ length: 6 }).map((_, i) => (
+          <CardContent className="grid grid-cols-1 gap-4 pt-6 sm:grid-cols-2 lg:grid-cols-4" data-testid="user-form-loading">
+            {Array.from({ length: 12 }).map((_, i) => (
               <Skeleton key={i} className="h-10 w-full" />
             ))}
           </CardContent>
@@ -222,36 +228,27 @@ export default function UserFormPage() {
             <Card>
               <CardHeader>
                 <CardTitle className="text-base">Account details</CardTitle>
-                <CardDescription>Name, contact, role and office assignment.</CardDescription>
+                <CardDescription>Name, contact, role, office and status.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-5">
-                <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2">
-                  <FormField
-                    control={form.control}
-                    name="name"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Name</FormLabel>
-                        <FormControl>
-                          <Input {...field} data-testid="user-field-name" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="email"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Email</FormLabel>
-                        <FormControl>
-                          <Input type="email" {...field} data-testid="user-field-email" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                  {TEXT_FIELDS.map((f) => (
+                    <FormField
+                      key={f.name}
+                      control={form.control}
+                      name={f.name}
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{f.label}</FormLabel>
+                          <FormControl>
+                            <Input type={f.type || "text"} {...field} data-testid={`user-field-${f.name}`} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  ))}
+
                   <FormField
                     control={form.control}
                     name="role_id"
@@ -266,9 +263,7 @@ export default function UserFormPage() {
                           </FormControl>
                           <SelectContent>
                             {roles.map((r) => (
-                              <SelectItem key={r.id} value={r.id}>
-                                {r.name}
-                              </SelectItem>
+                              <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
@@ -276,6 +271,7 @@ export default function UserFormPage() {
                       </FormItem>
                     )}
                   />
+
                   <FormField
                     control={form.control}
                     name="office_id"
@@ -290,9 +286,7 @@ export default function UserFormPage() {
                           </FormControl>
                           <SelectContent>
                             {offices.map((o) => (
-                              <SelectItem key={o.id} value={o.id}>
-                                {o.name}
-                              </SelectItem>
+                              <SelectItem key={o.id} value={o.id}>{o.name}</SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
@@ -300,133 +294,45 @@ export default function UserFormPage() {
                       </FormItem>
                     )}
                   />
-                  <FormField
-                    control={form.control}
-                    name="username"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Username</FormLabel>
-                        <FormControl>
-                          <Input placeholder="(Optional)" {...field} data-testid="user-field-username" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="phone"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Phone</FormLabel>
-                        <FormControl>
-                          <Input placeholder="(Optional)" {...field} data-testid="user-field-phone" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-3 sm:col-span-2">
-                    <FormField
-                      control={form.control}
-                      name="alias"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Alias</FormLabel>
-                          <FormControl>
-                            <Input placeholder="(Optional)" {...field} data-testid="user-field-alias" />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="mso_code"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>MSO Code</FormLabel>
-                          <FormControl>
-                            <Input placeholder="(Optional)" {...field} data-testid="user-field-mso" />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="collector_code"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Collector Code</FormLabel>
-                          <FormControl>
-                            <Input placeholder="(Optional)" {...field} data-testid="user-field-collector" />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                </div>
 
-                <div className="border-t pt-4">
-                  <h4 className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    Device &amp; Integration
-                  </h4>
-                  <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2">
+                  {OPTIONAL_FIELDS.map((f) => (
                     <FormField
+                      key={f.name}
                       control={form.control}
-                      name="device_identifier"
+                      name={f.name}
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Device Identifier</FormLabel>
+                          <FormLabel>{f.label}</FormLabel>
                           <FormControl>
-                            <Input placeholder="(Optional)" {...field} data-testid="user-field-device-id" />
+                            <Input placeholder="(Optional)" {...field} data-testid={`user-field-${f.name}`} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
-                    <FormField
-                      control={form.control}
-                      name="device_name"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Device Name</FormLabel>
-                          <FormControl>
-                            <Input placeholder="(Optional)" {...field} data-testid="user-field-device-name" />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="device_os"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Device OS</FormLabel>
-                          <FormControl>
-                            <Input placeholder="(Optional)" {...field} data-testid="user-field-device-os" />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="fcm_token"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>FCM Token</FormLabel>
-                          <FormControl>
-                            <Input placeholder="(Optional)" {...field} data-testid="user-field-fcm" />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
+                  ))}
+
+                  <FormField
+                    control={form.control}
+                    name="is_active"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-col justify-start">
+                        <FormLabel>Status</FormLabel>
+                        <div className="flex h-10 items-center gap-2 rounded-md border px-3">
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                            data-testid="user-field-active"
+                            aria-label="Active status"
+                          />
+                          <span className="text-sm text-muted-foreground">
+                            {field.value ? "Active" : "Inactive"}
+                          </span>
+                        </div>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                 </div>
 
                 <div className="flex justify-end gap-2 border-t pt-4">

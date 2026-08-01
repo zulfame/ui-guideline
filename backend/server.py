@@ -1111,6 +1111,7 @@ def _user_public(doc: dict, roles: dict = None, offices: dict = None) -> dict:
         "is_admin": bool(doc.get("is_admin")),
         "office_id": doc.get("office_id"),
         "office_name": offices.get(doc.get("office_id")),
+        "is_active": doc.get("is_active", True),
         "alias": doc.get("alias"),
         "mso_code": doc.get("mso_code"),
         "collector_code": doc.get("collector_code"),
@@ -1172,6 +1173,7 @@ class UserCreate(BaseModel):
     device_name: Optional[str] = None
     device_os: Optional[str] = None
     fcm_token: Optional[str] = None
+    is_active: bool = True
 
 
 class UserUpdate(BaseModel):
@@ -1188,6 +1190,7 @@ class UserUpdate(BaseModel):
     device_name: Optional[str] = None
     device_os: Optional[str] = None
     fcm_token: Optional[str] = None
+    is_active: Optional[bool] = None
 
 
 class ChangePasswordRequest(BaseModel):
@@ -1810,11 +1813,19 @@ _USER_IMPORT_OPTIONAL = [
 ]
 
 
+def _parse_active(val) -> bool:
+    """Parse the import 'is_active'/'status' cell → bool (default active)."""
+    s = _s(val).lower()
+    if s == "":
+        return True
+    return s not in ("0", "false", "no", "n", "inactive", "nonaktif", "tidak aktif", "tidak", "off")
+
+
 @api_router.get("/users/import/template", tags=["Users"], summary="Download users import template")
 async def users_import_template():
-    headers = ["name", "email", "role", "office", *_USER_IMPORT_OPTIONAL]
+    headers = ["name", "email", "role", "office", "is_active", *_USER_IMPORT_OPTIONAL]
     example = [
-        "Budi Santoso", "budi@example.com", "Teller", "Kantor Pusat",
+        "Budi Santoso", "budi@example.com", "Teller", "Kantor Pusat", "active",
         "budi", "08123456789", "BDS", "MSO001", "COL001", "", "", "", "",
     ]
     return _xlsx_response(headers, example, "users_import_template.xlsx")
@@ -1885,6 +1896,7 @@ async def _prepare_users(rows: list):
         else:
             office_id = office_id_by_name[office_name.lower()]
         rec = {"row": rn, "name": name, "email": email, "role_id": role_id, "office_id": office_id}
+        rec["is_active"] = _parse_active(row.get("is_active", row.get("status")))
         for f in _USER_IMPORT_OPTIONAL:
             rec[f] = _s(row.get(f)) or None
         for f in UNIQUE_USER_FIELDS:
@@ -1924,6 +1936,7 @@ async def _prepare_users(rows: list):
             "fields": {
                 "name": p["name"], "email": p["email"],
                 "role_id": p["role_id"], "office_id": p["office_id"],
+                "is_active": p["is_active"],
                 **{f: p[f] for f in _USER_IMPORT_OPTIONAL},
             },
         })

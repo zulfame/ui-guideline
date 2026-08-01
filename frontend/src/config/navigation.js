@@ -195,6 +195,16 @@ export const getBreadcrumb = (pathname) => {
       }
     }
   }
+  const subRoutes = [
+    { re: /^\/users\/new$/, parent: "/users", title: "Add User" },
+    { re: /^\/users\/[^/]+\/edit$/, parent: "/users", title: "Edit User" },
+  ];
+  for (const sr of subRoutes) {
+    if (sr.re.test(pathname)) {
+      const base = getBreadcrumb(sr.parent);
+      return { title: sr.title, trail: [...base.trail, sr.title] };
+    }
+  }
   const accountTitle = { "/account": "Account", "/settings": "Settings" }[pathname];
   if (accountTitle) return { title: accountTitle, trail: ["Application", accountTitle] };
   return { title: "Page", trail: ["Page"] };
