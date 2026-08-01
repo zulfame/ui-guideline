@@ -2051,6 +2051,8 @@ BROADCAST_CHANNELS = [
             {"name": "password", "label": "Password", "type": "password", "required": True, "secret": True},
             {"name": "from_address", "label": "From Address", "type": "text", "required": True,
              "placeholder": "noreply@example.com"},
+            {"name": "from_name", "label": "Sender Name", "type": "text", "required": False,
+             "placeholder": "Optional — shown as the email sender, e.g. BPR Bangun Arta"},
             {"name": "use_tls", "label": "Implicit TLS (port 465)", "type": "boolean", "required": False},
             {"name": "starttls", "label": "STARTTLS (port 587)", "type": "boolean", "required": False},
         ],
