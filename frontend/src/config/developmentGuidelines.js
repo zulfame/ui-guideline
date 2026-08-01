@@ -812,6 +812,32 @@ export const guidelineGroups = [
         ],
       },
       {
+        id: "serialization-safety",
+        title: "Serialization Safety",
+        principle:
+          "Never return raw MongoDB documents. BSON types (ObjectId, datetime) are not JSON-serializable and either leak internals or crash endpoints.",
+        rules: [
+          "Convert ObjectId -> str and map `_id` -> `id` before returning (PyObjectId / from_mongo helpers).",
+          "Never spread a raw Mongo doc (`{**doc}`) into a response or into another document.",
+          "Exclude `_id` from any dict reused as a payload (e.g. audit `request`) — drivers mutate the dict on insert.",
+          "Defensive net for list endpoints: coerce with `json.loads(json.dumps(docs, default=str))`.",
+          "Persist nested datetimes as ISO 8601 (UTC) strings, not raw datetime.",
+        ],
+        dos: [
+          "Centralize (de)serialization in a base model / helper.",
+          "Project out `_id` when not needed (`{'_id': 0}`).",
+        ],
+        donts: [
+          "Returning `find()` results directly.",
+          "Passing a just-inserted dict (now carrying `_id`) into a log/audit record.",
+        ],
+        checklist: [
+          "No ObjectId reaches the client.",
+          "No raw Mongo doc is spread into responses/other docs.",
+          "A single legacy BSON value can't 500 a list endpoint.",
+        ],
+      },
+      {
         id: "authentication",
         title: "Authentication",
         principle:
@@ -994,6 +1020,31 @@ export const guidelineGroups = [
           "No secrets in code/repo.",
           "`.env` not committed.",
           "A rotation policy exists.",
+        ],
+      },
+      {
+        id: "integration-secret-handling",
+        title: "Integration Secret Handling",
+        principle:
+          "User-supplied integration secrets (bot tokens, webhook URLs, SMTP passwords) are write-only from the client's perspective.",
+        rules: [
+          "Never return stored secrets to the client — send an empty value plus a boolean `*_set` flag.",
+          "On update, treat an empty secret field as 'keep existing' (merge) so the client never resends it.",
+          "Redact secret keys in audit logs (extend the shared redaction set).",
+          "When testing a connection, prefer validation-only calls (e.g. Telegram getMe, SMTP login) over sending real messages where possible.",
+        ],
+        dos: [
+          "Mask secrets on read; persist only on explicit change.",
+          "Keep one redaction list shared by the audit layer.",
+        ],
+        donts: [
+          "Echoing tokens/passwords back in GET responses.",
+          "Logging raw credentials in audit `request`/`metadata`.",
+        ],
+        checklist: [
+          "GET never exposes a stored secret.",
+          "Empty secret on save preserves the old value.",
+          "Audit entries show secrets as redacted.",
         ],
       },
       {

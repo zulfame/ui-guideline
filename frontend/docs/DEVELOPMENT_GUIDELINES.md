@@ -57,6 +57,7 @@
 - **API Versioning** — breaking change → versi baru (`/api/v1`); umumkan deprekasi; changelog API.
 - **Request Validation** — model Pydantic per endpoint; 422 informatif.
 - **Response Standardization** — `response_model`; format error konsisten; **tidak** bocorkan ObjectId/internal.
+- **Serialization Safety** — jangan pernah kembalikan dokumen Mongo mentah; ObjectId→str & `_id`→`id`; jangan spread `{**doc}`; buang `_id` dari dict yang dipakai ulang sebagai payload (audit); jaring pengaman list: `json.loads(json.dumps(docs, default=str))`.
 - **Authentication** — mekanisme standar (JWT/OAuth2/session); hash password kuat (bcrypt/argon2); secret dari environment.
 - **Authorization** — cek di server; least privilege (default deny); RBAC; UI menyembunyikan tapi server otoritatif.
 - **Rate Limiting** — lindungi endpoint sensitif; 429 + `Retry-After`; limit per identitas.
@@ -66,6 +67,7 @@
 - **Secure Data Validation** — whitelist; validasi server wajib; anti-injeksi (NoSQL/command).
 - **Sensitive Data Protection** — TLS in-transit; lindungi at-rest; tidak log/return sensitif; masking di UI.
 - **Credential Management** — secret di `.env`/secret manager; **jangan commit/hardcode**; rotasi kunci; least privilege.
+- **Integration Secret Handling** — secret dari user (bot token, webhook URL, SMTP password) bersifat write-only: jangan kembalikan ke client (kirim kosong + flag `*_set`); field secret kosong saat simpan = pertahankan nilai lama (merge); redaksi di audit; test koneksi utamakan validasi (Telegram getMe, SMTP login) bila memungkinkan.
 - **File Security** — validasi tipe (MIME+magic bytes) & ukuran; nama file di-sanitasi; jangan eksekusi upload; akses download terotorisasi.
 - **Session Management** — cookie `HttpOnly`/`Secure`/`SameSite`; timeout + revocation; regenerasi id saat login.
 - **Security Headers** — HSTS, `X-Content-Type-Options: nosniff`, frame-ancestors/`X-Frame-Options`, CSP; CORS ketat.
