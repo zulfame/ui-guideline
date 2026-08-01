@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   Plus,
   KeyRound,
@@ -9,7 +9,10 @@ import {
   Trash2,
   ShieldCheck,
   Loader2,
+  Pencil,
+  BarChart3,
 } from "lucide-react";
+import { Bar, BarChart, CartesianGrid, XAxis } from "recharts";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -47,12 +50,19 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+} from "@/components/ui/chart";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/composite/EmptyState";
 import { toast } from "@/components/ui/sonner";
 import API from "@/lib/api";
+
+const usageChartConfig = { count: { label: "Requests", color: "hsl(var(--chart-1))" } };
 
 function fmtDate(iso) {
   if (!iso) return "—";
@@ -68,18 +78,26 @@ export default function ClientsPage() {
   const [scopes, setScopes] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const [createOpen, setCreateOpen] = useState(false);
+  const [formOpen, setFormOpen] = useState(false);
+  const [formMode, setFormMode] = useState("create");
+  const [editingId, setEditingId] = useState(null);
   const [name, setName] = useState("");
   const [selectedScopes, setSelectedScopes] = useState([]);
+  const [limitInput, setLimitInput] = useState("");
+  const [windowInput, setWindowInput] = useState("");
   const [saving, setSaving] = useState(false);
 
-  const [revealKey, setRevealKey] = useState(null); // { key, name }
+  const [revealKey, setRevealKey] = useState(null);
   const [copied, setCopied] = useState(false);
 
   const [revokeTarget, setRevokeTarget] = useState(null);
   const [regenTarget, setRegenTarget] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [acting, setActing] = useState(false);
+
+  const [usageTarget, setUsageTarget] = useState(null);
+  const [usage, setUsage] = useState(null);
+  const [usageLoading, setUsageLoading] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -104,25 +122,65 @@ export default function ClientsPage() {
     );
 
   const openCreate = () => {
+    setFormMode("create");
+    setEditingId(null);
     setName("");
     setSelectedScopes([]);
-    setCreateOpen(true);
+    setLimitInput("");
+    setWindowInput("");
+    setFormOpen(true);
   };
 
-  const submitCreate = async () => {
+  const openEdit = (c) => {
+    setFormMode("edit");
+    setEditingId(c.id);
+    setName(c.name);
+    setSelectedScopes(c.scopes || []);
+    setLimitInput(c.rate_limit != null ? String(c.rate_limit) : "");
+    setWindowInput(c.rate_window_seconds != null ? String(c.rate_window_seconds) : "");
+    setFormOpen(true);
+  };
+
+  const submitForm = async () => {
     if (!name.trim()) {
       toast.error("Name is required");
       return;
     }
+    const rate_limit = limitInput.trim() === "" ? null : parseInt(limitInput, 10);
+    const rate_window_seconds = windowInput.trim() === "" ? null : parseInt(windowInput, 10);
+    if (rate_limit != null && (Number.isNaN(rate_limit) || rate_limit < 1)) {
+      toast.error("Rate limit must be a positive number");
+      return;
+    }
+    if (rate_window_seconds != null && (Number.isNaN(rate_window_seconds) || rate_window_seconds < 1)) {
+      toast.error("Window must be a positive number of seconds");
+      return;
+    }
     setSaving(true);
     try {
-      const { data } = await API.post("/clients", { name: name.trim(), scopes: selectedScopes });
-      setCreateOpen(false);
-      setRevealKey({ key: data.api_key, name: data.name });
+      if (formMode === "create") {
+        const { data } = await API.post("/clients", {
+          name: name.trim(),
+          scopes: selectedScopes,
+          rate_limit,
+          rate_window_seconds,
+        });
+        setFormOpen(false);
+        setRevealKey({ key: data.api_key, name: data.name });
+        toast.success("API client created");
+      } else {
+        await API.put(`/clients/${editingId}`, {
+          name: name.trim(),
+          scopes: selectedScopes,
+          rate_limit,
+          rate_window_seconds,
+        });
+        setFormOpen(false);
+        toast.success("Client updated");
+      }
       await load();
-      toast.success("API client created");
     } catch (e) {
-      toast.error(e?.response?.data?.detail || "Failed to create client");
+      toast.error(e?.response?.data?.detail || "Failed to save client");
     } finally {
       setSaving(false);
     }
@@ -171,6 +229,20 @@ export default function ClientsPage() {
     }
   };
 
+  const openUsage = async (c) => {
+    setUsageTarget(c);
+    setUsage(null);
+    setUsageLoading(true);
+    try {
+      const { data } = await API.get(`/clients/${c.id}/usage?days=14`);
+      setUsage(data);
+    } catch {
+      toast.error("Failed to load usage");
+    } finally {
+      setUsageLoading(false);
+    }
+  };
+
   const copyKey = async () => {
     try {
       await navigator.clipboard.writeText(revealKey.key);
@@ -182,7 +254,6 @@ export default function ClientsPage() {
   };
 
   const hasClients = clients.length > 0;
-  const scopeOptions = useMemo(() => scopes, [scopes]);
 
   return (
     <div className="space-y-6" data-testid="clients-page">
@@ -191,7 +262,7 @@ export default function ClientsPage() {
           <div>
             <CardTitle className="text-base">API Clients</CardTitle>
             <CardDescription>
-              Manage API credentials and their access scopes. Keys are shown only once.
+              Manage API credentials, scopes and per-key rate limits. Keys are shown only once.
             </CardDescription>
           </div>
           <Button size="sm" onClick={openCreate} data-testid="clients-add">
@@ -224,9 +295,9 @@ export default function ClientsPage() {
                     <TableHead>Name</TableHead>
                     <TableHead>Key</TableHead>
                     <TableHead>Scopes</TableHead>
+                    <TableHead>Rate limit</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Requests</TableHead>
-                    <TableHead>Created</TableHead>
                     <TableHead>Last used</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
@@ -251,6 +322,11 @@ export default function ClientsPage() {
                           )}
                         </div>
                       </TableCell>
+                      <TableCell className="text-sm text-muted-foreground" data-testid={`client-rate-${c.id}`}>
+                        {c.rate_limit != null
+                          ? `${c.rate_limit}/${c.rate_window_seconds ?? 60}s`
+                          : "Default"}
+                      </TableCell>
                       <TableCell>
                         <Badge
                           variant={c.active ? "secondary" : "destructive"}
@@ -263,10 +339,29 @@ export default function ClientsPage() {
                       <TableCell className="tabular-nums" data-testid={`client-requests-${c.id}`}>
                         {(c.request_count ?? 0).toLocaleString()}
                       </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">{fmtDate(c.created_at)}</TableCell>
                       <TableCell className="text-sm text-muted-foreground">{fmtDate(c.last_used_at)}</TableCell>
                       <TableCell>
                         <div className="flex items-center justify-end gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="size-8"
+                            aria-label="View usage"
+                            onClick={() => openUsage(c)}
+                            data-testid={`client-usage-${c.id}`}
+                          >
+                            <BarChart3 className="size-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="size-8"
+                            aria-label="Edit client"
+                            onClick={() => openEdit(c)}
+                            data-testid={`client-edit-${c.id}`}
+                          >
+                            <Pencil className="size-4" />
+                          </Button>
                           <Button
                             variant="ghost"
                             size="icon"
@@ -310,12 +405,14 @@ export default function ClientsPage() {
         </CardContent>
       </Card>
 
-      {/* Create dialog */}
-      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent data-testid="clients-create-dialog">
+      {/* Create / Edit dialog */}
+      <Dialog open={formOpen} onOpenChange={setFormOpen}>
+        <DialogContent data-testid="clients-form-dialog">
           <DialogHeader>
-            <DialogTitle>New API client</DialogTitle>
-            <DialogDescription>Name the client and choose its access scopes.</DialogDescription>
+            <DialogTitle>{formMode === "create" ? "New API client" : "Edit API client"}</DialogTitle>
+            <DialogDescription>
+              Set the name, access scopes and an optional custom rate limit.
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
@@ -331,7 +428,7 @@ export default function ClientsPage() {
             <div className="space-y-2">
               <Label>Scopes</Label>
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                {scopeOptions.map((s) => (
+                {scopes.map((s) => (
                   <label
                     key={s}
                     className="flex cursor-pointer items-center gap-2 rounded-md border border-border/60 px-3 py-2 text-sm"
@@ -346,14 +443,43 @@ export default function ClientsPage() {
                 ))}
               </div>
             </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label htmlFor="client-limit">Rate limit (requests)</Label>
+                <Input
+                  id="client-limit"
+                  type="number"
+                  min="1"
+                  value={limitInput}
+                  onChange={(e) => setLimitInput(e.target.value)}
+                  placeholder="Default (60)"
+                  data-testid="client-limit-input"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="client-window">Window (seconds)</Label>
+                <Input
+                  id="client-window"
+                  type="number"
+                  min="1"
+                  value={windowInput}
+                  onChange={(e) => setWindowInput(e.target.value)}
+                  placeholder="Default (60)"
+                  data-testid="client-window-input"
+                />
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Leave rate fields blank to use the server default.
+            </p>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setCreateOpen(false)}>
+            <Button variant="outline" onClick={() => setFormOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={submitCreate} disabled={saving} data-testid="clients-create-submit">
+            <Button onClick={submitForm} disabled={saving} data-testid="clients-form-submit">
               {saving ? <Loader2 className="size-4 animate-spin" /> : <ShieldCheck className="size-4" />}
-              Create client
+              {formMode === "create" ? "Create client" : "Save changes"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -382,6 +508,40 @@ export default function ClientsPage() {
               Done
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Usage trend dialog */}
+      <Dialog open={!!usageTarget} onOpenChange={(o) => !o && setUsageTarget(null)}>
+        <DialogContent data-testid="client-usage-dialog">
+          <DialogHeader>
+            <DialogTitle>API usage — {usageTarget?.name}</DialogTitle>
+            <DialogDescription>
+              Requests per day (last 14 days){usage ? ` — ${usage.total.toLocaleString()} total` : ""}.
+            </DialogDescription>
+          </DialogHeader>
+          {usageLoading ? (
+            <Skeleton className="h-56 w-full" />
+          ) : usage && usage.total > 0 ? (
+            <ChartContainer config={usageChartConfig} className="h-56 w-full">
+              <BarChart data={usage.series}>
+                <CartesianGrid vertical={false} />
+                <XAxis
+                  dataKey="date"
+                  tickLine={false}
+                  axisLine={false}
+                  tickMargin={8}
+                  tickFormatter={(v) => v.slice(5)}
+                />
+                <ChartTooltip content={<ChartTooltipContent />} />
+                <Bar dataKey="count" fill="var(--color-count)" radius={4} isAnimationActive={false} />
+              </BarChart>
+            </ChartContainer>
+          ) : (
+            <p className="py-10 text-center text-sm text-muted-foreground" data-testid="client-usage-empty">
+              No requests recorded yet for this key.
+            </p>
+          )}
         </DialogContent>
       </Dialog>
 

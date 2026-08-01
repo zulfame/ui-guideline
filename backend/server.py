@@ -3118,12 +3118,16 @@ AVAILABLE_SCOPES = ["read", "write", "users", "roles", "offices", "broadcast", "
 class ClientCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=120)
     scopes: List[str] = Field(default_factory=list)
+    rate_limit: Optional[int] = Field(None, ge=1, le=100000)
+    rate_window_seconds: Optional[int] = Field(None, ge=1, le=86400)
 
 
 class ClientUpdate(BaseModel):
     name: Optional[str] = Field(None, min_length=1, max_length=120)
     scopes: Optional[List[str]] = None
     active: Optional[bool] = None
+    rate_limit: Optional[int] = Field(None, ge=1, le=100000)
+    rate_window_seconds: Optional[int] = Field(None, ge=1, le=86400)
 
 
 def _sanitize_scopes(scopes):
@@ -3152,6 +3156,8 @@ def _client_public(doc):
         "key_masked": f"{doc.get('key_prefix', '')}…{doc.get('key_last4', '')}",
         "last_used_at": doc.get("last_used_at"),
         "request_count": int(doc.get("request_count", 0)),
+        "rate_limit": doc.get("rate_limit"),
+        "rate_window_seconds": doc.get("rate_window_seconds"),
         "created_at": doc.get("created_at"),
         "created_by": doc.get("created_by"),
         "revoked_at": doc.get("revoked_at"),
@@ -3178,6 +3184,8 @@ async def create_client(payload: ClientCreate, current=Depends(_require_admin)):
         "name": payload.name.strip(),
         "scopes": _sanitize_scopes(payload.scopes),
         "active": True,
+        "rate_limit": payload.rate_limit,
+        "rate_window_seconds": payload.rate_window_seconds,
         "key_hash": key_hash,
         "key_prefix": prefix,
         "key_last4": last4,
@@ -3203,13 +3211,18 @@ async def update_client(client_id: str, payload: ClientUpdate, current=Depends(_
     doc = await db.api_clients.find_one({"id": client_id})
     if not doc:
         raise HTTPException(status_code=404, detail="Client not found.")
+    data = payload.model_dump(exclude_unset=True)
     update = {}
-    if payload.name is not None:
-        update["name"] = payload.name.strip()
-    if payload.scopes is not None:
-        update["scopes"] = _sanitize_scopes(payload.scopes)
-    if payload.active is not None:
-        update["active"] = bool(payload.active)
+    if data.get("name") is not None:
+        update["name"] = data["name"].strip()
+    if data.get("scopes") is not None:
+        update["scopes"] = _sanitize_scopes(data["scopes"])
+    if data.get("active") is not None:
+        update["active"] = bool(data["active"])
+    if "rate_limit" in data:
+        update["rate_limit"] = data["rate_limit"]
+    if "rate_window_seconds" in data:
+        update["rate_window_seconds"] = data["rate_window_seconds"]
     if update:
         await db.api_clients.update_one({"id": client_id}, {"$set": update})
         await log_audit(
@@ -3268,12 +3281,32 @@ async def delete_client(client_id: str, current=Depends(_require_admin)):
     if not doc:
         raise HTTPException(status_code=404, detail="Client not found.")
     await db.api_clients.delete_one({"id": client_id})
+    await db.api_usage_daily.delete_many({"client_id": client_id})
     await log_audit(
         "delete", "api_client", entity_id=client_id, entity_label=doc.get("name"),
         summary=f"Deleted API client {doc.get('name')}", method="DELETE",
         path=f"/api/clients/{client_id}", status_code=200, actor=current.get("email"),
     )
     return {"success": True}
+
+
+@api_router.get("/clients/{client_id}/usage", tags=["Clients"], summary="Daily request counts for an API client")
+async def client_usage(client_id: str, days: int = Query(14, ge=1, le=90), current=Depends(_require_admin)):
+    doc = await db.api_clients.find_one({"id": client_id}, {"_id": 0, "name": 1})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Client not found.")
+    today = datetime.now(timezone.utc).date()
+    start = today - timedelta(days=days - 1)
+    rows = await db.api_usage_daily.find(
+        {"client_id": client_id, "date": {"$gte": start.strftime("%Y-%m-%d")}}
+    ).to_list(1000)
+    counts = {r["date"]: int(r.get("count", 0)) for r in rows}
+    series = []
+    for i in range(days):
+        d = (start + timedelta(days=i)).strftime("%Y-%m-%d")
+        series.append({"date": d, "count": counts.get(d, 0)})
+    return {"client_id": client_id, "name": doc.get("name"), "days": days, "series": series,
+            "total": sum(s["count"] for s in series)}
 
 
 # ---------------------------------------------------------------------------
@@ -3404,21 +3437,23 @@ async def _authz_middleware(request, call_next):
         ok, reason = _apikey_authorize(client, path, method)
         if not ok:
             return JSONResponse({"detail": reason}, status_code=403)
-        # Fixed-window per-key rate limiting + usage counters.
+        # Fixed-window per-key rate limiting + usage counters (per-key override).
         now = datetime.now(timezone.utc)
+        eff_limit = int(client.get("rate_limit") or APIKEY_RATE_LIMIT)
+        eff_window = int(client.get("rate_window_seconds") or APIKEY_RATE_WINDOW_SECONDS)
         window_start = client.get("rate_window_start")
         reset = True
         if window_start:
             try:
-                reset = (now - datetime.fromisoformat(window_start)).total_seconds() >= APIKEY_RATE_WINDOW_SECONDS
+                reset = (now - datetime.fromisoformat(window_start)).total_seconds() >= eff_window
             except Exception:
                 reset = True
         new_start = now if reset else datetime.fromisoformat(window_start)
         new_count = 1 if reset else int(client.get("rate_count", 0)) + 1
-        if new_count > APIKEY_RATE_LIMIT:
-            retry = max(1, int(APIKEY_RATE_WINDOW_SECONDS - (now - new_start).total_seconds()) + 1)
+        if new_count > eff_limit:
+            retry = max(1, int(eff_window - (now - new_start).total_seconds()) + 1)
             return JSONResponse(
-                {"detail": f"Rate limit exceeded ({APIKEY_RATE_LIMIT} requests / {APIKEY_RATE_WINDOW_SECONDS}s). Retry in {retry}s."},
+                {"detail": f"Rate limit exceeded ({eff_limit} requests / {eff_window}s). Retry in {retry}s."},
                 status_code=429,
                 headers={"Retry-After": str(retry)},
             )
@@ -3432,6 +3467,11 @@ async def _authz_middleware(request, call_next):
                 },
                 "$inc": {"request_count": 1},
             },
+        )
+        await db.api_usage_daily.update_one(
+            {"client_id": client["id"], "date": now.strftime("%Y-%m-%d")},
+            {"$inc": {"count": 1}},
+            upsert=True,
         )
         return await call_next(request)
     auth = request.headers.get("authorization") or request.headers.get("Authorization")

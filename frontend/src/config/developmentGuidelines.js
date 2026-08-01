@@ -1724,6 +1724,382 @@ export const guidelineGroups = [
       },
     ],
   },
+  {
+    id: "api",
+    title: "API Engineering Standards",
+    icon: Plug,
+    summary:
+      "Standards for building HTTP APIs — including client-facing/integration APIs: idempotency, validation, standardized responses & errors, authz, rate limiting, timeouts/retries, correlation IDs, logging, transactional consistency, payload integrity, monitoring, versioning, and backward compatibility.",
+    topics: [
+      {
+        id: "api-idempotency",
+        title: "Idempotency Implementation",
+        principle:
+          "Unsafe operations (POST/create, payments, side effects) must be safely repeatable: the same request produces the same result exactly once.",
+        rules: [
+          "Accept an `Idempotency-Key` header on non-idempotent endpoints; persist the key + first response.",
+          "Return the stored response on replay instead of re-executing the side effect.",
+          "Make PUT/DELETE naturally idempotent (same input → same end state).",
+          "Scope idempotency keys per client/user and expire them after a bounded window.",
+        ],
+        dos: [
+          "Use a unique DB constraint (or upsert) as the final idempotency guard.",
+          "Document the idempotency window and key format.",
+        ],
+        donts: [
+          "Rely on the client never retrying.",
+          "Generate side effects (emails, charges) before the idempotency check.",
+        ],
+        checklist: [
+          "Create/charge endpoints accept Idempotency-Key.",
+          "Replays return the original result, not a duplicate.",
+          "PUT/DELETE are idempotent by design.",
+        ],
+      },
+      {
+        id: "api-duplicate-prevention",
+        title: "Duplicate Request Prevention",
+        principle:
+          "Guard against duplicate submissions from double-clicks, retries, or at-least-once delivery.",
+        rules: [
+          "Enforce uniqueness at the database layer (unique index) for natural keys.",
+          "De-duplicate within a short window using request fingerprint or idempotency key.",
+          "Return `409 Conflict` (not 500) when a duplicate is detected.",
+        ],
+        dos: [
+          "Disable submit buttons while a request is in flight (frontend).",
+          "Treat duplicate as a successful no-op when the effect already exists.",
+        ],
+        donts: [
+          "Depend only on client-side debouncing.",
+          "Insert without a uniqueness guard.",
+        ],
+        checklist: [
+          "Unique constraints exist for natural keys.",
+          "Duplicates return 409, not a crash.",
+        ],
+      },
+      {
+        id: "api-request-validation",
+        title: "Request Validation",
+        principle:
+          "Validate every request at the boundary; never trust client input. Reject early with clear errors.",
+        rules: [
+          "Define typed schemas (Pydantic) for body, query, and path params.",
+          "Validate types, ranges, lengths, enums, and required fields.",
+          "Reject unknown/extra fields for strict endpoints; whitelist allowed values.",
+          "Return `422` with field-level messages on validation failure.",
+        ],
+        dos: [
+          "Normalize input (trim, lowercase emails) before validation.",
+          "Centralize reusable validators.",
+        ],
+        donts: [
+          "Perform ad-hoc `if` checks scattered across handlers.",
+          "Echo raw invalid input back into queries.",
+        ],
+        checklist: [
+          "Every endpoint has a request schema.",
+          "Invalid input yields 422 with details.",
+        ],
+        code: {
+          language: "python",
+          good: "class ClientCreate(BaseModel):\n    name: str = Field(..., min_length=1, max_length=120)\n    rate_limit: Optional[int] = Field(None, ge=1, le=100000)",
+          bad: "async def create(body: dict):\n    name = body[\"name\"]  # no validation, KeyError risk",
+        },
+      },
+      {
+        id: "api-response-standardization",
+        title: "Response Standardization",
+        principle:
+          "Consistent, predictable response shapes let clients integrate once and reuse everywhere.",
+        rules: [
+          "Use consistent field naming (snake_case) and stable schemas across endpoints.",
+          "List endpoints expose total count (e.g. `X-Total-Count`) and consistent pagination.",
+          "Never leak internal identifiers (e.g. Mongo `_id`); expose stable public `id`.",
+          "Use correct HTTP status codes (200/201/204/4xx/5xx).",
+        ],
+        dos: [
+          "Return typed DTOs via a single serializer per resource.",
+          "Keep date/times ISO-8601 UTC.",
+        ],
+        donts: [
+          "Return raw DB documents.",
+          "Change response shape per caller.",
+        ],
+        checklist: [
+          "One serializer per resource.",
+          "No ObjectId leaks; status codes correct.",
+        ],
+      },
+      {
+        id: "api-error-standardization",
+        title: "Error Code Standardization",
+        principle:
+          "Errors are part of the contract: predictable, machine-readable, and safe (no internal leakage).",
+        rules: [
+          "Return a consistent error body (e.g. `{ detail }` or `{ error: { code, message } }`).",
+          "Map failures to correct status: 400/401/403/404/409/422/429/5xx.",
+          "Do not expose stack traces or internal messages to clients.",
+          "Use stable error codes/strings that clients can branch on.",
+        ],
+        dos: [
+          "Log the internal cause; return a safe summary + correlation id.",
+          "Document every error a client may receive.",
+        ],
+        donts: [
+          "Return 200 with an error payload.",
+          "Return 500 for expected/validation failures.",
+        ],
+        checklist: [
+          "Uniform error body shape.",
+          "No stack traces in responses.",
+        ],
+      },
+      {
+        id: "api-authn-authz",
+        title: "Authentication & Authorization",
+        principle:
+          "Authenticate every non-public request and authorize by role/scope. Deny by default.",
+        rules: [
+          "Require Bearer JWT (users) or API keys (integrations) on protected routes.",
+          "Enforce role checks (e.g. admin) for privileged mutations.",
+          "Scope API keys; grant least privilege (per-resource + read/write).",
+          "Store only hashed secrets; show raw keys once.",
+        ],
+        dos: [
+          "Centralize auth in middleware/dependencies.",
+          "Keep a small explicit public allowlist.",
+        ],
+        donts: [
+          "Trust client-sent role/identity fields.",
+          "Log tokens or API keys.",
+        ],
+        checklist: [
+          "Protected routes reject anonymous access.",
+          "Mutations enforce role/scope.",
+          "Secrets stored hashed.",
+        ],
+      },
+      {
+        id: "api-rate-limiting",
+        title: "Rate Limiting",
+        principle:
+          "Protect the service from overload and abuse by bounding request rate per client/key.",
+        rules: [
+          "Apply per-key/per-IP limits with a fixed or sliding window.",
+          "Return `429` with a `Retry-After` header when exceeded.",
+          "Allow configurable, per-client overrides of the global default.",
+          "Never count rejected (429) requests as served usage.",
+        ],
+        dos: [
+          "Expose limit/window via config (env).",
+          "Surface limits & usage to integrators.",
+        ],
+        donts: [
+          "Apply a single global limit with no override.",
+          "Silently drop requests without a 429.",
+        ],
+        checklist: [
+          "Per-key limit enforced.",
+          "429 + Retry-After returned.",
+        ],
+      },
+      {
+        id: "api-timeout-retry",
+        title: "Request Timeout & Retry Strategy",
+        principle:
+          "Every outbound call has a timeout; retries are bounded, backed off, and only for idempotent/transient failures.",
+        rules: [
+          "Set explicit connect/read timeouts on all external HTTP calls.",
+          "Retry only idempotent operations, with exponential backoff + jitter and a max attempt cap.",
+          "Do not retry on 4xx (except 408/429); respect `Retry-After`.",
+          "Fail fast and return a clear error when budget is exhausted.",
+        ],
+        dos: [
+          "Use a circuit breaker for repeatedly failing dependencies.",
+          "Make retried operations idempotent.",
+        ],
+        donts: [
+          "Retry non-idempotent writes blindly.",
+          "Leave calls without a timeout (hang the worker).",
+        ],
+        checklist: [
+          "All external calls have timeouts.",
+          "Retries are bounded with backoff.",
+        ],
+      },
+      {
+        id: "api-correlation-id",
+        title: "Correlation ID / Request ID",
+        principle:
+          "Every request carries a unique id that flows through logs and responses for end-to-end tracing.",
+        rules: [
+          "Accept an inbound `X-Request-ID`; generate one (UUID) if absent.",
+          "Attach the id to all logs for that request.",
+          "Echo the id back in the response header (and in error bodies).",
+          "Propagate the id to downstream/external calls.",
+        ],
+        dos: [
+          "Store the id in request context/state.",
+          "Include the id when reporting incidents.",
+        ],
+        donts: [
+          "Generate a new id per log line.",
+          "Drop the id at service boundaries.",
+        ],
+        checklist: [
+          "Responses include X-Request-ID.",
+          "Logs are correlated by request id.",
+        ],
+      },
+      {
+        id: "api-req-res-logging",
+        title: "Request & Response Logging",
+        principle:
+          "Log enough to debug and audit, never enough to leak secrets or PII.",
+        rules: [
+          "Log method, path, status, latency, client/key id, and correlation id.",
+          "Redact secrets, tokens, passwords, and sensitive PII.",
+          "Record mutations in an immutable audit log (who/what/when).",
+          "Use structured logging with consistent levels.",
+        ],
+        dos: [
+          "Sample or truncate large bodies.",
+          "Separate audit trail from debug logs.",
+        ],
+        donts: [
+          "Log full auth headers or raw payloads with secrets.",
+          "Rely on print statements.",
+        ],
+        checklist: [
+          "Access + audit logs present.",
+          "No secrets/PII in logs.",
+        ],
+      },
+      {
+        id: "api-transaction-consistency",
+        title: "Transaction Consistency",
+        principle:
+          "A request either fully succeeds or leaves no partial state; related writes are atomic.",
+        rules: [
+          "Group related writes into a transaction (or an atomic single-document update).",
+          "On failure, roll back / compensate so no partial mutation persists.",
+          "Order side effects after the durable commit where possible.",
+          "Use optimistic concurrency (version) to avoid lost updates.",
+        ],
+        dos: [
+          "Prefer single-document atomic updates in MongoDB.",
+          "Use compensating actions for multi-step workflows (saga).",
+        ],
+        donts: [
+          "Perform multi-step writes without a rollback path.",
+          "Emit external side effects before the write is durable.",
+        ],
+        checklist: [
+          "No partial state on failure.",
+          "Concurrency conflicts handled.",
+        ],
+      },
+      {
+        id: "api-payload-integrity",
+        title: "Payload Integrity Verification",
+        principle:
+          "Verify that payloads are authentic and untampered — critical for webhooks and inter-service calls.",
+        rules: [
+          "Verify webhook signatures (HMAC) and reject on mismatch.",
+          "Enforce a max payload size and correct Content-Type.",
+          "Validate against a schema before processing.",
+          "Use HTTPS/TLS for all traffic; add checksums for large uploads.",
+        ],
+        dos: [
+          "Use constant-time comparison for signatures.",
+          "Reject expired/replayed signed requests (timestamp + nonce).",
+        ],
+        donts: [
+          "Trust unsigned webhooks.",
+          "Process before verifying integrity.",
+        ],
+        checklist: [
+          "Webhook signatures verified.",
+          "Payload size/type enforced.",
+        ],
+      },
+      {
+        id: "api-monitoring",
+        title: "API Monitoring",
+        principle:
+          "You can't operate what you can't see: track health, traffic, errors, and latency.",
+        rules: [
+          "Expose a health endpoint (liveness/readiness incl. DB check).",
+          "Track RED metrics: Rate, Errors, Duration per endpoint.",
+          "Record per-client usage (request counts, last-used, trends).",
+          "Alert on error-rate and latency thresholds.",
+        ],
+        dos: [
+          "Surface usage stats to admins/integrators.",
+          "Keep dashboards for spikes and anomalies.",
+        ],
+        donts: [
+          "Ship without health checks.",
+          "Discover outages only from user reports.",
+        ],
+        checklist: [
+          "Health endpoint present.",
+          "Per-client usage tracked.",
+        ],
+      },
+      {
+        id: "api-versioning",
+        title: "API Versioning",
+        principle:
+          "Evolve the API without breaking existing clients by versioning the contract.",
+        rules: [
+          "Version the API (URI `/api/v1` or header) from the start.",
+          "Never change the meaning of an existing field within a version.",
+          "Additive changes are fine; breaking changes require a new version.",
+          "Publish a deprecation policy and sunset timeline.",
+        ],
+        dos: [
+          "Document each version's contract.",
+          "Support the previous version during migration.",
+        ],
+        donts: [
+          "Break clients silently in-place.",
+          "Maintain unlimited versions forever.",
+        ],
+        checklist: [
+          "Version is explicit.",
+          "Deprecation policy documented.",
+        ],
+      },
+      {
+        id: "api-backward-compat",
+        title: "Backward Compatibility",
+        principle:
+          "New releases must not break existing integrations; prefer additive, tolerant changes.",
+        rules: [
+          "Only add optional fields; never remove/rename fields in a live version.",
+          "Provide safe defaults for new inputs so old clients keep working.",
+          "Follow the robustness principle: be liberal in what you accept.",
+          "Communicate and stage breaking changes behind a new version + flag.",
+        ],
+        dos: [
+          "Contract-test against previous client expectations.",
+          "Keep deserialization tolerant of unknown fields.",
+        ],
+        donts: [
+          "Tighten validation on an existing field without notice.",
+          "Change status codes/semantics of existing endpoints.",
+        ],
+        checklist: [
+          "Changes are additive/optional.",
+          "Old clients still pass contract tests.",
+        ],
+      },
+    ],
+  },
+
 ];
 
 /** id → group map for fast lookup in the renderer. */
