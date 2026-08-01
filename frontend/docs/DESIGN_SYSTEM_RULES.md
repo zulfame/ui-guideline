@@ -334,6 +334,24 @@ Dicek otomatis oleh `design-guard.sh` (**#12** — `TabsList` tanpa `overflow-x-
 
 Dicek otomatis oleh `design-guard.sh` (**#13** — `text-xl/2xl/3xl/4xl…` di `pages/app`).
 
+### R46 — Kolom Tabel Wajib Bisa Di-Sort (Non-Negotiable)
+
+> Ditetapkan agar setiap tabel/datatable konsisten memberi kontrol urut pada penggunanya.
+
+**Kontrak wajib untuk setiap tabel/datatable:**
+
+1. **Setiap header KONTEN wajib bisa di-sort** (ada indikator arah + toggle asc/desc).
+   Gunakan `SortableHeader` (TanStack, di Users/Offices) atau `SortHead` + `useSortableRows`
+   dari `components/composite/sortable-table.jsx` (tabel `shadcn` biasa).
+2. **Dikecualikan (bukan konten data):** kolom checkbox pilih-baris, kolom **Actions**
+   (menu titik-tiga/hapus), tombol **Detail**, dan kolom yang isinya **kontrol/switch/select**
+   (mis. `Switch` Enabled, `Select` inline).
+3. **Sorting lintas seluruh dataset** untuk tabel berpaginasi server (mis. Audit Log) → kirim
+   `sort_by` & `sort_dir` ke API (bukan hanya sort halaman aktif).
+4. **Pengecualian:** sub-tabel detail di dalam dialog (mis. diff `Field/From/To`, daftar koleksi
+   pada dialog restore) dan tabel **hierarki/tree** yang urutannya bermakna (mis. Role List, urut by `order`).
+5. Verifikasi via review/`testing_agent` (tidak diauto-guard karena deteksi sortable tidak andal via regex).
+
 **Prinsip:** *Compact & elegant on every screen.* Jangan memaksa layout desktop ke mobile,
 dan jangan menambah label/elemen yang membuat toolbar "gendut" — jaga tetap **compact**
 (lihat R39) sambil tetap **rapi di semua ukuran**.
@@ -362,5 +380,6 @@ Bagian ini hanya **penunjuk**; definisi lengkap & otoritatif ada di `DESIGN_SYST
 - **Responsive Data Table** (WAJIB primitive shadcn `<Table>` yang `overflow-auto`; dilarang `<table>` mentah; jangan `overflow-hidden`/lebar tetap yang memotong scroll; pakai `[&_td]:whitespace-nowrap [&_th]:whitespace-nowrap`) → **R43 (Bagian 12)**; dicek otomatis oleh `design-guard.sh` (#11).
 - **Responsive Tabs** (`TabsList` WAJIB `w-full justify-start overflow-x-auto sm:w-auto`; dilarang `flex-wrap`; toolbar tab+aksi `flex-col sm:flex-row`; tombol submit penting di bawah pada mobile) → **R44 (Bagian 12)**; dicek otomatis oleh `design-guard.sh` (#12).
 - **Skala Tipografi** (konten `pages/app`: judul/`CardTitle` `text-base font-semibold`, body/label/tabel `text-sm`, helper `text-xs`; dilarang `text-xl/2xl/3xl/4xl`; auth & katalog design-system dikecualikan) → **R45 (Bagian 12)**; dicek otomatis oleh `design-guard.sh` (#13).
+- **Kolom Tabel Sortable** (setiap header konten wajib bisa di-sort; kecuali checkbox/Actions/Detail & kolom kontrol/switch/select; server-side untuk tabel berpaginasi; sub-tabel dialog & tabel tree dikecualikan) → **R46 (Bagian 12)**; diverifikasi via review/testing.
 
 > Setiap perubahan komponen/pattern **wajib** tunduk pada Versioning (2C.15) & tercatat di Changelog.

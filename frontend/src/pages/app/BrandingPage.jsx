@@ -3,6 +3,7 @@ import { ImageIcon, Loader2, Plus, RotateCcw, Save, Trash2, Upload } from "lucid
 import { toast } from "sonner";
 
 import API from "@/lib/api";
+import { SortHead, useSortableRows } from "@/components/composite/sortable-table";
 import { useBranding } from "@/context/BrandingContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -29,6 +30,7 @@ import {
 
 const CHANGEFREQS = ["always", "hourly", "daily", "weekly", "monthly", "yearly", "never"];
 const PRIORITIES = ["1.0", "0.9", "0.8", "0.7", "0.6", "0.5", "0.4", "0.3", "0.2", "0.1", "0.0"];
+const SITEMAP_SORT = { path: (u) => u.path };
 
 const TEXT_FIELDS = [
   "app_name",
@@ -142,6 +144,7 @@ function SitemapManager() {
   const [newFreq, setNewFreq] = useState("weekly");
   const [newPriority, setNewPriority] = useState("0.5");
   const [adding, setAdding] = useState(false);
+  const { sorted, sort, toggle } = useSortableRows(urls, SITEMAP_SORT);
 
   const fetchUrls = async () => {
     try {
@@ -266,7 +269,9 @@ function SitemapManager() {
         >
           <TableHeader>
             <TableRow className="bg-muted/50 hover:bg-muted/50">
-              <TableHead>Path</TableHead>
+              <TableHead>
+                <SortHead label="Path" sortKey="path" sort={sort} onToggle={toggle} />
+              </TableHead>
               <TableHead>Change freq</TableHead>
               <TableHead>Priority</TableHead>
               <TableHead>Enabled</TableHead>
@@ -287,7 +292,7 @@ function SitemapManager() {
                 </TableCell>
               </TableRow>
             ) : (
-              urls.map((u) => (
+              sorted.map((u) => (
                 <TableRow key={u.id} data-testid={`sitemap-row-${u.id}`}>
                   <TableCell className="font-medium">{u.path}</TableCell>
                   <TableCell>

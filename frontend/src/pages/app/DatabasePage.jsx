@@ -12,6 +12,7 @@ import {
 import { toast } from "sonner";
 
 import API from "@/lib/api";
+import { SortHead, useSortableRows } from "@/components/composite/sortable-table";
 import { EmptyState } from "@/components/composite/EmptyState";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -37,6 +38,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+
+const BACKUP_SORT = {
+  filename: (b) => b.filename,
+  created_at: (b) => b.created_at,
+  total: (b) => b.total ?? 0,
+  size: (b) => b.size ?? 0,
+};
 
 const formatBytes = (n) => {
   if (!n && n !== 0) return "—";
@@ -64,6 +72,7 @@ const downloadBlob = (blob, filename) => {
 
 export default function DatabasePage() {
   const [backups, setBackups] = useState([]);
+  const { sorted: sortedBackups, sort, toggle } = useSortableRows(backups, BACKUP_SORT);
   const [status, setStatus] = useState("loading");
   const [backingUp, setBackingUp] = useState(false);
   const [file, setFile] = useState(null);
@@ -274,15 +283,23 @@ export default function DatabasePage() {
               <Table data-testid="database-backups-table" className="[&_td]:whitespace-nowrap [&_th]:whitespace-nowrap">
                 <TableHeader>
                   <TableRow className="bg-muted/50 hover:bg-muted/50">
-                    <TableHead>Filename</TableHead>
-                    <TableHead>Created</TableHead>
-                    <TableHead>Documents</TableHead>
-                    <TableHead>Size</TableHead>
+                    <TableHead>
+                      <SortHead label="Filename" sortKey="filename" sort={sort} onToggle={toggle} />
+                    </TableHead>
+                    <TableHead>
+                      <SortHead label="Created" sortKey="created_at" sort={sort} onToggle={toggle} />
+                    </TableHead>
+                    <TableHead>
+                      <SortHead label="Documents" sortKey="total" sort={sort} onToggle={toggle} />
+                    </TableHead>
+                    <TableHead>
+                      <SortHead label="Size" sortKey="size" sort={sort} onToggle={toggle} />
+                    </TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {backups.map((b) => (
+                  {sortedBackups.map((b) => (
                     <TableRow key={b.id} data-testid={`database-backup-row-${b.id}`}>
                       <TableCell className="font-medium">{b.filename}</TableCell>
                       <TableCell className="text-muted-foreground">{formatTime(b.created_at)}</TableCell>

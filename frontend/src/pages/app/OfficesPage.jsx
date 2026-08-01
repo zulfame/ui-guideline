@@ -354,12 +354,12 @@ function OfficeFormDialog({ open, onOpenChange, mode, initialValues, onSaved }) 
   );
 }
 
-function SortableHeader({ column, children }) {
+function SortableHeader({ column, children, align = "left" }) {
   const sorted = column.getIsSorted();
   return (
     <button
       type="button"
-      className="flex h-full w-full items-center gap-1 text-left font-medium"
+      className={`flex h-full w-full items-center gap-1 font-medium ${align === "right" ? "justify-end text-right" : "text-left"}`}
       onClick={() => column.toggleSorting(sorted === "asc")}
     >
       {children}
@@ -497,12 +497,12 @@ export default function OfficesPage() {
       },
       {
         accessorKey: "telephone",
-        header: "Telephone",
+        header: ({ column }) => <SortableHeader column={column}>Telephone</SortableHeader>,
         cell: ({ row }) => row.original.telephone || "—",
       },
       {
         accessorKey: "address",
-        header: "Address",
+        header: ({ column }) => <SortableHeader column={column}>Address</SortableHeader>,
         cell: ({ row }) => (
           <span className="text-muted-foreground">
             {row.original.address || "—"}
@@ -511,7 +511,9 @@ export default function OfficesPage() {
       },
       {
         accessorKey: "radius",
-        header: () => <div className="text-right">Radius</div>,
+        header: ({ column }) => (
+          <SortableHeader column={column} align="right">Radius</SortableHeader>
+        ),
         cell: ({ row }) => (
           <div className="text-right tabular-nums">{row.original.radius} m</div>
         ),

@@ -1,0 +1,22 @@
+{
+  "summary": "Verified new sortable-header feature across all requested tables — backend server-side sort on /api/audit-logs + frontend client-side sort for Users, Offices, Broadcast, Database Backup, and Branding→Sitemap. Backend: created /app/backend/tests/test_audit_sort.py (15 tests, 15 passed) covering sort_by ∈ {created_at,actor,action,entity_type,summary} × sort_dir ∈ {asc,desc}, invalid sort_by fallback (200 → created_at desc), X-Total-Count invariance across sort, global (cross-page) ordering, and sort combined with entity_type/q/date_from filters. Frontend: /audit-log renders 5 sortable header buttons (data-testid sort-created_at/actor/action/entity_type/summary), Detail column is not sortable; clicking sort-actor triggers 2 requests with sort_by=actor toggling sort_dir=asc then desc (server-side confirmed via network interception). /broadcast exposes sort-label/description/status/last and toggles asc↔desc client-side (rows_asc reversed == rows_desc). /database exposes sort-filename/created_at/total/size. /branding→Sitemap exposes ONLY sort-path (no forbidden sort testids for change_freq/priority/enabled controls). /users thead contains 7 button headers: ['', Name, Email, Username, Role, Office, Password] — first empty header is the select-checkbox column (correctly not sortable); Name header clickable twice without errors. /offices thead contains 6 button headers: ['', Code, Name, Telephone, Address, Radius]. No console errors on any page. Everything matches the requirement spec.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_audit_sort.py",
+    "/app/test_reports/pytest/audit_sort_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "server.py list_audit_logs correctly whitelists sort_by and falls back safely; json.dumps(default=str) defensive coercion protects against legacy nested BSON — good.",
+    "sortable-table.jsx useSortableRows uses localeCompare with numeric:true which handles Radius (numeric column) well; SortHead emits data-testid=sort-{key} consistently — good.",
+    "Users/Offices rely on TanStack SortableHeader (no data-testid). If future automated tests need stable selectors, consider adding data-testid to those header buttons too — minor, non-blocking."
+  ],
+  "updated_files": ["/app/backend/tests/test_audit_sort.py"],
+  "success_rate": {"backend": "100% (15/15)", "frontend": "100%"},
+  "test_credentials": "N/A (no auth)",
+  "seed_data_creation": "Created 3 offices (SORT_TEST_<ts>_O0..O2) + 3 updates + 1 bulk-delete to generate audit rows with varied action/summary values; cleaned up in fixture teardown.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Sortable headers verified for Audit(server-side)/Users/Offices/Broadcast/Database/Branding-Sitemap. Roles page (/roles) is intentionally exempt (hierarchical tree). If new tables are added later, verify SortHead+useSortableRows wired up and data-testid=sort-{key} present, and that controls/switches/selects and Actions/Detail/Select columns remain excluded from sorting per user requirement."
+}

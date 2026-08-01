@@ -15,6 +15,7 @@ import {
 import { toast } from "sonner";
 
 import API from "@/lib/api";
+import { SortHead, useSortableRows } from "@/components/composite/sortable-table";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -63,6 +64,13 @@ const STATUS_META = {
   error: { label: "Error", variant: "destructive", icon: XCircle },
   configured: { label: "Configured", variant: "secondary", icon: null },
   not_configured: { label: "Not configured", variant: "outline", icon: null },
+};
+
+const BROADCAST_SORT = {
+  label: (c) => c.label,
+  description: (c) => c.description,
+  status: (c) => c.status,
+  last: (c) => (c.status === "connected" ? c.last_tested_at || "" : ""),
 };
 
 const formatTime = (iso) => {
@@ -194,6 +202,8 @@ export default function BroadcastPage() {
     }
   };
 
+  const { sorted: sortedChannels, sort, toggle } = useSortableRows(channels, BROADCAST_SORT);
+
   return (
     <div className="space-y-6" data-testid="broadcast-page">
       <Card>
@@ -215,10 +225,18 @@ export default function BroadcastPage() {
               >
                 <TableHeader>
                   <TableRow className="bg-muted/50 hover:bg-muted/50">
-                    <TableHead>Channel</TableHead>
-                    <TableHead>Description</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Last verified</TableHead>
+                    <TableHead>
+                      <SortHead label="Channel" sortKey="label" sort={sort} onToggle={toggle} />
+                    </TableHead>
+                    <TableHead>
+                      <SortHead label="Description" sortKey="description" sort={sort} onToggle={toggle} />
+                    </TableHead>
+                    <TableHead>
+                      <SortHead label="Status" sortKey="status" sort={sort} onToggle={toggle} />
+                    </TableHead>
+                    <TableHead>
+                      <SortHead label="Last verified" sortKey="last" sort={sort} onToggle={toggle} />
+                    </TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -232,7 +250,7 @@ export default function BroadcastPage() {
                       </TableRow>
                     ))
                   ) : (
-                    channels.map((channel) => {
+                    sortedChannels.map((channel) => {
                       const Icon = CHANNEL_ICONS[channel.key] || Send;
                       const notConfigured = channel.status === "not_configured";
                       return (

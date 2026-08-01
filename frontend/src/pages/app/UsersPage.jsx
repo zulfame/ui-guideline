@@ -551,12 +551,12 @@ function ChangePasswordDialog({ open, onOpenChange, user, onSaved }) {
   );
 }
 
-function SortableHeader({ column, children }) {
+function SortableHeader({ column, children, align = "left" }) {
   const sorted = column.getIsSorted();
   return (
     <button
       type="button"
-      className="flex h-full w-full items-center gap-1 text-left font-medium"
+      className={`flex h-full w-full items-center gap-1 font-medium ${align === "right" ? "justify-end text-right" : "text-left"}`}
       onClick={() => column.toggleSorting(sorted === "asc")}
     >
       {children}
@@ -693,22 +693,22 @@ export default function UsersPage() {
       },
       {
         accessorKey: "username",
-        header: "Username",
+        header: ({ column }) => <SortableHeader column={column}>Username</SortableHeader>,
         cell: ({ row }) => row.original.username || "—",
       },
       {
         accessorKey: "role_name",
-        header: "Role",
+        header: ({ column }) => <SortableHeader column={column}>Role</SortableHeader>,
         cell: ({ row }) => row.original.role_name || "—",
       },
       {
         accessorKey: "office_name",
-        header: "Office",
+        header: ({ column }) => <SortableHeader column={column}>Office</SortableHeader>,
         cell: ({ row }) => row.original.office_name || "—",
       },
       {
         accessorKey: "password_status",
-        header: "Password",
+        header: ({ column }) => <SortableHeader column={column}>Password</SortableHeader>,
         cell: ({ row }) => {
           const meta = PW_BADGE[row.original.password_status] || PW_BADGE.active;
           return (

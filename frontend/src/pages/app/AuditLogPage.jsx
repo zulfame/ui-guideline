@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 
 import API from "@/lib/api";
+import { SortHead } from "@/components/composite/sortable-table";
 import { EmptyState } from "@/components/composite/EmptyState";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -75,6 +76,9 @@ export default function AuditLogPage() {
 
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(20);
+  const [sort, setSort] = useState({ key: "created_at", dir: "desc" });
+  const toggleSort = (key) =>
+    setSort((p) => (p.key === key ? { key, dir: p.dir === "asc" ? "desc" : "asc" } : { key, dir: "asc" }));
 
   const pageCount = Math.max(1, Math.ceil(total / pageSize));
   const hasFilters = q.trim() || dateFrom || dateTo;
@@ -86,6 +90,8 @@ export default function AuditLogPage() {
       if (q.trim()) params.q = q.trim();
       if (dateFrom) params.date_from = dateFrom;
       if (dateTo) params.date_to = dateTo;
+      params.sort_by = sort.key;
+      params.sort_dir = sort.dir;
       const res = await API.get("/audit-logs", { params });
       setRows(res.data);
       setTotal(Number(res.headers["x-total-count"] || res.data.length));
@@ -93,7 +99,7 @@ export default function AuditLogPage() {
     } catch {
       setStatus("error");
     }
-  }, [page, pageSize, q, dateFrom, dateTo]);
+  }, [page, pageSize, q, dateFrom, dateTo, sort]);
 
   // Debounced fetch (covers the search box); resets to page 0 on filter change.
   useEffect(() => {
@@ -208,11 +214,21 @@ export default function AuditLogPage() {
               <Table data-testid="audit-table" className="[&_td]:whitespace-nowrap [&_th]:whitespace-nowrap">
                 <TableHeader>
                   <TableRow className="bg-muted/50 hover:bg-muted/50">
-                    <TableHead>Time</TableHead>
-                    <TableHead>Actor</TableHead>
-                    <TableHead>Action</TableHead>
-                    <TableHead>Entity</TableHead>
-                    <TableHead className="whitespace-normal">Summary</TableHead>
+                    <TableHead>
+                      <SortHead label="Time" sortKey="created_at" sort={sort} onToggle={toggleSort} />
+                    </TableHead>
+                    <TableHead>
+                      <SortHead label="Actor" sortKey="actor" sort={sort} onToggle={toggleSort} />
+                    </TableHead>
+                    <TableHead>
+                      <SortHead label="Action" sortKey="action" sort={sort} onToggle={toggleSort} />
+                    </TableHead>
+                    <TableHead>
+                      <SortHead label="Entity" sortKey="entity_type" sort={sort} onToggle={toggleSort} />
+                    </TableHead>
+                    <TableHead className="whitespace-normal">
+                      <SortHead label="Summary" sortKey="summary" sort={sort} onToggle={toggleSort} />
+                    </TableHead>
                     <TableHead className="text-right">Detail</TableHead>
                   </TableRow>
                 </TableHeader>

@@ -240,8 +240,11 @@ async def list_audit_logs(
     q: Optional[str] = Query(None, description="Text search on summary / entity label / actor"),
     date_from: Optional[str] = Query(None, description="ISO date/datetime lower bound (inclusive)"),
     date_to: Optional[str] = Query(None, description="ISO date/datetime upper bound (inclusive)"),
+    sort_by: Optional[str] = Query("created_at", description="Sort field"),
+    sort_dir: Optional[str] = Query("desc", description="asc | desc"),
 ):
-    """Newest-first audit entries, bounded by `limit`; total count in `X-Total-Count`."""
+    """Audit entries sorted server-side across the whole dataset, bounded by
+    `limit`; total count in `X-Total-Count`."""
     query = {}
     if entity_type:
         query["entity_type"] = entity_type
@@ -260,9 +263,12 @@ async def list_audit_logs(
         query["created_at"] = rng
     total = await db.audit_logs.count_documents(query)
     response.headers["X-Total-Count"] = str(total)
+    _sortable = {"created_at", "actor", "action", "entity_type", "summary"}
+    field = sort_by if sort_by in _sortable else "created_at"
+    direction = 1 if (sort_dir or "").lower() == "asc" else -1
     docs = (
         await db.audit_logs.find(query, {"_id": 0})
-        .sort("created_at", -1)
+        .sort(field, direction)
         .skip(skip)
         .limit(limit)
         .to_list(limit)
