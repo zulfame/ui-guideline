@@ -13,6 +13,7 @@ import UsersPage from "@/pages/app/UsersPage";
 import AuditLogPage from "@/pages/app/AuditLogPage";
 import DatabasePage from "@/pages/app/DatabasePage";
 import BroadcastPage from "@/pages/app/BroadcastPage";
+import BrandingPage from "@/pages/app/BrandingPage";
 import ComponentsPage from "@/pages/ComponentsPage";
 import DesignTokensPage from "@/pages/DesignTokensPage";
 import DevelopmentOverviewPage from "@/pages/development/DevelopmentOverviewPage";
@@ -48,7 +49,7 @@ function App() {
           <Route path="/roles" element={<RolesPage />} />
           <Route path="/offices" element={<OfficesPage />} />
           <Route path="/clients" element={<PlaceholderPage />} />
-          <Route path="/branding" element={<PlaceholderPage />} />
+          <Route path="/branding" element={<BrandingPage />} />
           <Route path="/broadcast" element={<BroadcastPage />} />
           <Route path="/database" element={<DatabasePage />} />
           <Route path="/audit-log" element={<AuditLogPage />} />

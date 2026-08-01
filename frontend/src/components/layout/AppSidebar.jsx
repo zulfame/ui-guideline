@@ -40,6 +40,8 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { navAreas, getAreaIdForPath, getArea, getAreaDefaultPath } from "@/config/navigation";
+import { useBranding } from "@/context/BrandingContext";
+import { useTheme } from "@/components/theme-provider";
 
 // Generic placeholder user (frontend prototype only).
 const currentUser = { name: "User", email: "user@example.com", initials: "U" };
@@ -60,6 +62,23 @@ export const AppSidebar = (props) => {
   const activeArea = getArea(activeAreaId);
   const ActiveAreaIcon = activeArea.icon;
 
+  // Branding overrides the "Application" area identity (name, tagline, logo).
+  const { branding, assetUrl } = useBranding();
+  const { theme } = useTheme();
+  const isApp = activeAreaId === "application";
+  const isDark =
+    theme === "dark" ||
+    (theme === "system" &&
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-color-scheme: dark)").matches);
+  const brandName = isApp && branding?.app_name ? branding.app_name : activeArea.label;
+  const brandTagline = isApp ? branding?.tagline || activeArea.tagline : activeArea.tagline;
+  const brandLogo = isApp
+    ? isDark
+      ? assetUrl("logo_dark") || assetUrl("logo_light")
+      : assetUrl("logo_light") || assetUrl("logo_dark")
+    : null;
+
   const isActive = (to, end) =>
     end ? location.pathname === to : location.pathname.startsWith(to);
 
@@ -78,15 +97,21 @@ export const AppSidebar = (props) => {
                   className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
                   data-testid="area-switcher-trigger"
                 >
-                  <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-                    <ActiveAreaIcon className="size-4" aria-hidden="true" />
-                  </div>
+                  {brandLogo ? (
+                    <div className="flex aspect-square size-8 items-center justify-center overflow-hidden rounded-lg border">
+                      <img src={brandLogo} alt="" className="size-8 object-contain" />
+                    </div>
+                  ) : (
+                    <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+                      <ActiveAreaIcon className="size-4" aria-hidden="true" />
+                    </div>
+                  )}
                   <div className="grid flex-1 text-left text-sm leading-tight">
                     <span className="truncate font-semibold">
-                      {activeArea.label}
+                      {brandName}
                     </span>
                     <span className="truncate text-xs text-sidebar-foreground/70">
-                      {activeArea.tagline}
+                      {brandTagline}
                     </span>
                   </div>
                   <ChevronsUpDown className="ml-auto size-4" aria-hidden="true" />

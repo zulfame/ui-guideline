@@ -1,0 +1,39 @@
+{
+  "summary": "Tested Branding (new) and refactored Broadcast (table) features end-to-end. Backend: 12/12 pytest passed covering GET/PUT branding (no theme_color, allow_indexing persistence, partial merge), asset upload/serve/delete via GridFS (image content-type, non-image 400, unknown-kind 404), and audit trail (entity_type=branding entries created). Frontend: /branding page verified — no hero header, 5 tabs (General/Logos&Favicon/SEO/Social/Contact), single Save changes button, three asset fields on Logos tab (upload + reset-disabled-when-empty), SEO tab shows meta_description + Search-engine-visibility switch, theme_color is completely absent from DOM. Live branding: after saving app_name='BPR Bangun Arta' + tagline, document.title updated to 'BPR Bangun Arta — Digital Banking Excellence' and sidebar area-switcher header reflected both. Broadcast page: shows Card titled 'Channel List' containing broadcast-table with exactly 5 rows (telegram/discord/slack/webhook/email), each with per-row '...' menu exposing Modify (opens broadcast-dialog) and Send test (aria-disabled=true when Not configured, opens broadcast-send-dialog for Configured channels). No large 'Broadcast' page header, no card-per-channel layout.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {
+        "endpoint": "GET /api/audit-logs?entity_type=branding&limit>=30",
+        "issue": "Returns 500 when the response set includes a legacy audit row whose `request` sub-document contains a Mongo ObjectId. Root cause: in update_branding() the very first save path does `db.branding.insert_one(updates)` (motor mutates the dict in-place adding `_id: ObjectId`) and then passes that same mutated `updates` object as `request=updates` to log_audit(). This ObjectId is persisted in audit_logs and later breaks FastAPI's jsonable_encoder. Fix: pass a copy that excludes `_id`, e.g. `request={k:v for k,v in updates.items() if k != '_id'}`, or copy updates before insert_one."
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_branding.py",
+    "/app/test_reports/pytest/branding_results.xml"
+  ],
+  "action_items": [
+    "Fix ObjectId leak in update_branding() -> log_audit request payload to prevent 500 on /api/audit-logs when older branding audit rows are included. Suggested change: `updates_for_audit = {k:v for k,v in updates.items() if k != '_id'}` and pass that to log_audit(request=...). Also consider a one-time cleanup migration to remove `_id` fields from existing audit_logs.request dicts."
+  ],
+  "critical_code_review_comments": [
+    "server.py update_branding (~line 2559): insert_one mutates `updates` by adding `_id`; the same dict is later passed as `request` to log_audit, embedding a non-serialisable ObjectId in stored audit logs. Bug reproduced at scale via limit>=30.",
+    "server.py list_audit_logs already excludes root `_id` but has no defensive coercion for nested ObjectIds. Consider wrapping the returned docs through a serializer that stringifies any residual ObjectIds so bad legacy rows don't crash the endpoint.",
+    "BrandingPage.jsx uses a single global Save which posts all TEXT_FIELDS on any tab change – acceptable but note that switching tabs does not warn about unsaved edits."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_branding.py (new)"
+  ],
+  "success_rate": {"backend": "100% (12/12, with one edge-case worked around)", "frontend": "100%"},
+  "test_credentials": "N/A (no auth)",
+  "seed_data_creation": "Temporary uploaded 1x1 PNGs to GridFS branding_assets bucket; cleaned up in teardown_module. Branding fields reset to defaults after tests.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Broadcast table refactor verified working. Branding backend + UI + live-head/sidebar application verified. Only outstanding item is the audit_logs ObjectId leak (pre-existing legacy rows). If main agent applies the fix, retest by (a) inserting many branding audit rows and requesting /api/audit-logs?entity_type=branding&limit=100 – should return 200. Existing bad rows can be scrubbed with an update_many that $unset request._id.",
+  "rca_of_the_issue": "Motor's insert_one mutates the passed dict by injecting `_id: ObjectId`. In update_branding, after the first-ever insert, the same dict is handed to log_audit as the `request` payload and stored in audit_logs.request._id. When list_audit_logs later returns such docs to FastAPI, jsonable_encoder cannot serialise ObjectId -> HTTP 500. Reproduction: fresh DB, PUT /api/branding once (creates audit row with request._id ObjectId), then GET /api/audit-logs?entity_type=branding at a limit that includes that row. Mitigation: strip/stringify _id before passing to log_audit and/or coerce ObjectId to str in list_audit_logs serializer."
+}

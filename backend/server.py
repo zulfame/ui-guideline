@@ -99,6 +99,7 @@ async def lifespan(_app: FastAPI):
     await db.audit_logs.create_index("entity_type")
     await db.audit_logs.create_index("action")
     await db.broadcast_configs.create_index("key", unique=True)
+    await db.branding.create_index("key", unique=True)
     logger.info("Startup complete: indexes ensured.")
     if AUTO_SEED:
         try:
@@ -220,7 +221,7 @@ async def log_audit(
         logger.error("Audit log write failed (non-fatal): %s", exc)
 
 
-AUDIT_ENTITY_TYPES = ["user", "role", "office", "level", "database", "broadcast"]
+AUDIT_ENTITY_TYPES = ["user", "role", "office", "level", "database", "broadcast", "branding"]
 AUDIT_ACTIONS = [
     "create", "update", "delete", "bulk_delete",
     "import", "reassign", "change_password", "reset_password",
@@ -2460,6 +2461,188 @@ async def send_test_broadcast(key: str, body: BroadcastSendRequest):
         metadata={"ok": ok, "message": result_msg, "to": to or None},
     )
     return {"ok": ok, "message": result_msg}
+
+
+# ---------------------------------------------------------------------------
+# Branding (Guideline: Configuration) — app identity + SEO metadata, with
+# image assets stored in GridFS and served through a public endpoint.
+# ---------------------------------------------------------------------------
+BRANDING_BUCKET = "branding_assets"
+BRANDING_KEY = "branding"
+BRANDING_ASSET_KINDS = ("logo_light", "logo_dark", "favicon", "og_image")
+_MAX_ASSET_BYTES = 5 * 1024 * 1024  # 5 MB
+
+DEFAULT_BRANDING = {
+    "app_name": "Application Name",
+    "tagline": "",
+    "meta_description": "",
+    "meta_keywords": "",
+    "og_title": "",
+    "og_description": "",
+    "site_url": "",
+    "canonical_url": "",
+    "allow_indexing": True,
+    "support_email": "",
+    "copyright_text": "",
+}
+
+
+def _branding_bucket() -> AsyncIOMotorGridFSBucket:
+    return AsyncIOMotorGridFSBucket(db, bucket_name=BRANDING_BUCKET)
+
+
+class BrandingUpdate(BaseModel):
+    app_name: Optional[str] = None
+    tagline: Optional[str] = None
+    meta_description: Optional[str] = None
+    meta_keywords: Optional[str] = None
+    og_title: Optional[str] = None
+    og_description: Optional[str] = None
+    site_url: Optional[str] = None
+    canonical_url: Optional[str] = None
+    allow_indexing: Optional[bool] = None
+    support_email: Optional[str] = None
+    copyright_text: Optional[str] = None
+
+
+def _serialize_branding(doc: Optional[dict]) -> dict:
+    doc = doc or {}
+    out = {**DEFAULT_BRANDING}
+    for k in DEFAULT_BRANDING:
+        if doc.get(k) is not None:
+            out[k] = doc[k]
+    assets = doc.get("assets", {}) or {}
+    out["assets"] = {}
+    for kind in BRANDING_ASSET_KINDS:
+        a = assets.get(kind)
+        if a and a.get("file_id"):
+            out["assets"][kind] = {
+                "url": f"/api/branding/assets/{a['file_id']}",
+                "filename": a.get("filename"),
+                "content_type": a.get("content_type"),
+            }
+        else:
+            out["assets"][kind] = None
+    out["updated_at"] = doc.get("updated_at")
+    return out
+
+
+async def _get_branding_doc() -> Optional[dict]:
+    return await db.branding.find_one({"key": BRANDING_KEY})
+
+
+async def _delete_asset_file(file_id: str):
+    try:
+        await _branding_bucket().delete(ObjectId(file_id))
+    except Exception:  # pragma: no cover - best effort cleanup
+        pass
+
+
+@api_router.get("/branding", tags=["Branding"], summary="Get branding settings")
+async def get_branding():
+    """Public branding + SEO settings (used to render the app head and shell)."""
+    return _serialize_branding(await _get_branding_doc())
+
+
+@api_router.put("/branding", tags=["Branding"], summary="Update branding settings")
+async def update_branding(body: BrandingUpdate):
+    updates = {k: v for k, v in body.model_dump().items() if v is not None}
+    existing = await _get_branding_doc()
+    now = datetime.now(timezone.utc).isoformat()
+    changes = _diff_changes(existing or {}, updates) if existing else []
+    updates["updated_at"] = now
+    if existing:
+        await db.branding.update_one({"key": BRANDING_KEY}, {"$set": updates})
+    else:
+        updates["key"] = BRANDING_KEY
+        updates["created_at"] = now
+        await db.branding.insert_one(updates)
+    doc = await _get_branding_doc()
+    await log_audit(
+        "update", "branding", entity_id=BRANDING_KEY, entity_label=doc.get("app_name"),
+        summary="Updated branding settings",
+        method="PUT", path="/api/branding", status_code=200,
+        changes=changes, request=updates,
+    )
+    return _serialize_branding(doc)
+
+
+@api_router.post("/branding/assets/{kind}", tags=["Branding"], summary="Upload a branding image")
+async def upload_branding_asset(kind: str, file: UploadFile = File(...)):
+    if kind not in BRANDING_ASSET_KINDS:
+        raise HTTPException(status_code=404, detail="Unknown asset kind")
+    content_type = file.content_type or ""
+    if not content_type.startswith("image/"):
+        raise HTTPException(status_code=400, detail="Please upload an image file.")
+    data = await file.read()
+    if len(data) > _MAX_ASSET_BYTES:
+        raise HTTPException(status_code=400, detail="Image too large (max 5 MB).")
+    bucket = _branding_bucket()
+    grid_in = bucket.open_upload_stream(
+        file.filename or kind,
+        metadata={"kind": kind, "content_type": content_type},
+    )
+    await grid_in.write(data)
+    await grid_in.close()
+    file_id = str(grid_in._id)
+    existing = await _get_branding_doc()
+    old = ((existing or {}).get("assets", {}) or {}).get(kind)
+    now = datetime.now(timezone.utc).isoformat()
+    asset = {"file_id": file_id, "filename": file.filename, "content_type": content_type}
+    if existing:
+        await db.branding.update_one(
+            {"key": BRANDING_KEY},
+            {"$set": {f"assets.{kind}": asset, "updated_at": now}},
+        )
+    else:
+        await db.branding.insert_one({
+            "key": BRANDING_KEY, "created_at": now, "updated_at": now,
+            "assets": {kind: asset},
+        })
+    if old and old.get("file_id"):
+        await _delete_asset_file(old["file_id"])
+    await log_audit(
+        "update", "branding", entity_id=BRANDING_KEY,
+        summary=f"Uploaded {kind} image",
+        method="POST", path=f"/api/branding/assets/{kind}", status_code=200,
+        metadata={"kind": kind, "filename": file.filename},
+    )
+    return _serialize_branding(await _get_branding_doc())
+
+
+@api_router.delete("/branding/assets/{kind}", tags=["Branding"], summary="Remove a branding image")
+async def delete_branding_asset(kind: str):
+    if kind not in BRANDING_ASSET_KINDS:
+        raise HTTPException(status_code=404, detail="Unknown asset kind")
+    existing = await _get_branding_doc()
+    old = ((existing or {}).get("assets", {}) or {}).get(kind)
+    if old and old.get("file_id"):
+        await _delete_asset_file(old["file_id"])
+    await db.branding.update_one({"key": BRANDING_KEY}, {"$unset": {f"assets.{kind}": ""}})
+    await log_audit(
+        "update", "branding", entity_id=BRANDING_KEY,
+        summary=f"Removed {kind} image",
+        method="DELETE", path=f"/api/branding/assets/{kind}", status_code=200,
+        metadata={"kind": kind},
+    )
+    return _serialize_branding(await _get_branding_doc())
+
+
+@api_router.get("/branding/assets/{file_id}", tags=["Branding"], summary="Serve a branding image")
+async def get_branding_asset(file_id: str):
+    bucket = _branding_bucket()
+    try:
+        stream = await bucket.open_download_stream(ObjectId(file_id))
+    except Exception:
+        raise HTTPException(status_code=404, detail="Asset not found")
+    data = await stream.read()
+    meta = stream.metadata or {}
+    content_type = meta.get("content_type") or "application/octet-stream"
+    return StreamingResponse(
+        io.BytesIO(data),
+        media_type=content_type,
+        headers={"Cache-Control": "public, max-age=300"},
+    )
 
 
 # Include the router in the main app.

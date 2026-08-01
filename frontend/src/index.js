@@ -5,6 +5,7 @@ import "@/index.css";
 import App from "@/App";
 import { ThemeProvider } from "@/components/theme-provider";
 import { DensityProvider } from "@/components/density-provider";
+import { BrandingProvider } from "@/context/BrandingContext";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -21,7 +22,9 @@ root.render(
     <QueryClientProvider client={queryClient}>
       <ThemeProvider defaultTheme="system">
         <DensityProvider defaultDensity="dense">
-          <App />
+          <BrandingProvider>
+            <App />
+          </BrandingProvider>
         </DensityProvider>
       </ThemeProvider>
     </QueryClientProvider>

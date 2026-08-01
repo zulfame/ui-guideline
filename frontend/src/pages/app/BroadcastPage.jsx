@@ -5,6 +5,7 @@ import {
   Loader2,
   Mail,
   MessageSquare,
+  MoreHorizontal,
   Send,
   SendHorizontal,
   Settings2,
@@ -17,12 +18,27 @@ import API from "@/lib/api";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import {
   Dialog,
   DialogBody,
@@ -180,81 +196,104 @@ export default function BroadcastPage() {
 
   return (
     <div className="space-y-6" data-testid="broadcast-page">
-      <div>
-        <h1 className="text-lg font-semibold tracking-tight">Broadcast</h1>
-        <p className="text-sm text-muted-foreground">
-          Configure and test outbound notification channels. Credentials are stored securely and
-          never shown again after saving.
-        </p>
-      </div>
-
-      {status === "loading" ? (
-        <div className="grid gap-4 md:grid-cols-2">
-          {[0, 1, 2, 3].map((i) => (
-            <Skeleton key={i} className="h-40 w-full" />
-          ))}
-        </div>
-      ) : status === "error" ? (
-        <Alert variant="destructive" data-testid="broadcast-error">
-          <XCircle className="size-4" />
-          <AlertTitle>Failed to load channels</AlertTitle>
-          <AlertDescription>Please refresh the page and try again.</AlertDescription>
-        </Alert>
-      ) : (
-        <div className="grid gap-4 md:grid-cols-2">
-          {channels.map((channel) => {
-            const Icon = CHANNEL_ICONS[channel.key] || Send;
-            return (
-              <Card
-                key={channel.key}
-                className="flex flex-col"
-                data-testid={`broadcast-card-${channel.key}`}
+      <Card>
+        <CardHeader className="flex flex-col gap-3 space-y-0 sm:flex-row sm:items-center sm:justify-between">
+          <CardTitle className="text-base">Channel List</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {status === "error" ? (
+            <Alert variant="destructive" data-testid="broadcast-error">
+              <XCircle className="size-4" />
+              <AlertTitle>Failed to load channels</AlertTitle>
+              <AlertDescription>Please refresh the page and try again.</AlertDescription>
+            </Alert>
+          ) : (
+            <div className="overflow-x-auto rounded-md border">
+              <Table
+                data-testid="broadcast-table"
+                className="[&_td]:whitespace-nowrap [&_th]:whitespace-nowrap"
               >
-                <CardHeader>
-                  <div className="flex items-start justify-between gap-3">
-                    <CardTitle className="flex items-center gap-2 text-base">
-                      <Icon className="size-4" /> {channel.label}
-                    </CardTitle>
-                    <StatusBadge status={channel.status} />
-                  </div>
-                </CardHeader>
-                <CardContent className="flex-1 space-y-2">
-                  <p className="text-sm text-muted-foreground">{channel.description}</p>
-                  {channel.status === "error" && channel.last_error ? (
-                    <p className="text-xs text-destructive">{channel.last_error}</p>
-                  ) : null}
-                  {channel.status === "connected" && channel.last_tested_at ? (
-                    <p className="text-xs text-muted-foreground">
-                      Last verified: {formatTime(channel.last_tested_at)}
-                    </p>
-                  ) : null}
-                </CardContent>
-                <CardFooter className="flex flex-wrap gap-2 border-t pt-4">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="w-full sm:w-auto"
-                    onClick={() => openModify(channel)}
-                    data-testid={`broadcast-modify-${channel.key}`}
-                  >
-                    <Settings2 className="size-4" /> Modify
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    className="w-full sm:w-auto"
-                    disabled={channel.status === "not_configured"}
-                    onClick={() => openSend(channel)}
-                    data-testid={`broadcast-send-${channel.key}`}
-                  >
-                    <SendHorizontal className="size-4" /> Send test
-                  </Button>
-                </CardFooter>
-              </Card>
-            );
-          })}
-        </div>
-      )}
+                <TableHeader>
+                  <TableRow className="bg-muted/50 hover:bg-muted/50">
+                    <TableHead>Channel</TableHead>
+                    <TableHead>Description</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Last verified</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {status === "loading" ? (
+                    [0, 1, 2, 3, 4].map((i) => (
+                      <TableRow key={i}>
+                        <TableCell colSpan={5}>
+                          <Skeleton className="h-6 w-full" />
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    channels.map((channel) => {
+                      const Icon = CHANNEL_ICONS[channel.key] || Send;
+                      const notConfigured = channel.status === "not_configured";
+                      return (
+                        <TableRow key={channel.key} data-testid={`broadcast-row-${channel.key}`}>
+                          <TableCell>
+                            <div className="flex items-center gap-2 font-medium">
+                              <Icon className="size-4 text-muted-foreground" /> {channel.label}
+                            </div>
+                          </TableCell>
+                          <TableCell className="max-w-sm truncate text-muted-foreground">
+                            {channel.description}
+                          </TableCell>
+                          <TableCell>
+                            <StatusBadge status={channel.status} />
+                          </TableCell>
+                          <TableCell className="text-muted-foreground">
+                            {channel.status === "connected" && channel.last_tested_at
+                              ? formatTime(channel.last_tested_at)
+                              : "—"}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="size-8"
+                                  aria-label="Row actions"
+                                  data-testid={`broadcast-row-actions-${channel.key}`}
+                                >
+                                  <MoreHorizontal className="size-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem
+                                  onClick={() => openModify(channel)}
+                                  data-testid={`broadcast-modify-${channel.key}`}
+                                >
+                                  <Settings2 className="size-4" /> Modify
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                  disabled={notConfigured}
+                                  onClick={() => openSend(channel)}
+                                  data-testid={`broadcast-send-${channel.key}`}
+                                >
+                                  <SendHorizontal className="size-4" /> Send test
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="sm:max-w-lg" data-testid="broadcast-dialog">
