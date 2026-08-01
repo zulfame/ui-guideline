@@ -266,7 +266,9 @@ async def list_audit_logs(
         .limit(limit)
         .to_list(limit)
     )
-    return docs
+    # Defensive: coerce any residual BSON types (e.g. legacy nested ObjectId) to
+    # JSON-safe values so a single bad legacy row can never 500 the endpoint.
+    return json.loads(json.dumps(docs, default=str))
 
 
 @api_router.get("/audit-logs/meta", tags=["Audit"], summary="Audit filter options")
@@ -2562,7 +2564,7 @@ async def update_branding(body: BrandingUpdate):
         "update", "branding", entity_id=BRANDING_KEY, entity_label=doc.get("app_name"),
         summary="Updated branding settings",
         method="PUT", path="/api/branding", status_code=200,
-        changes=changes, request=updates,
+        changes=changes, request={k: v for k, v in updates.items() if k != "_id"},
     )
     return _serialize_branding(doc)
 

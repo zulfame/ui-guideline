@@ -148,7 +148,7 @@ export default function BrandingPage() {
     <div className="space-y-6" data-testid="branding-page">
       <Tabs value={tab} onValueChange={setTab} className="space-y-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <TabsList className="flex-wrap justify-start">
+          <TabsList className="w-full justify-start overflow-x-auto sm:w-auto">
             <TabsTrigger value="general" data-testid="branding-tab-general">General</TabsTrigger>
             <TabsTrigger value="logos" data-testid="branding-tab-logos">Logos & Favicon</TabsTrigger>
             <TabsTrigger value="seo" data-testid="branding-tab-seo">SEO</TabsTrigger>
@@ -158,7 +158,7 @@ export default function BrandingPage() {
           <Button
             onClick={save}
             disabled={saving}
-            className="w-full sm:w-auto"
+            className="hidden sm:inline-flex sm:w-auto"
             data-testid="branding-save-btn"
           >
             {saving ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
@@ -358,6 +358,19 @@ export default function BrandingPage() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Mobile-only save bar (desktop save lives in the tab toolbar). */}
+      <div className="sticky bottom-0 -mx-4 border-t bg-background p-4 sm:hidden">
+        <Button
+          onClick={save}
+          disabled={saving}
+          className="w-full"
+          data-testid="branding-save-btn-mobile"
+        >
+          {saving ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
+          Save changes
+        </Button>
+      </div>
     </div>
   );
 }
