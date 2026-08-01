@@ -1,4 +1,4 @@
-import { GalleryVerticalEnd, CheckCircle2 } from "lucide-react";
+import { GalleryVerticalEnd, Users, ShieldCheck, ScrollText } from "lucide-react";
 
 import { Separator } from "@/components/ui/separator";
 import { useBranding } from "@/context/BrandingContext";
@@ -15,19 +15,22 @@ import { useBranding } from "@/context/BrandingContext";
  */
 const highlights = [
   {
-    icon: CheckCircle2,
-    title: "Feature One",
-    description: "Supporting text placeholder for this item.",
+    icon: Users,
+    title: "Centralized access control",
+    description:
+      "Manage users, roles, offices, and levels from a single console.",
   },
   {
-    icon: CheckCircle2,
-    title: "Feature Two",
-    description: "Supporting text placeholder for this item.",
+    icon: ShieldCheck,
+    title: "Security by design",
+    description:
+      "JWT sessions, brute-force lockout, scoped API keys, and rate limiting.",
   },
   {
-    icon: CheckCircle2,
-    title: "Feature Three",
-    description: "Supporting text placeholder for this item.",
+    icon: ScrollText,
+    title: "Full audit trail",
+    description:
+      "Every change is logged with who, what, and when for accountability.",
   },
 ];
 
