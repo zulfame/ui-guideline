@@ -48,6 +48,18 @@ DEFAULT_PAGE_SIZE = 100
 # on a fresh/empty database so new deployments come pre-filled with examples.
 AUTO_SEED = os.environ.get('AUTO_SEED', 'true').strip().lower() in ('1', 'true', 'yes', 'on')
 
+# Deployment config (Guideline: Configuration Management) — standard env names
+# with safe defaults so a missing/empty value never crashes startup.
+JWT_SECRET = os.environ.get('JWT_SECRET') or 'dev-insecure-jwt-secret-change-me'
+ADMIN_EMAIL = os.environ.get('ADMIN_EMAIL') or 'admin@example.com'
+ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD') or 'admin123'
+EMERGENT_LLM_KEY = os.environ.get('EMERGENT_LLM_KEY', '')
+LOCAL_STORAGE_DIR = os.environ.get('LOCAL_STORAGE_DIR') or '/app/data'
+try:
+    Path(LOCAL_STORAGE_DIR).mkdir(parents=True, exist_ok=True)
+except Exception:  # pragma: no cover - non-fatal, filesystem may be read-only
+    pass
+
 
 async def _auto_seed_if_empty():
     """Insert sample data only when all CMS collections are empty (idempotent)."""
@@ -75,6 +87,57 @@ async def _auto_seed_if_empty():
         "Auto-seed: inserted %d levels, %d roles, %d offices, %d users (empty DB).",
         len(levels), len(roles), len(offices), len(users),
     )
+
+
+async def _seed_admin():
+    """Idempotently ensure an admin account exists from ADMIN_EMAIL/ADMIN_PASSWORD.
+
+    Creates the admin with a bcrypt-hashed password when missing; if it exists but
+    the env password changed, re-syncs the hash. Runs on every startup.
+    """
+    now = datetime.now(timezone.utc)
+    pw_hash = bcrypt.hashpw(ADMIN_PASSWORD.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+    existing = await db.users.find_one({"email": ADMIN_EMAIL})
+    if existing is None:
+        await db.users.insert_one({
+            "id": str(uuid.uuid4()),
+            "name": "Administrator",
+            "email": ADMIN_EMAIL,
+            "username": "admin",
+            "phone": None,
+            "role_id": None,
+            "office_id": None,
+            "alias": None,
+            "mso_code": None,
+            "collector_code": None,
+            "device_identifier": None,
+            "device_name": None,
+            "device_os": None,
+            "fcm_token": None,
+            "password": pw_hash,
+            "password_history": [pw_hash],
+            "password_changed_at": now.isoformat(),
+            "password_expires_at": (now + timedelta(days=PASSWORD_EXPIRY_DAYS)).isoformat(),
+            "must_change_password": False,
+            "is_admin": True,
+            "deleted_at": None,
+            "created_at": now.isoformat(),
+            "updated_at": now.isoformat(),
+        })
+        logger.info("Admin seeded: %s", ADMIN_EMAIL)
+    else:
+        stored = existing.get("password") or ""
+        needs_update = True
+        try:
+            needs_update = not bcrypt.checkpw(ADMIN_PASSWORD.encode("utf-8"), stored.encode("utf-8"))
+        except Exception:  # pragma: no cover - malformed stored hash
+            needs_update = True
+        if needs_update:
+            await db.users.update_one(
+                {"email": ADMIN_EMAIL},
+                {"$set": {"password": pw_hash, "is_admin": True, "updated_at": now.isoformat()}},
+            )
+            logger.info("Admin password synced from env: %s", ADMIN_EMAIL)
 
 
 @asynccontextmanager
@@ -112,6 +175,10 @@ async def lifespan(_app: FastAPI):
         except Exception as exc:  # pragma: no cover - non-fatal, keep the app booting
             logger.warning("Index create skipped on %s (%s): %s", coll.name, keys, exc)
     logger.info("Startup complete: indexes ensured.")
+    try:
+        await _seed_admin()
+    except Exception as exc:  # pragma: no cover - non-fatal, keep the app booting
+        logger.error("Admin seed failed (non-fatal): %s", exc)
     if AUTO_SEED:
         try:
             await _auto_seed_if_empty()
@@ -905,8 +972,8 @@ async def delete_level(level_id: str):
 # ---------------------------------------------------------------------------
 # Users (CMS) — with password policy (90-day expiry, no-reuse of last N)
 # ---------------------------------------------------------------------------
-PASSWORD_EXPIRY_DAYS = int(os.environ.get("PASSWORD_EXPIRY_DAYS", "90"))
-PASSWORD_HISTORY_LIMIT = int(os.environ.get("PASSWORD_HISTORY_LIMIT", "3"))
+PASSWORD_EXPIRY_DAYS = int(os.environ.get("PASSWORD_EXPIRY_DAYS") or "90")
+PASSWORD_HISTORY_LIMIT = int(os.environ.get("PASSWORD_HISTORY_LIMIT") or "3")
 DEFAULT_USER_PASSWORD = os.environ.get("DEFAULT_USER_PASSWORD", "bpr2026")
 PASSWORD_EXPIRY_WARN_DAYS = 14
 EMAIL_RE = r"^[^@\s]+@[^@\s]+\.[^@\s]+$"
