@@ -31,6 +31,9 @@ Broadcast channels, Branding, dynamic Sitemap/Robots, plus an in-app Design Syst
 | `DB_NAME` | Required | - | MongoDB database name. |
 | `CORS_ORIGINS` | Optional | `*` | Comma-separated list of allowed CORS origins. `*` disables credentials. |
 | `JWT_SECRET` | Optional | `dev-insecure-jwt-secret-change-me` | Secret used to sign JWT tokens. **Set a strong value in production.** |
+| `JWT_EXPIRY_HOURS` | Optional | `12` | Access-token lifetime in hours. |
+| `LOGIN_MAX_ATTEMPTS` | Optional | `5` | Failed login attempts (per IP+identifier) before a temporary lockout. |
+| `LOGIN_LOCKOUT_MINUTES` | Optional | `15` | Lockout duration (minutes) after too many failed logins. |
 | `ADMIN_EMAIL` | Optional | `admin@example.com` | Email of the admin account seeded on startup (idempotent). |
 | `ADMIN_PASSWORD` | Optional | `admin123` | Password for the seeded admin account (stored bcrypt-hashed). |
 | `LOCAL_STORAGE_DIR` | Optional | `/app/data` | Directory for any files that must persist to disk (created on startup). |
