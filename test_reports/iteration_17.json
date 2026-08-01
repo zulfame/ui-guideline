@@ -1,0 +1,20 @@
+{
+  "summary": "Frontend-only verification of FORCE CHANGE PASSWORD flow. All 6 requested scenarios PASSED: (1) budi@bpr.co.id/bpr2026 login redirected to /change-password (not dashboard); (2) manual navigation to /users and / while must_change_password=true redirected back to /change-password (cannot bypass); (3) submitting matching new/confirm='GantiBaru2026' succeeded and landed on dashboard '/', with subsequent nav to '/' staying on dashboard (no more forced redirect); (4) mismatched new/confirm shows 'Passwords do not match' validation and does NOT submit or navigate; (5) admin/admin123 login goes straight to '/' (never /change-password); (6) full page reload after change keeps user authenticated on dashboard via GET /api/auth/me. Toast 'Signed in successfully' and change-password success flow both confirmed. No console errors.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [],
+  "action_items": [],
+  "critical_code_review_comments": [],
+  "updated_files": [],
+  "success_rate": {"backend": "n/a (skipped per request)", "frontend": "100% (6/6 scenarios passed)"},
+  "test_credentials": "Forced-change consumed: budi@bpr.co.id -> new password 'GantiBaru2026' set. Remaining forced-change users for future retest: citra@bpr.co.id / bpr2026 and andi@bpr.co.id / bpr2026. Admin: admin / admin123 (unchanged).",
+  "seed_data_creation": "None. Consumed budi's one-shot forced change (password now 'GantiBaru2026').",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Forced password change flow fully working. IMPORTANT: budi@bpr.co.id password is now 'GantiBaru2026' and must_change_password=false. Use citra@bpr.co.id or andi@bpr.co.id (still 'bpr2026' + must_change_password=true) if forced-change retest is needed. Anti-reuse (last 3) means picking a new password each retest. Token key remains 'app.token'. All data-testid selectors on ChangePasswordPage worked as documented.",
+  "rca of the issue": "N/A - no issues found."
+}

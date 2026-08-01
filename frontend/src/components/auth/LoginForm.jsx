@@ -75,7 +75,7 @@ export const LoginForm = () => {
       toast.success("Signed in successfully", {
         description: `Welcome back, ${data?.user?.name || values.identifier}.`,
       });
-      navigate("/");
+      navigate(data?.must_change_password ? "/change-password" : "/");
     } catch (e) {
       const status = e?.response?.status;
       const detail = formatApiErrorDetail(e?.response?.data?.detail);

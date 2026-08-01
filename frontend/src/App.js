@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 
 import { Toaster } from "@/components/ui/sonner";
@@ -7,6 +7,7 @@ import { useAuth } from "@/context/AuthContext";
 import { AppLayout } from "@/components/layout/AppLayout";
 import LoginPage from "@/pages/LoginPage";
 import ForgotPasswordPage from "@/pages/ForgotPasswordPage";
+import ChangePasswordPage from "@/pages/ChangePasswordPage";
 import DashboardPage from "@/pages/DashboardPage";
 import PlaceholderPage from "@/pages/PlaceholderPage";
 import OfficesPage from "@/pages/app/OfficesPage";
@@ -47,9 +48,12 @@ function App() {
   );
 
   const ProtectedRoute = ({ children }) => {
-    const { isAuthenticated, initializing } = useAuth();
+    const { isAuthenticated, initializing, user } = useAuth();
+    const location = useLocation();
     if (initializing) return <FullscreenLoader />;
     if (!isAuthenticated) return <Navigate to="/login" replace />;
+    if (user?.must_change_password && location.pathname !== "/change-password")
+      return <Navigate to="/change-password" replace />;
     return children;
   };
 
@@ -57,6 +61,13 @@ function App() {
     const { isAuthenticated, initializing } = useAuth();
     if (initializing) return <FullscreenLoader />;
     if (isAuthenticated) return <Navigate to="/" replace />;
+    return children;
+  };
+
+  const ChangePasswordGuard = ({ children }) => {
+    const { isAuthenticated, initializing } = useAuth();
+    if (initializing) return <FullscreenLoader />;
+    if (!isAuthenticated) return <Navigate to="/login" replace />;
     return children;
   };
 
@@ -188,6 +199,14 @@ function App() {
           }
         />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route
+          path="/change-password"
+          element={
+            <ChangePasswordGuard>
+              <ChangePasswordPage />
+            </ChangePasswordGuard>
+          }
+        />
 
         {/* Fallback */}
         <Route path="*" element={<Navigate to="/" replace />} />

@@ -33,6 +33,12 @@ export const AuthProvider = ({ children }) => {
     return data;
   }, []);
 
+  const refresh = useCallback(async () => {
+    const { data } = await API.get("/auth/me");
+    setUser(data);
+    return data;
+  }, []);
+
   const logout = useCallback(() => {
     window.localStorage.removeItem(TOKEN_KEY);
     setUser(null);
@@ -40,7 +46,7 @@ export const AuthProvider = ({ children }) => {
 
   return (
     <AuthContext.Provider
-      value={{ user, isAuthenticated: !!user, initializing, login, logout }}
+      value={{ user, isAuthenticated: !!user, initializing, login, logout, refresh }}
     >
       {children}
     </AuthContext.Provider>

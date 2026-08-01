@@ -1,5 +1,5 @@
 from fastapi import FastAPI, APIRouter, HTTPException, Query, Response, UploadFile, File, Form, Depends, Header
-from fastapi.responses import StreamingResponse, PlainTextResponse, Response
+from fastapi.responses import StreamingResponse, PlainTextResponse, Response, JSONResponse
 from contextlib import asynccontextmanager
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
@@ -344,13 +344,12 @@ async def list_audit_logs(
     _sortable = {"created_at", "actor", "action", "entity_type", "summary"}
     field = sort_by if sort_by in _sortable else "created_at"
     direction = 1 if (sort_dir or "").lower() == "asc" else -1
-    docs = (
-        await db.audit_logs.find(query, {"_id": 0})
-        .sort(field, direction)
-        .skip(skip)
-        .limit(limit)
-        .to_list(limit)
-    )
+    cursor = db.audit_logs.find(query, {"_id": 0})
+    # Case-insensitive sort for text fields (matches UI expectations); created_at
+    # keeps exact lexicographic order (ISO strings == chronological).
+    if field != "created_at":
+        cursor = cursor.collation({"locale": "en", "strength": 2})
+    docs = await cursor.sort(field, direction).skip(skip).limit(limit).to_list(limit)
     # Defensive: coerce any residual BSON types (e.g. legacy nested ObjectId) to
     # JSON-safe values so a single bad legacy row can never 500 the endpoint.
     return json.loads(json.dumps(docs, default=str))
@@ -3012,6 +3011,53 @@ async def auth_me(current=Depends(_get_current_user)):
 async def logout():
     """Stateless JWT logout — the client simply discards the token."""
     return {"success": True}
+
+
+# ---------------------------------------------------------------------------
+# Authorization middleware — require a Bearer token for /api (except a small
+# public whitelist); mutations require the admin role. Users may change their
+# OWN password without admin rights (supports the forced-change flow).
+# ---------------------------------------------------------------------------
+_PUBLIC_API_PATHS = {
+    "/api/", "/api/health",
+    "/api/auth/login", "/api/auth/logout", "/api/auth/me",
+    "/api/robots.txt", "/api/sitemap.xml", "/api/branding",
+}
+_PUBLIC_GET_PREFIXES = ("/api/branding/assets/",)
+_CHANGE_PW_RE = re.compile(r"^/api/users/([^/]+)/change-password$")
+
+
+async def _user_from_token(token: Optional[str]):
+    if not token:
+        return None
+    try:
+        payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+    except jwt.InvalidTokenError:
+        return None
+    return await db.users.find_one({"id": payload.get("sub"), "deleted_at": None})
+
+
+@app.middleware("http")
+async def _authz_middleware(request, call_next):
+    path = request.url.path
+    method = request.method.upper()
+    # Only guard API routes; skip CORS preflight.
+    if method == "OPTIONS" or not path.startswith("/api/"):
+        return await call_next(request)
+    if path in _PUBLIC_API_PATHS or any(path.startswith(p) for p in _PUBLIC_GET_PREFIXES):
+        return await call_next(request)
+    auth = request.headers.get("authorization") or request.headers.get("Authorization")
+    token = auth[7:].strip() if auth and auth.startswith("Bearer ") else None
+    user = await _user_from_token(token)
+    if not user:
+        return JSONResponse({"detail": "Not authenticated"}, status_code=401)
+    # Mutations require admin, except a user changing their OWN password.
+    if method in ("POST", "PUT", "DELETE", "PATCH"):
+        m = _CHANGE_PW_RE.match(path)
+        is_self_pw = bool(m and m.group(1) == user.get("id"))
+        if not is_self_pw and not user.get("is_admin"):
+            return JSONResponse({"detail": "Admin privileges required"}, status_code=403)
+    return await call_next(request)
 
 
 # Include the router in the main app.
