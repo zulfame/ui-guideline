@@ -175,10 +175,6 @@ export function ImportDialog({
       <DialogContent className="sm:max-w-lg" data-testid="import-dialog">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
-          <DialogDescription>
-            {instructions ||
-              "Upload an .xlsx file. Rows are validated first — you'll see a preview before anything is saved."}
-          </DialogDescription>
         </DialogHeader>
         <DialogBody className="space-y-4">
           {busy ? (
@@ -235,17 +231,10 @@ export function ImportDialog({
             </div>
           ) : (
             <>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={downloadTemplate}
-                disabled={downloading}
-                data-testid="import-download-template"
-              >
-                <Download className="size-4" />
-                {downloading ? "Preparing..." : "Download template"}
-              </Button>
+              <p className="text-sm text-muted-foreground" data-testid="import-instructions">
+                {instructions ||
+                  "Upload an .xlsx file. Rows are validated first — you'll see a preview before anything is saved."}
+              </p>
 
               <div className="space-y-1.5">
                 <label className="text-sm font-medium" htmlFor="import-file">
@@ -304,7 +293,7 @@ export function ImportDialog({
             </>
           )}
         </DialogBody>
-        <DialogFooter>
+        <DialogFooter className={step === "review" ? undefined : "sm:justify-between"}>
           {step === "review" ? (
             <>
               <Button
@@ -323,15 +312,27 @@ export function ImportDialog({
             </>
           ) : (
             <>
-              <DialogClose asChild>
-                <Button type="button" variant="outline" disabled={busy} data-testid="import-cancel">
-                  Cancel
-                </Button>
-              </DialogClose>
-              <Button type="button" onClick={runPreview} disabled={!file || busy} data-testid="import-preview-btn">
-                {busy ? <Loader2 className="size-4 animate-spin" /> : <Upload className="size-4" />}
-                {busy ? "Checking..." : "Preview"}
+              <Button
+                type="button"
+                variant="outline"
+                onClick={downloadTemplate}
+                disabled={downloading || busy}
+                data-testid="import-download-template"
+              >
+                <Download className="size-4" />
+                {downloading ? "Preparing..." : "Template"}
               </Button>
+              <div className="flex flex-col-reverse gap-2 sm:flex-row">
+                <DialogClose asChild>
+                  <Button type="button" variant="outline" disabled={busy} data-testid="import-cancel">
+                    Cancel
+                  </Button>
+                </DialogClose>
+                <Button type="button" onClick={runPreview} disabled={!file || busy} data-testid="import-preview-btn">
+                  {busy ? <Loader2 className="size-4 animate-spin" /> : <Upload className="size-4" />}
+                  {busy ? "Checking..." : "Preview"}
+                </Button>
+              </div>
             </>
           )}
         </DialogFooter>

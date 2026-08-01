@@ -15,6 +15,7 @@ import PlaceholderPage from "@/pages/PlaceholderPage";
 import OfficesPage from "@/pages/app/OfficesPage";
 import RolesPage from "@/pages/app/RolesPage";
 import UsersPage from "@/pages/app/UsersPage";
+import UserFormPage from "@/pages/app/UserFormPage";
 import AuditLogPage from "@/pages/app/AuditLogPage";
 import DatabasePage from "@/pages/app/DatabasePage";
 import BroadcastPage from "@/pages/app/BroadcastPage";
@@ -96,6 +97,8 @@ function App() {
         >
           <Route path="/" element={<DashboardPage />} />
           <Route path="/users" element={<UsersPage />} />
+          <Route path="/users/new" element={<AdminRoute><UserFormPage /></AdminRoute>} />
+          <Route path="/users/:id/edit" element={<AdminRoute><UserFormPage /></AdminRoute>} />
           <Route path="/roles" element={<RolesPage />} />
           <Route path="/offices" element={<OfficesPage />} />
           <Route path="/clients" element={<AdminRoute><ClientsPage /></AdminRoute>} />
