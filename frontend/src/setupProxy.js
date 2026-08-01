@@ -6,7 +6,7 @@ module.exports = function (app) {
   app.use(
     ["/robots.txt", "/sitemap.xml"],
     createProxyMiddleware({
-      target: "http://localhost:8001",
+      target: process.env.REACT_APP_BACKEND_URL || "http://localhost:8001",
       changeOrigin: true,
       pathRewrite: {
         "^/robots.txt": "/api/robots.txt",

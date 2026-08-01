@@ -85,22 +85,32 @@ async def lifespan(_app: FastAPI):
     the DB is empty and AUTO_SEED is enabled.
     Shutdown: close the Mongo client cleanly.
     """
-    await db.offices.create_index("code", unique=True)
-    await db.offices.create_index("name", unique=True)
-    await db.offices.create_index("created_at")  # supports the list sort
-    await db.roles.create_index("name", unique=True)
-    await db.levels.create_index("name", unique=True)
-    await db.users.create_index("created_at")
-    await db.users.create_index("email")
-    await db.users.create_index("role_id")
-    await db.users.create_index("office_id")
-    await db.users.create_index("deleted_at")
-    await db.audit_logs.create_index([("created_at", -1)])
-    await db.audit_logs.create_index("entity_type")
-    await db.audit_logs.create_index("action")
-    await db.broadcast_configs.create_index("key", unique=True)
-    await db.branding.create_index("key", unique=True)
-    await db.sitemap_urls.create_index("path", unique=True)
+    # Ensure indexes resiliently: a single failing index (e.g. an options
+    # conflict or a DuplicateKeyError on a restored DB) must NOT crash startup,
+    # otherwise the whole API goes down. Try each; log & continue on failure.
+    index_specs = [
+        (db.offices, "code", {"unique": True}),
+        (db.offices, "name", {"unique": True}),
+        (db.offices, "created_at", {}),
+        (db.roles, "name", {"unique": True}),
+        (db.levels, "name", {"unique": True}),
+        (db.users, "created_at", {}),
+        (db.users, "email", {}),
+        (db.users, "role_id", {}),
+        (db.users, "office_id", {}),
+        (db.users, "deleted_at", {}),
+        (db.audit_logs, [("created_at", -1)], {}),
+        (db.audit_logs, "entity_type", {}),
+        (db.audit_logs, "action", {}),
+        (db.broadcast_configs, "key", {"unique": True}),
+        (db.branding, "key", {"unique": True}),
+        (db.sitemap_urls, "path", {"unique": True}),
+    ]
+    for coll, keys, opts in index_specs:
+        try:
+            await coll.create_index(keys, **opts)
+        except Exception as exc:  # pragma: no cover - non-fatal, keep the app booting
+            logger.warning("Index create skipped on %s (%s): %s", coll.name, keys, exc)
     logger.info("Startup complete: indexes ensured.")
     if AUTO_SEED:
         try:
@@ -2253,7 +2263,10 @@ _BROADCAST_TESTERS = {
 @api_router.get("/broadcast/channels", tags=["Broadcast"], summary="List broadcast channels + status")
 async def list_broadcast_channels():
     """All channels with their saved (secret-free) config and connection status."""
-    docs = {d["key"]: d async for d in db.broadcast_configs.find({}, {"_id": 0})}
+    docs = {}
+    async for d in db.broadcast_configs.find({}, {"_id": 0}):
+        if d.get("key"):
+            docs[d["key"]] = d
     return [_serialize_channel(ch, docs.get(ch["key"])) for ch in BROADCAST_CHANNELS]
 
 
