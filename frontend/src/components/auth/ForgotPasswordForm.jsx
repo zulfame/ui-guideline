@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ArrowLeft, CheckCircle2, Loader2 } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Loader2, AlertCircle } from "lucide-react";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -16,18 +16,31 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { resetSchema, resetDefaultValues } from "@/lib/validation/authSchema";
+import API from "@/lib/api";
+
+/** Normalize FastAPI error `detail` (string | array | object) to a string. */
+function formatApiErrorDetail(detail) {
+  if (detail == null) return "";
+  if (typeof detail === "string") return detail;
+  if (Array.isArray(detail))
+    return detail
+      .map((e) => (e && typeof e.msg === "string" ? e.msg : JSON.stringify(e)))
+      .filter(Boolean)
+      .join(" ");
+  if (detail && typeof detail.msg === "string") return detail.msg;
+  return String(detail);
+}
 
 /**
  * ForgotPasswordForm
- * Accessible reset-request form (react-hook-form + zod), composed entirely from
- * shadcn/ui primitives. Generic template content only.
- *
- * NOTE: Submission is mocked (frontend prototype). Replace `onSubmit` with a
- * real API call when the backend is available.
+ * Requests a password-reset link. Calls the backend, which emails a single-use
+ * link (via the configured SMTP). Always shows a generic success to avoid
+ * revealing whether an account exists.
  */
 export const ForgotPasswordForm = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [sentTo, setSentTo] = useState("");
+  const [formError, setFormError] = useState("");
 
   const form = useForm({
     resolver: zodResolver(resetSchema),
@@ -36,11 +49,19 @@ export const ForgotPasswordForm = () => {
   });
 
   const onSubmit = async (values) => {
+    setFormError("");
     setIsSubmitting(true);
-    // --- MOCKED (frontend prototype) ---
-    await new Promise((resolve) => setTimeout(resolve, 900));
-    setIsSubmitting(false);
-    setSentTo(values.email);
+    try {
+      await API.post("/auth/forgot-password", { email: values.email.trim() });
+      setSentTo(values.email.trim());
+    } catch (e) {
+      setFormError(
+        formatApiErrorDetail(e?.response?.data?.detail) ||
+          "Unable to send the reset link. Please try again.",
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   if (sentTo) {
@@ -70,6 +91,14 @@ export const ForgotPasswordForm = () => {
         className="space-y-5"
         noValidate
       >
+        {formError ? (
+          <Alert variant="destructive" data-testid="reset-error-alert">
+            <AlertCircle className="h-4 w-4" aria-hidden="true" />
+            <AlertTitle>Something went wrong</AlertTitle>
+            <AlertDescription>{formError}</AlertDescription>
+          </Alert>
+        ) : null}
+
         <FormField
           control={form.control}
           name="email"

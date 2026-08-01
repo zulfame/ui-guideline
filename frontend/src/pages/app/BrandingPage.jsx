@@ -39,7 +39,6 @@ const TEXT_FIELDS = [
   "meta_keywords",
   "og_title",
   "og_description",
-  "site_url",
   "canonical_url",
   "allow_indexing",
   "support_email",
@@ -210,7 +209,7 @@ function SitemapManager() {
       <p className="text-sm text-muted-foreground">
         Manage the public pages included in <span className="font-medium text-foreground">sitemap.xml</span>.
         The site root is added automatically; add, edit, or remove entries as needed. Paths combine
-        with the <span className="font-medium text-foreground">Site URL</span> from the SEO tab.
+        with your app&apos;s address, which is <span className="font-medium text-foreground">detected automatically</span> from the server.
       </p>
 
       {/* Add row */}
@@ -484,16 +483,6 @@ export default function BrandingPage() {
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="site_url">Site URL</Label>
-                  <Input
-                    id="site_url"
-                    value={form.site_url || ""}
-                    onChange={(e) => set("site_url", e.target.value)}
-                    placeholder="https://app.example.com"
-                    data-testid="branding-site_url"
-                  />
-                </div>
-                <div className="space-y-1.5">
                   <Label htmlFor="canonical_url">Canonical URL</Label>
                   <Input
                     id="canonical_url"
@@ -541,7 +530,7 @@ export default function BrandingPage() {
                 >
                   /sitemap.xml
                 </a>{" "}
-                (uses the Site URL above). Save your changes first to see them update.
+                (URL detected automatically from your app&apos;s address). Save your changes first to see them update.
               </div>
             </CardContent>
           </Card>

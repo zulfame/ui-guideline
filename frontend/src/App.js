@@ -7,6 +7,7 @@ import { useAuth } from "@/context/AuthContext";
 import { AppLayout } from "@/components/layout/AppLayout";
 import LoginPage from "@/pages/LoginPage";
 import ForgotPasswordPage from "@/pages/ForgotPasswordPage";
+import ResetPasswordPage from "@/pages/ResetPasswordPage";
 import ChangePasswordPage from "@/pages/ChangePasswordPage";
 import AccountPage from "@/pages/AccountPage";
 import DashboardPage from "@/pages/DashboardPage";
@@ -17,6 +18,7 @@ import UsersPage from "@/pages/app/UsersPage";
 import AuditLogPage from "@/pages/app/AuditLogPage";
 import DatabasePage from "@/pages/app/DatabasePage";
 import BroadcastPage from "@/pages/app/BroadcastPage";
+import EmailTemplatesPage from "@/pages/app/EmailTemplatesPage";
 import BrandingPage from "@/pages/app/BrandingPage";
 import ClientsPage from "@/pages/app/ClientsPage";
 import LoginSecurityPage from "@/pages/app/LoginSecurityPage";
@@ -99,6 +101,7 @@ function App() {
           <Route path="/clients" element={<AdminRoute><ClientsPage /></AdminRoute>} />
           <Route path="/branding" element={<AdminRoute><BrandingPage /></AdminRoute>} />
           <Route path="/broadcast" element={<AdminRoute><BroadcastPage /></AdminRoute>} />
+          <Route path="/email-templates" element={<AdminRoute><EmailTemplatesPage /></AdminRoute>} />
           <Route path="/database" element={<AdminRoute><DatabasePage /></AdminRoute>} />
           <Route path="/login-security" element={<AdminRoute><LoginSecurityPage /></AdminRoute>} />
           <Route path="/audit-log" element={<AuditLogPage />} />
@@ -209,6 +212,7 @@ function App() {
           }
         />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route
           path="/change-password"
           element={

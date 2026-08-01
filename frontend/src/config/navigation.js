@@ -17,6 +17,7 @@ import {
   Database,
   ScrollText,
   ShieldAlert,
+  Mail,
 } from "lucide-react";
 
 import { guidelineGroups } from "./developmentGuidelines";
@@ -54,6 +55,7 @@ export const navAreas = [
         items: [
           { title: "Branding", to: "/branding", icon: Paintbrush, adminOnly: true },
           { title: "Broadcast", to: "/broadcast", icon: Radio, adminOnly: true },
+          { title: "Email Templates", to: "/email-templates", icon: Mail, adminOnly: true },
           { title: "Database", to: "/database", icon: Database, adminOnly: true },
           { title: "Login Security", to: "/login-security", icon: ShieldAlert, adminOnly: true },
           { title: "Audit Log", to: "/audit-log", icon: ScrollText },

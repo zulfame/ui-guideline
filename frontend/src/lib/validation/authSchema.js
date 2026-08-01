@@ -29,3 +29,21 @@ export const resetSchema = z.object({
 export const resetDefaultValues = {
   email: "",
 };
+
+export const resetPasswordSchema = z
+  .object({
+    new_password: z
+      .string()
+      .min(6, { message: "Password must be at least 6 characters." })
+      .max(128, { message: "Password is too long." }),
+    confirm: z.string().min(1, { message: "Please confirm your password." }),
+  })
+  .refine((data) => data.new_password === data.confirm, {
+    message: "Passwords do not match.",
+    path: ["confirm"],
+  });
+
+export const resetPasswordDefaultValues = {
+  new_password: "",
+  confirm: "",
+};

@@ -7,8 +7,12 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { useBranding } from "@/context/BrandingContext";
 
 export default function ForgotPasswordPage() {
+  const { branding } = useBranding();
+  const supportEmail = branding.support_email || "";
+
   return (
     <AuthLayout>
       <Card className="border-border/60">
@@ -23,9 +27,20 @@ export default function ForgotPasswordPage() {
         </CardContent>
       </Card>
 
-      <p className="mt-6 text-center text-xs text-muted-foreground">
-        This is a placeholder note for the reset screen.
-      </p>
+      {supportEmail ? (
+        <p
+          className="mt-6 text-center text-xs text-muted-foreground"
+          data-testid="reset-support-note"
+        >
+          Didn&apos;t receive the email? Contact{" "}
+          <a
+            href={`mailto:${supportEmail}`}
+            className="font-medium text-foreground underline-offset-4 hover:underline"
+          >
+            {supportEmail}
+          </a>
+        </p>
+      ) : null}
     </AuthLayout>
   );
 }
