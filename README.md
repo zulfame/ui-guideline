@@ -36,6 +36,8 @@ Broadcast channels, Branding, dynamic Sitemap/Robots, plus an in-app Design Syst
 | `LOGIN_LOCKOUT_MINUTES` | Optional | `15` | Lockout duration (minutes) after too many failed logins. |
 | `APIKEY_RATE_LIMIT` | Optional | `60` | Max requests per API key within the rate window. |
 | `APIKEY_RATE_WINDOW_SECONDS` | Optional | `60` | Length of the API-key rate-limit window, in seconds. |
+| `MAX_REQUEST_BYTES` | Optional | `2097152` | Max JSON request body size in bytes (2 MB); larger JSON bodies get `413`. Multipart uploads are exempt (guarded per-endpoint). |
+| `IDEMPOTENCY_TTL_SECONDS` | Optional | `86400` | Replay window (seconds) for stored `Idempotency-Key` responses before they expire (24 h). |
 | `ADMIN_EMAIL` | Optional | `admin@example.com` | Email of the admin account seeded on startup (idempotent). |
 | `ADMIN_PASSWORD` | Optional | `admin123` | Password for the seeded admin account (stored bcrypt-hashed). |
 | `LOCAL_STORAGE_DIR` | Optional | `/app/data` | Directory for any files that must persist to disk (created on startup). |

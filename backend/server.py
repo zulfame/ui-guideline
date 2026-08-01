@@ -1,8 +1,13 @@
 from fastapi import FastAPI, APIRouter, HTTPException, Query, Response, UploadFile, File, Form, Depends, Header, Request
 from fastapi.responses import StreamingResponse, PlainTextResponse, Response, JSONResponse
+from fastapi.encoders import jsonable_encoder
+from fastapi.exceptions import RequestValidationError
 from contextlib import asynccontextmanager
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.exceptions import HTTPException as StarletteHTTPException
+import time
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorGridFSBucket
 from bson import ObjectId
 from pymongo import UpdateOne, InsertOne
@@ -62,6 +67,41 @@ try:
     Path(LOCAL_STORAGE_DIR).mkdir(parents=True, exist_ok=True)
 except Exception:  # pragma: no cover - non-fatal, filesystem may be read-only
     pass
+
+# --- API Engineering Standards config (Guideline: API Engineering Standards) ---
+# Public API version exposed via URI alias (/api/v1) + X-API-Version header.
+API_VERSION = "v1"
+# Global JSON payload cap (Guideline: Payload Integrity). Uploads are guarded
+# per-endpoint (multipart is exempt here).
+MAX_REQUEST_BYTES = int(os.environ.get('MAX_REQUEST_BYTES') or str(2 * 1024 * 1024))
+# Idempotency replay window (Guideline: Idempotency Implementation).
+IDEMPOTENCY_TTL_SECONDS = int(os.environ.get('IDEMPOTENCY_TTL_SECONDS') or "86400")
+
+# Stable, machine-readable error codes (Guideline: Error Code Standardization).
+_STATUS_ERROR_CODES = {
+    400: "bad_request", 401: "unauthenticated", 403: "forbidden",
+    404: "not_found", 405: "method_not_allowed", 409: "conflict",
+    413: "payload_too_large", 422: "validation_error", 429: "rate_limited",
+    500: "internal_error", 503: "service_unavailable",
+}
+
+
+def _request_id(request) -> str:
+    """Correlation id for this request (set by the observability middleware)."""
+    try:
+        return getattr(request.state, "request_id", "-") or "-"
+    except Exception:
+        return "-"
+
+
+def _error_body(request, status_code: int, detail, code: Optional[str] = None) -> dict:
+    """Consistent error envelope: keeps `detail` (backward compatible) and adds a
+    stable `code` plus the `request_id` for end-to-end tracing."""
+    return {
+        "detail": detail,
+        "code": code or _STATUS_ERROR_CODES.get(status_code, "error"),
+        "request_id": _request_id(request),
+    }
 
 
 async def _auto_seed_if_empty():
@@ -177,6 +217,18 @@ async def lifespan(_app: FastAPI):
             await coll.create_index(keys, **opts)
         except Exception as exc:  # pragma: no cover - non-fatal, keep the app booting
             logger.warning("Index create skipped on %s (%s): %s", coll.name, keys, exc)
+    # Idempotency store (Guideline: Idempotency Implementation) — unique per
+    # (scope,key,path) + TTL so replayed requests return the stored response and
+    # keys auto-expire after the configured window.
+    try:
+        await db.idempotency_keys.create_index(
+            [("scope", 1), ("key", 1), ("path", 1)], unique=True
+        )
+        await db.idempotency_keys.create_index(
+            "created_at", expireAfterSeconds=IDEMPOTENCY_TTL_SECONDS
+        )
+    except Exception as exc:  # pragma: no cover - non-fatal
+        logger.warning("Idempotency index create skipped: %s", exc)
     logger.info("Startup complete: indexes ensured.")
     try:
         await _seed_admin()
@@ -3419,7 +3471,6 @@ def _apikey_authorize(client, path: str, method: str):
     return False, "API key missing 'write' scope"
 
 
-@app.middleware("http")
 async def _authz_middleware(request, call_next):
     path = request.url.path
     method = request.method.upper()
@@ -3427,16 +3478,18 @@ async def _authz_middleware(request, call_next):
     if method == "OPTIONS" or not path.startswith("/api/"):
         return await call_next(request)
     if path in _PUBLIC_API_PATHS or any(path.startswith(p) for p in _PUBLIC_GET_PREFIXES):
+        request.state.auth_scope = "public"
         return await call_next(request)
     # API-key authentication (integration clients) takes precedence when present.
     api_key = request.headers.get("x-api-key") or request.headers.get("X-API-Key")
     if api_key:
         client = await _client_from_api_key(api_key)
         if not client:
-            return JSONResponse({"detail": "Invalid or inactive API key"}, status_code=401)
+            return JSONResponse(_error_body(request, 401, "Invalid or inactive API key"), status_code=401)
         ok, reason = _apikey_authorize(client, path, method)
         if not ok:
-            return JSONResponse({"detail": reason}, status_code=403)
+            return JSONResponse(_error_body(request, 403, reason), status_code=403)
+        request.state.auth_scope = f"apikey:{client['id']}"
         # Fixed-window per-key rate limiting + usage counters (per-key override).
         now = datetime.now(timezone.utc)
         eff_limit = int(client.get("rate_limit") or APIKEY_RATE_LIMIT)
@@ -3453,7 +3506,10 @@ async def _authz_middleware(request, call_next):
         if new_count > eff_limit:
             retry = max(1, int(eff_window - (now - new_start).total_seconds()) + 1)
             return JSONResponse(
-                {"detail": f"Rate limit exceeded ({eff_limit} requests / {eff_window}s). Retry in {retry}s."},
+                _error_body(
+                    request, 429,
+                    f"Rate limit exceeded ({eff_limit} requests / {eff_window}s). Retry in {retry}s.",
+                ),
                 status_code=429,
                 headers={"Retry-After": str(retry)},
             )
@@ -3478,18 +3534,172 @@ async def _authz_middleware(request, call_next):
     token = auth[7:].strip() if auth and auth.startswith("Bearer ") else None
     user = await _user_from_token(token)
     if not user:
-        return JSONResponse({"detail": "Not authenticated"}, status_code=401)
+        return JSONResponse(_error_body(request, 401, "Not authenticated"), status_code=401)
+    request.state.auth_scope = f"user:{user.get('id')}"
     # Mutations require admin, except a user changing their OWN password.
     if method in ("POST", "PUT", "DELETE", "PATCH"):
         m = _CHANGE_PW_RE.match(path)
         is_self_pw = bool(m and m.group(1) == user.get("id"))
         if not is_self_pw and not user.get("is_admin"):
-            return JSONResponse({"detail": "Admin privileges required"}, status_code=403)
+            return JSONResponse(_error_body(request, 403, "Admin privileges required"), status_code=403)
     return await call_next(request)
+
+
+# ---------------------------------------------------------------------------
+# Idempotency (Guideline: Idempotency Implementation / Duplicate Prevention)
+# POST requests carrying an `Idempotency-Key` are replayed from a stored response
+# within the TTL window instead of re-executing the side effect. Opt-in: routes
+# without the header behave exactly as before (fully backward compatible).
+# ---------------------------------------------------------------------------
+async def _idempotency_middleware(request, call_next):
+    method = request.method.upper()
+    path = request.url.path
+    idem_key = request.headers.get("idempotency-key") or request.headers.get("Idempotency-Key")
+    if method != "POST" or not idem_key or not path.startswith("/api/"):
+        return await call_next(request)
+    scope_id = getattr(request.state, "auth_scope", "anonymous")
+    lookup = {"scope": scope_id, "key": idem_key, "path": path}
+    rid = _request_id(request)
+    try:
+        existing = await db.idempotency_keys.find_one(lookup)
+    except Exception:
+        existing = None
+    if existing and existing.get("status") == "completed":
+        return JSONResponse(
+            existing.get("response_body"),
+            status_code=int(existing.get("response_status", 200)),
+            headers={"Idempotent-Replay": "true", "X-Request-ID": rid},
+        )
+    response = await call_next(request)
+    # Only cache successful (2xx) JSON responses; failures may be safely retried
+    # and streamed/binary responses (e.g. file exports) are passed through as-is.
+    resp_ctype = response.headers.get("content-type", "")
+    if not (200 <= response.status_code < 300) or not resp_ctype.startswith("application/json"):
+        return response
+    body_bytes = b""
+    async for chunk in response.body_iterator:
+        body_bytes += chunk
+    parsed = None
+    if body_bytes:
+        try:
+            parsed = json.loads(body_bytes.decode("utf-8"))
+        except Exception:
+            parsed = None
+    try:
+        await db.idempotency_keys.update_one(
+            lookup,
+            {"$set": {
+                **lookup,
+                "status": "completed",
+                "response_status": response.status_code,
+                "response_body": parsed,
+                "created_at": datetime.now(timezone.utc),
+            }},
+            upsert=True,
+        )
+    except Exception as exc:  # pragma: no cover - non-fatal
+        logger.warning("Idempotency store failed: %s", exc)
+    new_headers = dict(response.headers)
+    new_headers.pop("content-length", None)
+    new_headers["Idempotent-Replay"] = "false"
+    return Response(
+        content=body_bytes,
+        status_code=response.status_code,
+        headers=new_headers,
+        media_type=response.media_type,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Observability (Guidelines: Correlation ID, Request/Response Logging, Payload
+# Integrity, API Versioning). Outermost middleware: assigns/propagates the
+# request id, enforces the JSON payload cap, transparently maps the /api/v1
+# versioned alias onto the canonical /api routes, and emits a structured
+# access log with latency.
+# ---------------------------------------------------------------------------
+async def _observability_middleware(request, call_next):
+    raw_path = request.scope.get("path", "")
+    # Versioning alias: /api/v1/... is served by the canonical /api/... routes.
+    if raw_path == "/api/v1" or raw_path == "/api/v1/":
+        request.scope["path"] = "/api/"
+        request.scope["raw_path"] = b"/api/"
+    elif raw_path.startswith("/api/v1/"):
+        mapped = "/api/" + raw_path[len("/api/v1/"):]
+        request.scope["path"] = mapped
+        request.scope["raw_path"] = mapped.encode()
+
+    rid = (
+        request.headers.get("x-request-id")
+        or request.headers.get("X-Request-ID")
+        or str(uuid.uuid4())
+    )
+    request.state.request_id = rid
+
+    # Global JSON payload cap (uploads use multipart and are exempt here).
+    content_length = request.headers.get("content-length")
+    content_type = request.headers.get("content-type", "")
+    if content_length and content_type.startswith("application/json"):
+        try:
+            if int(content_length) > MAX_REQUEST_BYTES:
+                return JSONResponse(
+                    _error_body(request, 413, f"Request body too large (max {MAX_REQUEST_BYTES} bytes)"),
+                    status_code=413,
+                    headers={"X-Request-ID": rid, "X-API-Version": API_VERSION},
+                )
+        except ValueError:
+            pass
+
+    start = time.perf_counter()
+    response = await call_next(request)
+    duration_ms = (time.perf_counter() - start) * 1000
+    response.headers["X-Request-ID"] = rid
+    response.headers["X-API-Version"] = API_VERSION
+    if raw_path.startswith("/api/"):
+        logger.info(
+            "access method=%s path=%s status=%s dur_ms=%.1f rid=%s scope=%s",
+            request.method, raw_path, response.status_code, duration_ms, rid,
+            getattr(request.state, "auth_scope", "anonymous"),
+        )
+    return response
+
+
+# ---------------------------------------------------------------------------
+# Exception handlers (Guideline: Error Code Standardization) — every error
+# returns the consistent {detail, code, request_id} envelope; internals stay
+# hidden and are logged with the correlation id.
+# ---------------------------------------------------------------------------
+@app.exception_handler(StarletteHTTPException)
+async def _http_exception_handler(request, exc):
+    return JSONResponse(
+        _error_body(request, exc.status_code, exc.detail),
+        status_code=exc.status_code,
+        headers=getattr(exc, "headers", None),
+    )
+
+
+@app.exception_handler(RequestValidationError)
+async def _validation_exception_handler(request, exc):
+    return JSONResponse(
+        jsonable_encoder(_error_body(request, 422, exc.errors())),
+        status_code=422,
+    )
+
+
+@app.exception_handler(Exception)
+async def _unhandled_exception_handler(request, exc):
+    logger.error("Unhandled error [rid=%s]: %s", _request_id(request), exc, exc_info=True)
+    return JSONResponse(_error_body(request, 500, "Internal server error"), status_code=500)
 
 
 # Include the router in the main app.
 app.include_router(api_router)
+
+# Middleware registration order matters: the LAST added is the OUTERMOST.
+# Inbound flow: observability -> CORS -> authz -> idempotency -> route.
+# (idempotency is inner so it runs after authz has set request.state.auth_scope
+# and, critically, only after authentication has passed.)
+app.add_middleware(BaseHTTPMiddleware, dispatch=_idempotency_middleware)
+app.add_middleware(BaseHTTPMiddleware, dispatch=_authz_middleware)
 
 # CORS (Guideline: Security Headers) — a wildcard origin is incompatible with
 # credentials, so only enable credentials when specific origins are configured.
@@ -3501,5 +3711,7 @@ app.add_middleware(
     allow_origins=cors_origins,
     allow_methods=["*"],
     allow_headers=["*"],
-    expose_headers=["X-Total-Count"],
+    expose_headers=["X-Total-Count", "X-Request-ID", "X-API-Version", "Retry-After", "Idempotent-Replay"],
 )
+
+app.add_middleware(BaseHTTPMiddleware, dispatch=_observability_middleware)
