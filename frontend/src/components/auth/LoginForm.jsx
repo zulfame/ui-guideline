@@ -110,12 +110,12 @@ export const LoginForm = () => {
           name="identifier"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Email, username, or phone</FormLabel>
+              <FormLabel>Credential</FormLabel>
               <FormControl>
                 <Input
                   type="text"
                   autoComplete="username"
-                  placeholder="name@example.com"
+                  placeholder="Email, username, or phone"
                   data-testid={LOGIN.identifierInput}
                   {...field}
                 />
@@ -145,7 +145,7 @@ export const LoginForm = () => {
               <FormControl>
                 <PasswordInput
                   autoComplete="current-password"
-                  placeholder="Enter your password"
+                  placeholder="****************************"
                   data-testid={LOGIN.passwordInput}
                   {...field}
                 />
