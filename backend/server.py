@@ -1,5 +1,5 @@
 from fastapi import FastAPI, APIRouter, HTTPException, Query, Response, UploadFile, File, Form
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, PlainTextResponse, Response
 from contextlib import asynccontextmanager
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
@@ -2645,6 +2645,51 @@ async def get_branding_asset(file_id: str):
         media_type=content_type,
         headers={"Cache-Control": "public, max-age=300"},
     )
+
+
+# ---------------------------------------------------------------------------
+# SEO endpoints — dynamic robots.txt (from Branding visibility) + sitemap.xml.
+# Served under /api; the frontend dev proxy (src/setupProxy.js) exposes them at
+# the root paths /robots.txt and /sitemap.xml that crawlers expect.
+# ---------------------------------------------------------------------------
+def _branding_site(b: dict) -> str:
+    return (b.get("site_url") or b.get("canonical_url") or "").rstrip("/")
+
+
+@api_router.get("/robots.txt", tags=["Branding"], summary="Dynamic robots.txt")
+async def robots_txt():
+    b = _serialize_branding(await _get_branding_doc())
+    site = _branding_site(b)
+    lines = ["User-agent: *"]
+    if b.get("allow_indexing"):
+        lines.append("Allow: /")
+        if site:
+            lines.append(f"Sitemap: {site}/sitemap.xml")
+    else:
+        lines.append("Disallow: /")
+    return PlainTextResponse("\n".join(lines) + "\n")
+
+
+@api_router.get("/sitemap.xml", tags=["Branding"], summary="Auto-generated sitemap.xml")
+async def sitemap_xml():
+    from xml.sax.saxutils import escape
+
+    b = _serialize_branding(await _get_branding_doc())
+    site = _branding_site(b)
+    lastmod = (b.get("updated_at") or "")[:10]
+    body = [
+        '<?xml version="1.0" encoding="UTF-8"?>',
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+    ]
+    # Only emit URLs when a public site URL is configured (avoids leaking internal paths).
+    if site:
+        body.append("  <url>")
+        body.append(f"    <loc>{escape(site)}/</loc>")
+        if lastmod:
+            body.append(f"    <lastmod>{lastmod}</lastmod>")
+        body.append("  </url>")
+    body.append("</urlset>")
+    return Response("\n".join(body) + "\n", media_type="application/xml")
 
 
 # Include the router in the main app.

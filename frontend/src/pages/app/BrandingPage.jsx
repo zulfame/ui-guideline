@@ -288,6 +288,29 @@ export default function BrandingPage() {
                   data-testid="branding-allow_indexing"
                 />
               </div>
+              <div className="rounded-md border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+                <span className="font-medium text-foreground">Auto-served files:</span>{" "}
+                <a
+                  href="/robots.txt"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="underline underline-offset-2 hover:text-foreground"
+                  data-testid="branding-robots-link"
+                >
+                  /robots.txt
+                </a>{" "}
+                (reflects the visibility toggle) and{" "}
+                <a
+                  href="/sitemap.xml"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="underline underline-offset-2 hover:text-foreground"
+                  data-testid="branding-sitemap-link"
+                >
+                  /sitemap.xml
+                </a>{" "}
+                (uses the Site URL above). Save your changes first to see them update.
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
