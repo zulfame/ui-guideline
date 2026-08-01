@@ -2981,7 +2981,7 @@ async def _login_locked_until(key: str):
     return lu if lu > datetime.now(timezone.utc) else None
 
 
-async def _record_login_failure(key: str, ident: str):
+async def _record_login_failure(key: str, ident: str, ip: str = ""):
     now = datetime.now(timezone.utc)
     doc = await db.login_attempts.find_one({"_id": key})
     fails = 1
@@ -2992,7 +2992,7 @@ async def _record_login_failure(key: str, ident: str):
             within_window = False
         if within_window:
             fails = int(doc.get("fails", 0)) + 1
-    update = {"fails": fails, "last_fail_at": now.isoformat(), "identifier": ident, "locked_until": None}
+    update = {"fails": fails, "last_fail_at": now.isoformat(), "identifier": ident, "ip": ip, "locked_until": None}
     locked = fails >= LOGIN_MAX_ATTEMPTS
     if locked:
         update["locked_until"] = (now + timedelta(minutes=LOGIN_LOCKOUT_MINUTES)).isoformat()
@@ -3047,7 +3047,7 @@ async def login(payload: LoginRequest, request: Request):
         ],
     })
     if not doc or not _verify_password(payload.password, doc.get("password") or ""):
-        fails, locked = await _record_login_failure(key, ident)
+        fails, locked = await _record_login_failure(key, ident, ip)
         await log_audit(
             "login_failed", "auth", entity_label=ident,
             summary=f"Failed login for {ident} from {ip} (attempt {fails}/{LOGIN_MAX_ATTEMPTS})",
@@ -3275,6 +3275,49 @@ async def delete_client(client_id: str, current=Depends(_require_admin)):
 
 
 # ---------------------------------------------------------------------------
+# Login security — inspect throttle records (suspicious activity) & unlock.
+# ---------------------------------------------------------------------------
+@api_router.get("/login-attempts", tags=["Security"], summary="List login throttle records")
+async def list_login_attempts(current=Depends(_require_admin)):
+    now = datetime.now(timezone.utc)
+    docs = await db.login_attempts.find({}).sort("last_fail_at", -1).to_list(1000)
+    out = []
+    for d in docs:
+        locked_until = d.get("locked_until")
+        is_locked = False
+        if locked_until:
+            try:
+                is_locked = datetime.fromisoformat(locked_until) > now
+            except Exception:
+                is_locked = False
+        out.append({
+            "key": str(d.get("_id")),
+            "ip": d.get("ip") or "",
+            "identifier": d.get("identifier"),
+            "fails": d.get("fails", 0),
+            "last_fail_at": d.get("last_fail_at"),
+            "locked_until": locked_until,
+            "is_locked": is_locked,
+        })
+    return out
+
+
+class UnlockRequest(BaseModel):
+    key: str
+
+
+@api_router.post("/login-attempts/unlock", tags=["Security"], summary="Manually unlock a login throttle record")
+async def unlock_login_attempt(payload: UnlockRequest, current=Depends(_require_admin)):
+    res = await db.login_attempts.delete_one({"_id": payload.key})
+    await log_audit(
+        "unlock", "auth", entity_label=payload.key,
+        summary=f"Manually unlocked login throttle {payload.key}", method="POST",
+        path="/api/login-attempts/unlock", status_code=200, actor=current.get("email"),
+    )
+    return {"success": True, "deleted": res.deleted_count}
+
+
+# ---------------------------------------------------------------------------
 # Authorization middleware — require a Bearer token for /api (except a small
 # public whitelist); mutations require the admin role. Users may change their
 # OWN password without admin rights (supports the forced-change flow).
@@ -3298,6 +3341,44 @@ async def _user_from_token(token: Optional[str]):
     return await db.users.find_one({"id": payload.get("sub"), "deleted_at": None})
 
 
+# API-key auth: keys never reach management/auth/system endpoints; GET needs the
+# resource scope (or "read"), mutations need "write".
+_APIKEY_BLOCKED_PREFIXES = ("/api/clients", "/api/auth", "/api/database", "/api/login-attempts")
+_APIKEY_RESOURCE_SCOPES = (
+    ("/api/users", "users"),
+    ("/api/roles", "roles"),
+    ("/api/levels", "roles"),
+    ("/api/offices", "offices"),
+    ("/api/audit-logs", "audit"),
+    ("/api/broadcast", "broadcast"),
+    ("/api/branding", "write"),
+    ("/api/sitemap-urls", "write"),
+)
+
+
+async def _client_from_api_key(api_key: str):
+    key_hash = hashlib.sha256(api_key.encode("utf-8")).hexdigest()
+    return await db.api_clients.find_one({"key_hash": key_hash, "active": True})
+
+
+def _apikey_authorize(client, path: str, method: str):
+    if any(path.startswith(p) for p in _APIKEY_BLOCKED_PREFIXES):
+        return False, "API key not permitted for this endpoint"
+    scopes = set(client.get("scopes") or [])
+    resource_scope = None
+    for prefix, sc in _APIKEY_RESOURCE_SCOPES:
+        if path.startswith(prefix):
+            resource_scope = sc
+            break
+    if method == "GET":
+        if "read" in scopes or (resource_scope and resource_scope in scopes):
+            return True, ""
+        return False, "API key missing required scope"
+    if "write" in scopes:
+        return True, ""
+    return False, "API key missing 'write' scope"
+
+
 @app.middleware("http")
 async def _authz_middleware(request, call_next):
     path = request.url.path
@@ -3306,6 +3387,20 @@ async def _authz_middleware(request, call_next):
     if method == "OPTIONS" or not path.startswith("/api/"):
         return await call_next(request)
     if path in _PUBLIC_API_PATHS or any(path.startswith(p) for p in _PUBLIC_GET_PREFIXES):
+        return await call_next(request)
+    # API-key authentication (integration clients) takes precedence when present.
+    api_key = request.headers.get("x-api-key") or request.headers.get("X-API-Key")
+    if api_key:
+        client = await _client_from_api_key(api_key)
+        if not client:
+            return JSONResponse({"detail": "Invalid or inactive API key"}, status_code=401)
+        ok, reason = _apikey_authorize(client, path, method)
+        if not ok:
+            return JSONResponse({"detail": reason}, status_code=403)
+        await db.api_clients.update_one(
+            {"id": client["id"]},
+            {"$set": {"last_used_at": datetime.now(timezone.utc).isoformat()}},
+        )
         return await call_next(request)
     auth = request.headers.get("authorization") or request.headers.get("Authorization")
     token = auth[7:].strip() if auth and auth.startswith("Bearer ") else None

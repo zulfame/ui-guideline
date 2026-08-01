@@ -19,6 +19,7 @@ import DatabasePage from "@/pages/app/DatabasePage";
 import BroadcastPage from "@/pages/app/BroadcastPage";
 import BrandingPage from "@/pages/app/BrandingPage";
 import ClientsPage from "@/pages/app/ClientsPage";
+import LoginSecurityPage from "@/pages/app/LoginSecurityPage";
 import ComponentsPage from "@/pages/ComponentsPage";
 import DesignTokensPage from "@/pages/DesignTokensPage";
 import DevelopmentOverviewPage from "@/pages/development/DevelopmentOverviewPage";
@@ -99,6 +100,7 @@ function App() {
           <Route path="/branding" element={<AdminRoute><BrandingPage /></AdminRoute>} />
           <Route path="/broadcast" element={<AdminRoute><BroadcastPage /></AdminRoute>} />
           <Route path="/database" element={<AdminRoute><DatabasePage /></AdminRoute>} />
+          <Route path="/login-security" element={<AdminRoute><LoginSecurityPage /></AdminRoute>} />
           <Route path="/audit-log" element={<AuditLogPage />} />
           <Route path="/account" element={<AccountPage />} />
           <Route path="/settings" element={<PlaceholderPage />} />
