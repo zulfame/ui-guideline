@@ -36,6 +36,7 @@ import {
 import { toast } from "sonner";
 
 import API from "@/lib/api";
+import { useAuth } from "@/context/AuthContext";
 import {
   Card,
   CardContent,
@@ -679,6 +680,7 @@ function SortableHeader({ column, children, align = "left" }) {
 }
 
 export default function RolesPage() {
+  const { isAdmin } = useAuth();
   const [roles, setRoles] = useState([]);
   const [levels, setLevels] = useState([]);
   const [status, setStatus] = useState("loading");
@@ -895,7 +897,7 @@ export default function RolesPage() {
           <span className="text-muted-foreground">{row.original.order ?? 0}</span>
         ),
       },
-      {
+      ...(isAdmin ? [{
         id: "actions",
         cell: ({ row }) => (
           <DropdownMenu>
@@ -940,9 +942,9 @@ export default function RolesPage() {
           </DropdownMenu>
         ),
         enableSorting: false,
-      },
+      }] : []),
     ],
-    [levelName, roles], // eslint-disable-line react-hooks/exhaustive-deps
+    [levelName, roles, isAdmin], // eslint-disable-line react-hooks/exhaustive-deps
   );
 
   const table = useReactTable({
@@ -980,16 +982,20 @@ export default function RolesPage() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={openCreate} data-testid="roles-add">
-                <Plus className="size-4" /> Add role
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setImportOpen(true)} data-testid="roles-import">
-                <Upload className="size-4" /> Import
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => setLevelsOpen(true)} data-testid="roles-levels-btn">
-                <Layers className="size-4" /> Levels
-              </DropdownMenuItem>
+              {isAdmin && (
+                <>
+                  <DropdownMenuItem onClick={openCreate} data-testid="roles-add">
+                    <Plus className="size-4" /> Add role
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setImportOpen(true)} data-testid="roles-import">
+                    <Upload className="size-4" /> Import
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => setLevelsOpen(true)} data-testid="roles-levels-btn">
+                    <Layers className="size-4" /> Levels
+                  </DropdownMenuItem>
+                </>
+              )}
               <DropdownMenuItem onClick={() => setStructureOpen(true)} data-testid="roles-structure-btn">
                 <Network className="size-4" /> Structure
               </DropdownMenuItem>
@@ -1009,7 +1015,7 @@ export default function RolesPage() {
               />
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              {selectedCount > 0 && (
+              {isAdmin && selectedCount > 0 && (
                 <Button
                   variant="outline"
                   size="sm"
@@ -1059,9 +1065,11 @@ export default function RolesPage() {
                   title="No roles yet"
                   description="Create your first role to start building the hierarchy."
                   action={
-                    <Button onClick={openCreate} data-testid="roles-empty-add">
-                      <Plus className="size-4" /> Add Role
-                    </Button>
+                    isAdmin ? (
+                      <Button onClick={openCreate} data-testid="roles-empty-add">
+                        <Plus className="size-4" /> Add Role
+                      </Button>
+                    ) : undefined
                   }
                 />
               </div>

@@ -67,7 +67,7 @@ export const AppSidebar = (props) => {
   // Branding overrides the "Application" area identity (name, tagline, logo).
   const { branding, assetUrl } = useBranding();
   const { theme } = useTheme();
-  const { user, logout } = useAuth();
+  const { user, logout, isAdmin } = useAuth();
   const currentUser = {
     name: user?.name || "User",
     email: user?.email || user?.username || "",
@@ -164,11 +164,14 @@ export const AppSidebar = (props) => {
       </SidebarHeader>
 
       <SidebarContent>
-        {activeArea.sections.map((section) => (
+        {activeArea.sections.map((section) => {
+          const visibleItems = section.items.filter((item) => !item.adminOnly || isAdmin);
+          if (visibleItems.length === 0) return null;
+          return (
           <SidebarGroup key={section.label}>
             <SidebarGroupLabel>{section.label}</SidebarGroupLabel>
             <SidebarMenu>
-              {section.items.map((item) => {
+              {visibleItems.map((item) => {
                 const Icon = item.icon;
 
                 if (item.children) {
@@ -228,7 +231,8 @@ export const AppSidebar = (props) => {
               })}
             </SidebarMenu>
           </SidebarGroup>
-        ))}
+          );
+        })}
       </SidebarContent>
 
       <SidebarFooter>

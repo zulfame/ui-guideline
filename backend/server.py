@@ -1033,6 +1033,7 @@ def _user_public(doc: dict, roles: dict = None, offices: dict = None) -> dict:
         "email": doc.get("email"),
         "role_id": doc.get("role_id"),
         "role_name": roles.get(doc.get("role_id")),
+        "is_admin": bool(doc.get("is_admin")),
         "office_id": doc.get("office_id"),
         "office_name": offices.get(doc.get("office_id")),
         "alias": doc.get("alias"),

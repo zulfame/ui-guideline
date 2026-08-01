@@ -91,6 +91,7 @@ import {
 import { EmptyState } from "@/components/composite/EmptyState";
 import { ImportDialog } from "@/components/composite/ImportDialog";
 import { DensityToggle } from "@/components/density-toggle";
+import { useAuth } from "@/context/AuthContext";
 
 const emptyToUndef = (v) => (v === "" || v === null ? undefined : v);
 
@@ -376,6 +377,7 @@ function SortableHeader({ column, children, align = "left" }) {
 }
 
 export default function OfficesPage() {
+  const { isAdmin } = useAuth();
   const [offices, setOffices] = useState([]);
   const [status, setStatus] = useState("loading"); // loading | ready | error
   const [globalFilter, setGlobalFilter] = useState("");
@@ -519,7 +521,7 @@ export default function OfficesPage() {
           <div className="text-right tabular-nums">{row.original.radius} m</div>
         ),
       },
-      {
+      ...(isAdmin ? [{
         id: "actions",
         cell: ({ row }) => (
           <div className="text-right">
@@ -555,9 +557,9 @@ export default function OfficesPage() {
           </div>
         ),
         enableSorting: false,
-      },
+      }] : []),
     ],
-    [],
+    [isAdmin],
   );
 
   const table = useReactTable({
@@ -586,17 +588,21 @@ export default function OfficesPage() {
         <CardHeader className="flex flex-col gap-3 space-y-0 sm:flex-row sm:items-center sm:justify-between">
           <CardTitle className="text-base">Office List</CardTitle>
           <div className="flex flex-wrap items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setImportOpen(true)}
-              data-testid="offices-import"
-            >
-              <Upload className="size-4" /> Import
-            </Button>
-            <Button size="sm" onClick={openCreate} data-testid="offices-add">
-              <Plus className="size-4" /> Add Office
-            </Button>
+            {isAdmin && (
+              <>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setImportOpen(true)}
+                  data-testid="offices-import"
+                >
+                  <Upload className="size-4" /> Import
+                </Button>
+                <Button size="sm" onClick={openCreate} data-testid="offices-add">
+                  <Plus className="size-4" /> Add Office
+                </Button>
+              </>
+            )}
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -613,7 +619,7 @@ export default function OfficesPage() {
               />
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              {selectedCount > 0 && (
+              {isAdmin && selectedCount > 0 && (
                 <Button
                   variant="outline"
                   size="sm"
@@ -661,9 +667,11 @@ export default function OfficesPage() {
             title="No offices yet"
             description="Create your first office to get started."
             action={
-              <Button size="sm" onClick={openCreate} data-testid="offices-empty-add">
-                <Plus className="size-4" /> Add Office
-              </Button>
+              isAdmin ? (
+                <Button size="sm" onClick={openCreate} data-testid="offices-empty-add">
+                  <Plus className="size-4" /> Add Office
+                </Button>
+              ) : undefined
             }
           />
         ) : (

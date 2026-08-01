@@ -89,6 +89,7 @@ import {
 import { EmptyState } from "@/components/composite/EmptyState";
 import { ImportDialog } from "@/components/composite/ImportDialog";
 import { DensityToggle } from "@/components/density-toggle";
+import { useAuth } from "@/context/AuthContext";
 
 const PW_BADGE = {
   active: { variant: "secondary", label: "Active" },
@@ -573,6 +574,7 @@ function SortableHeader({ column, children, align = "left" }) {
 }
 
 export default function UsersPage() {
+  const { isAdmin } = useAuth();
   const [users, setUsers] = useState([]);
   const [roles, setRoles] = useState([]);
   const [offices, setOffices] = useState([]);
@@ -719,7 +721,7 @@ export default function UsersPage() {
           );
         },
       },
-      {
+      ...(isAdmin ? [{
         id: "actions",
         cell: ({ row }) => (
           <div className="text-right">
@@ -767,9 +769,9 @@ export default function UsersPage() {
           </div>
         ),
         enableSorting: false,
-      },
+      }] : []),
     ],
-    [],
+    [isAdmin],
   );
 
   const table = useReactTable({
@@ -798,17 +800,21 @@ export default function UsersPage() {
         <CardHeader className="flex flex-col gap-3 space-y-0 sm:flex-row sm:items-center sm:justify-between">
           <CardTitle className="text-base">User List</CardTitle>
           <div className="flex flex-wrap items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setImportOpen(true)}
-              data-testid="users-import"
-            >
-              <Upload className="size-4" /> Import
-            </Button>
-            <Button size="sm" onClick={openCreate} data-testid="users-add">
-              <Plus className="size-4" /> Add User
-            </Button>
+            {isAdmin && (
+              <>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setImportOpen(true)}
+                  data-testid="users-import"
+                >
+                  <Upload className="size-4" /> Import
+                </Button>
+                <Button size="sm" onClick={openCreate} data-testid="users-add">
+                  <Plus className="size-4" /> Add User
+                </Button>
+              </>
+            )}
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -871,9 +877,11 @@ export default function UsersPage() {
                 title="No users yet"
                 description="Create your first user to get started."
                 action={
-                  <Button size="sm" onClick={openCreate} data-testid="users-empty-add">
-                    <Plus className="size-4" /> Add User
-                  </Button>
+                  isAdmin ? (
+                    <Button size="sm" onClick={openCreate} data-testid="users-empty-add">
+                      <Plus className="size-4" /> Add User
+                    </Button>
+                  ) : undefined
                 }
               />
             ) : (

@@ -8,6 +8,7 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import LoginPage from "@/pages/LoginPage";
 import ForgotPasswordPage from "@/pages/ForgotPasswordPage";
 import ChangePasswordPage from "@/pages/ChangePasswordPage";
+import AccountPage from "@/pages/AccountPage";
 import DashboardPage from "@/pages/DashboardPage";
 import PlaceholderPage from "@/pages/PlaceholderPage";
 import OfficesPage from "@/pages/app/OfficesPage";
@@ -71,6 +72,12 @@ function App() {
     return children;
   };
 
+  const AdminRoute = ({ children }) => {
+    const { isAdmin } = useAuth();
+    if (!isAdmin) return <Navigate to="/" replace />;
+    return children;
+  };
+
   return (
     <ErrorBoundary>
       <BrowserRouter>
@@ -87,12 +94,12 @@ function App() {
           <Route path="/users" element={<UsersPage />} />
           <Route path="/roles" element={<RolesPage />} />
           <Route path="/offices" element={<OfficesPage />} />
-          <Route path="/clients" element={<PlaceholderPage />} />
-          <Route path="/branding" element={<BrandingPage />} />
-          <Route path="/broadcast" element={<BroadcastPage />} />
-          <Route path="/database" element={<DatabasePage />} />
+          <Route path="/clients" element={<AdminRoute><PlaceholderPage /></AdminRoute>} />
+          <Route path="/branding" element={<AdminRoute><BrandingPage /></AdminRoute>} />
+          <Route path="/broadcast" element={<AdminRoute><BroadcastPage /></AdminRoute>} />
+          <Route path="/database" element={<AdminRoute><DatabasePage /></AdminRoute>} />
           <Route path="/audit-log" element={<AuditLogPage />} />
-          <Route path="/account" element={<PlaceholderPage />} />
+          <Route path="/account" element={<AccountPage />} />
           <Route path="/settings" element={<PlaceholderPage />} />
           <Route path="/dev-guidelines" element={<DevelopmentOverviewPage />} />
           <Route
