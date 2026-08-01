@@ -6,6 +6,7 @@ import App from "@/App";
 import { ThemeProvider } from "@/components/theme-provider";
 import { DensityProvider } from "@/components/density-provider";
 import { BrandingProvider } from "@/context/BrandingContext";
+import { AuthProvider } from "@/context/AuthContext";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -23,7 +24,9 @@ root.render(
       <ThemeProvider defaultTheme="system">
         <DensityProvider defaultDensity="dense">
           <BrandingProvider>
-            <App />
+            <AuthProvider>
+              <App />
+            </AuthProvider>
           </BrandingProvider>
         </DensityProvider>
       </ThemeProvider>

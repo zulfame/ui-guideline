@@ -42,9 +42,11 @@ import {
 import { navAreas, getAreaIdForPath, getArea, getAreaDefaultPath } from "@/config/navigation";
 import { useBranding } from "@/context/BrandingContext";
 import { useTheme } from "@/components/theme-provider";
+import { useAuth } from "@/context/AuthContext";
+import { LOGOUT } from "@/constants/testIds/auth";
 
-// Generic placeholder user (frontend prototype only).
-const currentUser = { name: "User", email: "user@example.com", initials: "U" };
+// Derive avatar initials from a user's name or email.
+const _initials = (name, email) => ((name || email || "U").trim().slice(0, 1) || "U").toUpperCase();
 
 /**
  * AppSidebar
@@ -65,6 +67,16 @@ export const AppSidebar = (props) => {
   // Branding overrides the "Application" area identity (name, tagline, logo).
   const { branding, assetUrl } = useBranding();
   const { theme } = useTheme();
+  const { user, logout } = useAuth();
+  const currentUser = {
+    name: user?.name || "User",
+    email: user?.email || user?.username || "",
+    initials: _initials(user?.name, user?.email),
+  };
+  const handleLogout = () => {
+    logout();
+    navigate("/login");
+  };
   const isApp = activeAreaId === "application";
   const isDark =
     theme === "dark" ||
@@ -285,7 +297,7 @@ export const AppSidebar = (props) => {
                   </DropdownMenuItem>
                 </DropdownMenuGroup>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => navigate("/login")}>
+                <DropdownMenuItem onClick={handleLogout} data-testid={LOGOUT.button}>
                   <LogOut aria-hidden="true" />
                   Log out
                 </DropdownMenuItem>

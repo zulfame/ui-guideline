@@ -1,7 +1,9 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { Loader2 } from "lucide-react";
 
 import { Toaster } from "@/components/ui/sonner";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { useAuth } from "@/context/AuthContext";
 import { AppLayout } from "@/components/layout/AppLayout";
 import LoginPage from "@/pages/LoginPage";
 import ForgotPasswordPage from "@/pages/ForgotPasswordPage";
@@ -38,12 +40,38 @@ import RadialChartsPage from "@/pages/charts/RadialChartsPage";
 import TooltipsChartsPage from "@/pages/charts/TooltipsChartsPage";
 
 function App() {
+  const FullscreenLoader = () => (
+    <div className="flex h-svh items-center justify-center bg-background">
+      <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" aria-hidden="true" />
+    </div>
+  );
+
+  const ProtectedRoute = ({ children }) => {
+    const { isAuthenticated, initializing } = useAuth();
+    if (initializing) return <FullscreenLoader />;
+    if (!isAuthenticated) return <Navigate to="/login" replace />;
+    return children;
+  };
+
+  const PublicOnlyRoute = ({ children }) => {
+    const { isAuthenticated, initializing } = useAuth();
+    if (initializing) return <FullscreenLoader />;
+    if (isAuthenticated) return <Navigate to="/" replace />;
+    return children;
+  };
+
   return (
     <ErrorBoundary>
       <BrowserRouter>
       <Routes>
-        {/* App shell + nested pages */}
-        <Route element={<AppLayout />}>
+        {/* App shell + nested pages (auth required) */}
+        <Route
+          element={
+            <ProtectedRoute>
+              <AppLayout />
+            </ProtectedRoute>
+          }
+        >
           <Route path="/" element={<DashboardPage />} />
           <Route path="/users" element={<UsersPage />} />
           <Route path="/roles" element={<RolesPage />} />
@@ -151,7 +179,14 @@ function App() {
         </Route>
 
         {/* Standalone auth pages */}
-        <Route path="/login" element={<LoginPage />} />
+        <Route
+          path="/login"
+          element={
+            <PublicOnlyRoute>
+              <LoginPage />
+            </PublicOnlyRoute>
+          }
+        />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
 
         {/* Fallback */}

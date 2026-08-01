@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -19,20 +19,32 @@ import {
 } from "@/components/ui/form";
 import { toast } from "@/components/ui/sonner";
 import { loginSchema, loginDefaultValues } from "@/lib/validation/authSchema";
+import { useAuth } from "@/context/AuthContext";
+import { LOGIN } from "@/constants/testIds/auth";
 
-// MOCK demo credentials (frontend prototype only). Replace with a real API.
-const DEMO_CREDENTIALS = { email: "user@example.com", password: "password" };
+const REMEMBER_KEY = "app.rememberedIdentifier";
+
+/** Normalize FastAPI error `detail` (string | array | object) to a string. */
+function formatApiErrorDetail(detail) {
+  if (detail == null) return "";
+  if (typeof detail === "string") return detail;
+  if (Array.isArray(detail))
+    return detail
+      .map((e) => (e && typeof e.msg === "string" ? e.msg : JSON.stringify(e)))
+      .filter(Boolean)
+      .join(" ");
+  if (detail && typeof detail.msg === "string") return detail.msg;
+  return String(detail);
+}
 
 /**
  * LoginForm
- * Accessible, reusable login form built with react-hook-form + zod validation,
- * composed entirely from shadcn/ui primitives. Generic template content only.
- *
- * NOTE: Authentication is mocked (frontend prototype only). Replace the
- * `onSubmit` body with a real API call when the backend is available.
+ * Real authentication: signs in with email / username / phone + password via the
+ * backend JWT endpoint, then routes to the dashboard. Built from shadcn/ui.
  */
 export const LoginForm = () => {
   const navigate = useNavigate();
+  const { login } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState("");
 
@@ -42,32 +54,40 @@ export const LoginForm = () => {
     mode: "onSubmit",
   });
 
+  useEffect(() => {
+    const remembered = window.localStorage.getItem(REMEMBER_KEY);
+    if (remembered) {
+      form.setValue("identifier", remembered);
+      form.setValue("remember", true);
+    }
+  }, [form]);
+
   const onSubmit = async (values) => {
     setFormError("");
     setIsSubmitting(true);
-    // --- MOCKED AUTHENTICATION (frontend prototype) ---
-    await new Promise((resolve) => setTimeout(resolve, 900));
-    setIsSubmitting(false);
-
-    const isValid =
-      values.email === DEMO_CREDENTIALS.email &&
-      values.password === DEMO_CREDENTIALS.password;
-
-    if (!isValid) {
-      setFormError("Invalid email or password. Please try again.");
-      return;
+    try {
+      const data = await login(values.identifier.trim(), values.password);
+      if (values.remember) {
+        window.localStorage.setItem(REMEMBER_KEY, values.identifier.trim());
+      } else {
+        window.localStorage.removeItem(REMEMBER_KEY);
+      }
+      toast.success("Signed in successfully", {
+        description: `Welcome back, ${data?.user?.name || values.identifier}.`,
+      });
+      navigate("/");
+    } catch (e) {
+      const status = e?.response?.status;
+      const detail = formatApiErrorDetail(e?.response?.data?.detail);
+      setFormError(
+        detail ||
+          (status === 401
+            ? "Invalid credentials. Please try again."
+            : "Unable to sign in. Please try again."),
+      );
+    } finally {
+      setIsSubmitting(false);
     }
-
-    if (values.remember) {
-      window.localStorage.setItem("app.rememberedEmail", values.email);
-    } else {
-      window.localStorage.removeItem("app.rememberedEmail");
-    }
-
-    toast.success("Signed in successfully", {
-      description: `Welcome back, ${values.email}.`,
-    });
-    navigate("/");
   };
 
   return (
@@ -78,7 +98,7 @@ export const LoginForm = () => {
         noValidate
       >
         {formError ? (
-          <Alert variant="destructive">
+          <Alert variant="destructive" data-testid="login-error-alert">
             <AlertCircle className="h-4 w-4" aria-hidden="true" />
             <AlertTitle>Sign in failed</AlertTitle>
             <AlertDescription>{formError}</AlertDescription>
@@ -87,15 +107,16 @@ export const LoginForm = () => {
 
         <FormField
           control={form.control}
-          name="email"
+          name="identifier"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Email</FormLabel>
+              <FormLabel>Email, username, or phone</FormLabel>
               <FormControl>
                 <Input
-                  type="email"
-                  autoComplete="email"
+                  type="text"
+                  autoComplete="username"
                   placeholder="name@example.com"
+                  data-testid={LOGIN.identifierInput}
                   {...field}
                 />
               </FormControl>
@@ -116,6 +137,7 @@ export const LoginForm = () => {
                   variant="link"
                   className="h-auto p-0 text-xs font-medium text-muted-foreground hover:text-foreground"
                   onClick={() => navigate("/forgot-password")}
+                  data-testid={LOGIN.forgotPasswordLink}
                 >
                   Forgot password?
                 </Button>
@@ -124,6 +146,7 @@ export const LoginForm = () => {
                 <PasswordInput
                   autoComplete="current-password"
                   placeholder="Enter your password"
+                  data-testid={LOGIN.passwordInput}
                   {...field}
                 />
               </FormControl>
@@ -150,7 +173,12 @@ export const LoginForm = () => {
           )}
         />
 
-        <Button type="submit" className="w-full" disabled={isSubmitting}>
+        <Button
+          type="submit"
+          className="w-full"
+          disabled={isSubmitting}
+          data-testid={LOGIN.submitButton}
+        >
           {isSubmitting ? (
             <>
               <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />

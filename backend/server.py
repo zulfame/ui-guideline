@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter, HTTPException, Query, Response, UploadFile, File, Form
+from fastapi import FastAPI, APIRouter, HTTPException, Query, Response, UploadFile, File, Form, Depends, Header
 from fastapi.responses import StreamingResponse, PlainTextResponse, Response
 from contextlib import asynccontextmanager
 from dotenv import load_dotenv
@@ -17,6 +17,7 @@ from email.message import EmailMessage
 import logging
 import bcrypt
 import httpx
+import jwt
 from pathlib import Path
 from openpyxl import Workbook, load_workbook
 from pydantic import BaseModel, Field, ConfigDict
@@ -2915,6 +2916,102 @@ async def sitemap_xml():
             body.append("  </url>")
     body.append("</urlset>")
     return Response("\n".join(body) + "\n", media_type="application/xml")
+
+
+# ---------------------------------------------------------------------------
+# Authentication (JWT Bearer) — login with email / username / phone + password
+# ---------------------------------------------------------------------------
+JWT_ALGORITHM = "HS256"
+JWT_EXPIRY_HOURS = int(os.environ.get("JWT_EXPIRY_HOURS") or "12")
+
+
+def _create_access_token(user_id: str) -> str:
+    payload = {
+        "sub": user_id,
+        "type": "access",
+        "iat": datetime.now(timezone.utc),
+        "exp": datetime.now(timezone.utc) + timedelta(hours=JWT_EXPIRY_HOURS),
+    }
+    return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
+
+
+async def _get_current_user(authorization: Optional[str] = Header(None)):
+    """Resolve the authenticated user from a `Authorization: Bearer <token>` header."""
+    token = None
+    if authorization and authorization.startswith("Bearer "):
+        token = authorization[7:].strip()
+    if not token:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    try:
+        payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Token expired")
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    doc = await db.users.find_one({"id": payload.get("sub"), "deleted_at": None})
+    if not doc:
+        raise HTTPException(status_code=401, detail="User not found")
+    return doc
+
+
+class LoginRequest(BaseModel):
+    identifier: str = Field(..., description="Email, username, or phone")
+    password: str
+
+
+@api_router.post("/auth/login", tags=["Auth"], summary="Login with email/username/phone + password")
+async def login(payload: LoginRequest):
+    """Authenticate by email, username, or phone; return a JWT Bearer token."""
+    ident = (payload.identifier or "").strip()
+    if not ident or not payload.password:
+        raise HTTPException(status_code=400, detail="Identifier and password are required.")
+    ident_lower = ident.lower()
+    doc = await db.users.find_one({
+        "deleted_at": None,
+        "$or": [
+            {"email": ident_lower},
+            {"email": ident},
+            {"username": ident},
+            {"phone": ident},
+        ],
+    })
+    if not doc or not _verify_password(payload.password, doc.get("password") or ""):
+        await log_audit(
+            "login_failed", "auth", entity_label=ident,
+            summary=f"Failed login for {ident}",
+            method="POST", path="/api/auth/login", status_code=401,
+            actor=ident,
+        )
+        raise HTTPException(status_code=401, detail="Invalid credentials.")
+    token = _create_access_token(doc["id"])
+    roles, offices = await _enrich_maps([doc])
+    await log_audit(
+        "login", "auth", entity_id=doc["id"],
+        entity_label=f"{doc.get('name')} <{doc.get('email')}>",
+        summary=f"Login {doc.get('email')}",
+        method="POST", path="/api/auth/login", status_code=200,
+        actor=doc.get("email") or doc.get("name") or doc["id"],
+    )
+    return {
+        "token": token,
+        "token_type": "bearer",
+        "expires_in": JWT_EXPIRY_HOURS * 3600,
+        "must_change_password": _user_public(doc).get("must_change_password"),
+        "user": _user_public(doc, roles, offices),
+    }
+
+
+@api_router.get("/auth/me", tags=["Auth"], summary="Get the current authenticated user")
+async def auth_me(current=Depends(_get_current_user)):
+    """Return the profile of the user represented by the Bearer token."""
+    roles, offices = await _enrich_maps([current])
+    return _user_public(current, roles, offices)
+
+
+@api_router.post("/auth/logout", tags=["Auth"], summary="Logout (client discards its token)")
+async def logout():
+    """Stateless JWT logout — the client simply discards the token."""
+    return {"success": True}
 
 
 # Include the router in the main app.
