@@ -34,6 +34,8 @@ Broadcast channels, Branding, dynamic Sitemap/Robots, plus an in-app Design Syst
 | `JWT_EXPIRY_HOURS` | Optional | `12` | Access-token lifetime in hours. |
 | `LOGIN_MAX_ATTEMPTS` | Optional | `5` | Failed login attempts (per IP+identifier) before a temporary lockout. |
 | `LOGIN_LOCKOUT_MINUTES` | Optional | `15` | Lockout duration (minutes) after too many failed logins. |
+| `APIKEY_RATE_LIMIT` | Optional | `60` | Max requests per API key within the rate window. |
+| `APIKEY_RATE_WINDOW_SECONDS` | Optional | `60` | Length of the API-key rate-limit window, in seconds. |
 | `ADMIN_EMAIL` | Optional | `admin@example.com` | Email of the admin account seeded on startup (idempotent). |
 | `ADMIN_PASSWORD` | Optional | `admin123` | Password for the seeded admin account (stored bcrypt-hashed). |
 | `LOCAL_STORAGE_DIR` | Optional | `/app/data` | Directory for any files that must persist to disk (created on startup). |

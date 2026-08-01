@@ -3151,6 +3151,7 @@ def _client_public(doc):
         "key_last4": doc.get("key_last4"),
         "key_masked": f"{doc.get('key_prefix', '')}…{doc.get('key_last4', '')}",
         "last_used_at": doc.get("last_used_at"),
+        "request_count": int(doc.get("request_count", 0)),
         "created_at": doc.get("created_at"),
         "created_by": doc.get("created_by"),
         "revoked_at": doc.get("revoked_at"),
@@ -3181,6 +3182,7 @@ async def create_client(payload: ClientCreate, current=Depends(_require_admin)):
         "key_prefix": prefix,
         "key_last4": last4,
         "last_used_at": None,
+        "request_count": 0,
         "created_at": now,
         "created_by": current.get("email"),
         "revoked_at": None,
@@ -3361,6 +3363,11 @@ async def _client_from_api_key(api_key: str):
     return await db.api_clients.find_one({"key_hash": key_hash, "active": True})
 
 
+# Per-key fixed-window rate limit (protects the server from overload).
+APIKEY_RATE_LIMIT = int(os.environ.get("APIKEY_RATE_LIMIT") or "60")
+APIKEY_RATE_WINDOW_SECONDS = int(os.environ.get("APIKEY_RATE_WINDOW_SECONDS") or "60")
+
+
 def _apikey_authorize(client, path: str, method: str):
     if any(path.startswith(p) for p in _APIKEY_BLOCKED_PREFIXES):
         return False, "API key not permitted for this endpoint"
@@ -3397,9 +3404,34 @@ async def _authz_middleware(request, call_next):
         ok, reason = _apikey_authorize(client, path, method)
         if not ok:
             return JSONResponse({"detail": reason}, status_code=403)
+        # Fixed-window per-key rate limiting + usage counters.
+        now = datetime.now(timezone.utc)
+        window_start = client.get("rate_window_start")
+        reset = True
+        if window_start:
+            try:
+                reset = (now - datetime.fromisoformat(window_start)).total_seconds() >= APIKEY_RATE_WINDOW_SECONDS
+            except Exception:
+                reset = True
+        new_start = now if reset else datetime.fromisoformat(window_start)
+        new_count = 1 if reset else int(client.get("rate_count", 0)) + 1
+        if new_count > APIKEY_RATE_LIMIT:
+            retry = max(1, int(APIKEY_RATE_WINDOW_SECONDS - (now - new_start).total_seconds()) + 1)
+            return JSONResponse(
+                {"detail": f"Rate limit exceeded ({APIKEY_RATE_LIMIT} requests / {APIKEY_RATE_WINDOW_SECONDS}s). Retry in {retry}s."},
+                status_code=429,
+                headers={"Retry-After": str(retry)},
+            )
         await db.api_clients.update_one(
             {"id": client["id"]},
-            {"$set": {"last_used_at": datetime.now(timezone.utc).isoformat()}},
+            {
+                "$set": {
+                    "last_used_at": now.isoformat(),
+                    "rate_window_start": new_start.isoformat(),
+                    "rate_count": new_count,
+                },
+                "$inc": {"request_count": 1},
+            },
         )
         return await call_next(request)
     auth = request.headers.get("authorization") or request.headers.get("Authorization")

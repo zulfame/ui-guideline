@@ -1,0 +1,19 @@
+{
+  "summary": "Frontend-only verification of Clients page usage stats. Logged in as admin/admin123, navigated to /clients. Confirmed 'Requests' column header is present between Status and Created. 'Stats Demo' row shows Requests=1,234 (data-testid=client-requests-b97370b9-1372-4e69-b9f1-1dcdf264868a), Last used=8/1/2026, 5:52:27 AM (not '—'), status badge 'Active', scope badges 'read' and 'users'. 'New Client' button (clients-add) opens clients-create-dialog; Cancel closes it. No console errors on /clients.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [],
+  "action_items": [],
+  "critical_code_review_comments": [],
+  "updated_files": [],
+  "success_rate": {"backend": "N/A (skipped)", "frontend": "100%"},
+  "test_credentials": "admin / admin123",
+  "seed_data_creation": "None; used pre-seeded 'Stats Demo' client (id b97370b9-1372-4e69-b9f1-1dcdf264868a).",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Clients page has columns: Name, Key, Scopes, Status, Requests, Created, Last used, Actions. Stats Demo persists with request_count=1234. clients-add opens clients-create-dialog; cancel closes."
+}

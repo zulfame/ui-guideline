@@ -225,6 +225,7 @@ export default function ClientsPage() {
                     <TableHead>Key</TableHead>
                     <TableHead>Scopes</TableHead>
                     <TableHead>Status</TableHead>
+                    <TableHead>Requests</TableHead>
                     <TableHead>Created</TableHead>
                     <TableHead>Last used</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
@@ -258,6 +259,9 @@ export default function ClientsPage() {
                         >
                           {c.active ? "Active" : "Revoked"}
                         </Badge>
+                      </TableCell>
+                      <TableCell className="tabular-nums" data-testid={`client-requests-${c.id}`}>
+                        {(c.request_count ?? 0).toLocaleString()}
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">{fmtDate(c.created_at)}</TableCell>
                       <TableCell className="text-sm text-muted-foreground">{fmtDate(c.last_used_at)}</TableCell>
