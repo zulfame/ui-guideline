@@ -266,13 +266,29 @@ async def root():
 
 @api_router.get("/health", tags=["System"], summary="Health & readiness")
 async def health():
-    """Readiness probe — verifies the database connection is reachable."""
+    """Readiness probe — verifies the database connection is reachable.
+
+    Use this for READINESS (route traffic only when the DB is up). Do NOT use it
+    as the container restart/liveness probe, or a brief DB warm-up/blip will
+    needlessly restart the process — use `/api/health/live` for that instead.
+    """
     try:
         await db.command("ping")
     except Exception as exc:  # pragma: no cover - defensive
         logger.error("Health check failed: %s", exc)
         raise HTTPException(status_code=503, detail="Database unavailable")
     return {"status": "ok", "database": "connected"}
+
+
+@api_router.get("/health/live", tags=["System"], summary="Liveness (no DB dependency)")
+async def health_live():
+    """Liveness probe — confirms the process is up WITHOUT touching the database.
+
+    Point the container's restart/liveness health-check here so the app is not
+    restarted while MongoDB is still warming up or during a transient DB blip
+    (Guideline: Health Monitoring — distinguish liveness vs readiness).
+    """
+    return {"status": "alive"}
 
 
 # ---------------------------------------------------------------------------
@@ -3410,7 +3426,7 @@ async def unlock_login_attempt(payload: UnlockRequest, current=Depends(_require_
 # OWN password without admin rights (supports the forced-change flow).
 # ---------------------------------------------------------------------------
 _PUBLIC_API_PATHS = {
-    "/api/", "/api/health",
+    "/api/", "/api/health", "/api/health/live",
     "/api/auth/login", "/api/auth/logout", "/api/auth/me",
     "/api/robots.txt", "/api/sitemap.xml", "/api/branding",
 }
