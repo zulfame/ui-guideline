@@ -41,10 +41,26 @@ def seed(sess):
         sess.post(f"{API}/offices/bulk-delete", json={"ids": created}, timeout=20)
 
 
+def _icu_key(s):
+    """Approximate MongoDB's ICU collation (locale=en, strength=2) primary
+    ordering used by the backend: case-insensitive, and punctuation/symbols
+    sort before digits, which sort before letters. Python's default ASCII order
+    disagrees (e.g. '@' > digits), so we normalize here to match the server."""
+    out = []
+    for ch in (s or "").casefold():
+        if ch.isalpha():
+            grp = 2
+        elif ch.isdigit():
+            grp = 1
+        else:
+            grp = 0
+        out.append((grp, ch))
+    return out
+
+
 def _is_sorted(values, direction):
     coerced = [("" if v is None else v) for v in values]
-    return coerced == sorted(coerced, reverse=(direction == "desc"),
-                             key=lambda x: str(x).lower())
+    return coerced == sorted(coerced, reverse=(direction == "desc"), key=_icu_key)
 
 
 @pytest.mark.parametrize("field", ["created_at", "actor", "action", "entity_type", "summary"])

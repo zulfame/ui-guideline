@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { ShieldAlert, RefreshCw, LockOpen, Loader2 } from "lucide-react";
+import { ShieldAlert, RefreshCw, LockOpen, Loader2, KeyRound } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -36,6 +36,8 @@ export default function LoginSecurityPage() {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [unlocking, setUnlocking] = useState(null);
+  const [resets, setResets] = useState([]);
+  const [resetsLoading, setResetsLoading] = useState(true);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -49,9 +51,22 @@ export default function LoginSecurityPage() {
     }
   }, []);
 
+  const loadResets = useCallback(async () => {
+    setResetsLoading(true);
+    try {
+      const { data } = await API.get("/password-resets", { params: { limit: 50 } });
+      setResets(data);
+    } catch {
+      toast.error("Failed to load password reset history");
+    } finally {
+      setResetsLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     load();
-  }, [load]);
+    loadResets();
+  }, [load, loadResets]);
 
   const unlock = async (row) => {
     setUnlocking(row.key);
@@ -143,6 +158,93 @@ export default function LoginSecurityPage() {
                           )}
                           Unlock
                         </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="flex flex-col gap-3 space-y-0 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <CardTitle className="text-base">Password Reset Requests</CardTitle>
+            <CardDescription>
+              Recent self-service reset requests, whether the email was sent, and if the reset was completed.
+            </CardDescription>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={loadResets}
+            data-testid="password-resets-refresh"
+          >
+            <RefreshCw className="size-4" /> Refresh
+          </Button>
+        </CardHeader>
+        <CardContent>
+          {resetsLoading ? (
+            <div className="space-y-2">
+              {[0, 1, 2].map((i) => (
+                <Skeleton key={i} className="h-12 w-full" />
+              ))}
+            </div>
+          ) : resets.length === 0 ? (
+            <EmptyState
+              icon={KeyRound}
+              title="No reset requests"
+              description="No password reset has been requested recently."
+            />
+          ) : (
+            <div className="overflow-x-auto">
+              <Table data-testid="password-resets-table">
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Requested</TableHead>
+                    <TableHead>Email sent</TableHead>
+                    <TableHead>Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {resets.map((r, i) => (
+                    <TableRow key={`${r.email}-${r.requested_at}-${i}`} data-testid={`password-reset-row-${i}`}>
+                      <TableCell className="font-medium">{r.email || "—"}</TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {fmtDate(r.requested_at)}
+                      </TableCell>
+                      <TableCell>
+                        {r.account_found === false ? (
+                          <Badge variant="outline" className="font-normal text-muted-foreground">
+                            No account
+                          </Badge>
+                        ) : r.email_sent ? (
+                          <Badge variant="secondary" className="font-normal">
+                            Sent
+                          </Badge>
+                        ) : (
+                          <Badge variant="destructive" className="font-normal">
+                            Not sent
+                          </Badge>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {r.completed ? (
+                          <Badge className="font-normal" data-testid={`password-reset-status-${i}`}>
+                            Completed
+                          </Badge>
+                        ) : r.account_found === false ? (
+                          <Badge variant="outline" className="font-normal text-muted-foreground" data-testid={`password-reset-status-${i}`}>
+                            Ignored
+                          </Badge>
+                        ) : (
+                          <Badge variant="secondary" className="font-normal" data-testid={`password-reset-status-${i}`}>
+                            Pending
+                          </Badge>
+                        )}
                       </TableCell>
                     </TableRow>
                   ))}
