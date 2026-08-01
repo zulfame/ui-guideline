@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # design-guard.sh — heuristic compact/token guard for the UI Guidelines design system.
 # Scans AUTHORED feature code (pages, composite, layout) for anti-patterns
-# (R05/R06/R09/R39/R41/R42, 2B.8, 2C.14). Exit 0 = clean, Exit 1 = violations.
+# (R05/R06/R09/R39/R41/R42/R43/R44, 2B.8, 2C.14). Exit 0 = clean, Exit 1 = violations.
 # NOTE: responsive layout (R42) is only partially automatable (#10); full sign-off
 #       still requires a VISUAL check at mobile 375 / tablet 768 / desktop >=1280.
 # Run BEFORE finishing any UI work.
@@ -82,6 +82,18 @@ APP_DIR="$SRC/pages/app"
 scan_app() { grep -rnE "$1" "$APP_DIR" --include=*.jsx 2>/dev/null | grep -vE "$EXCLUDE" | grep -vE '//\s*guard-allow'; }
 report "Lebar fiks >=120px tanpa fallback 'w-full' (mobile) di pages/app — R42 responsif; pakai 'w-full sm:w-[Npx]'" \
   "$(scan_app 'className="[^"]*\bw-\[(1[2-9][0-9]|[2-9][0-9]{2}|[0-9]{4,})px\]' | grep -vE 'w-full')"
+
+# 11) Responsive tables (R43): authored feature code must use the shadcn <Table>
+# primitive (it wraps content in `overflow-auto` for horizontal scroll on small
+# screens). A raw <table> tag bypasses that wrapper and breaks the page layout.
+report "Raw <table> di kode fitur (wajib primitive shadcn <Table> agar tabel scroll-x & responsif) — R43" \
+  "$(scan '<table[ />>]')"
+
+# 12) Responsive tabs (R44): a TabsList must scroll horizontally on mobile
+# (`overflow-x-auto`) instead of wrapping, so tabs never clip/collide on small
+# screens. Canonical: `w-full justify-start overflow-x-auto sm:w-auto`.
+report "TabsList tanpa 'overflow-x-auto' (wajib scroll-x di mobile; dilarang wrap) — R44" \
+  "$(scan '<TabsList\b' | grep -vE 'overflow-x-auto')"
 
 echo ""
 if [ "$fail" -eq 0 ]; then

@@ -270,10 +270,46 @@ breakpoint ke atas. Breakpoint Tailwind: `sm=640px`, `md=768px`, `lg=1024px`, `x
 | **Toolbar / baris filter** | Menumpuk di mobile lalu jadi baris di layar lebar: `flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between`. **Dilarang** satu baris `flex` horizontal yang tidak menumpuk. |
 | **Grup ≥2 kontrol kecil (mis. 2 date input)** | Bagi rata di mobile: `grid grid-cols-2 gap-2 sm:flex sm:flex-wrap`. Tombol lebar penuh di mobile via `col-span-2 sm:col-auto`. |
 | **Lebar kontrol** | **Dilarang lebar fiks (`w-[Npx]`) ≥120px tanpa fallback mobile.** Pakai `w-full sm:w-[Npx]`. Search: `w-full lg:max-w-xs`. |
-| **Tabel** | Wajib bisa scroll horizontal di dalam wadahnya (shadcn `Table` sudah `overflow-auto`) — jangan biarkan tabel merusak lebar halaman. |
+| **Tabel** | Wajib bisa scroll horizontal di dalam wadahnya (shadcn `Table` sudah `overflow-auto`) — jangan biarkan tabel merusak lebar halaman. Lihat **R43** (wajib & dicek otomatis). |
 | **CardHeader (judul + aksi)** | `flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between`; grup tombol `flex flex-wrap gap-2` (R40). |
 | **Dialog / form multi-kolom** | Grid menumpuk di mobile: `grid-cols-1 sm:grid-cols-2` (R41). Teks panjang (mis. path) pakai `break-all`/`break-words`. Konten panjang `overflow-auto` dengan `max-h-*`. |
 | **Sidebar/navigasi** | Pakai komponen `sidebar`/`sheet` resmi (sudah responsif); jangan bikin sendiri. |
+
+### R43 — Tabel Responsif di SEMUA Halaman (Non-Negotiable)
+
+> Ditetapkan agar tabel tidak pernah merusak layout di layar kecil (mencegah pengulangan insiden).
+
+**Kontrak wajib untuk setiap tabel data (di halaman mana pun):**
+
+1. **WAJIB memakai primitive shadcn `<Table>`** dari `components/ui/table.jsx`. Primitive ini
+   membungkus `<table>` dengan `div.overflow-auto` sehingga tabel **scroll horizontal** otomatis
+   di layar sempit. **DILARANG** menulis elemen `<table>` HTML mentah di kode fitur.
+2. **Jangan mematikan scroll:** wadah pembungkus tabel (mis. `rounded-md border`) boleh, tetapi
+   **jangan** memakai lebar tetap atau `overflow-hidden` yang memotong scroll horizontal tabel utama.
+3. **Kolom tidak boleh "gepeng":** tambahkan `[&_td]:whitespace-nowrap [&_th]:whitespace-nowrap`
+   pada tabel data agar kolom mempertahankan lebar dan tabel men-scroll, bukan meremukkan teks.
+   Kecuali kolom yang memang perlu membungkus (mis. Summary) → beri `whitespace-normal` pada sel itu saja.
+4. Verifikasi visual tetap wajib di **375 / 768 / ≥1280px** (Definition of Done).
+
+Dicek otomatis oleh `design-guard.sh` (**#11** — mendeteksi `<table>` mentah di kode fitur).
+
+### R44 — Tabs Responsif di SEMUA Halaman (Non-Negotiable)
+
+> Ditetapkan setelah `TabsList` Branding membungkus/terpotong di layar HP (mencegah pengulangan).
+
+**Kontrak wajib untuk setiap `Tabs` (di halaman mana pun):**
+
+1. **`TabsList` WAJIB scroll horizontal di mobile**, bukan membungkus (wrap). Pola kanonik:
+   `className="w-full justify-start overflow-x-auto sm:w-auto"`. **DILARANG** `flex-wrap` pada
+   `TabsList` (menyebabkan tab pindah baris & terpotong oleh elemen lain).
+2. **Aksi (mis. tombol Save) jangan menindih tab di mobile.** Bila toolbar berisi `TabsList` + tombol,
+   susun `flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between`. Tombol submit yang
+   penting sebaiknya **di bawah konten** pada mobile (mis. bar sticky `sticky bottom-0 … sm:hidden`),
+   bukan di atas form — hindari `TabsList` dan tombol berdempetan pada satu baris sempit.
+3. Konten `TabsContent` mengikuti pola responsif form/tabel (R41/R42/R43).
+4. Verifikasi visual wajib di **375 / 768 / ≥1280px** (Definition of Done).
+
+Dicek otomatis oleh `design-guard.sh` (**#12** — `TabsList` tanpa `overflow-x-auto`).
 
 **Prinsip:** *Compact & elegant on every screen.* Jangan memaksa layout desktop ke mobile,
 dan jangan menambah label/elemen yang membuat toolbar "gendut" — jaga tetap **compact**
@@ -300,5 +336,7 @@ Bagian ini hanya **penunjuk**; definisi lengkap & otoritatif ada di `DESIGN_SYST
 - **Application CRUD Page Pattern** (Card+DataTable, `DialogBody`, Delete destructive, states, `lib/api.js`) → **R40**; model backend & API → `ARCHITECTURE.md` §11.
 - **Form Field Grid Pattern** (field utama full-width; field pendek terkait di `grid grid-cols-1 sm:grid-cols-2 items-start gap-4`; **`<FormItem>` polos konsisten** untuk semua field — dilarang campur `flex flex-col`; label ringkas 1 baris, opsionalitas via placeholder) → **R41**; dicek otomatis oleh `design-guard.sh` (#8/#9).
 - **Responsive Design** (mobile-first; toolbar/filter menumpuk `flex-col sm:flex-row`; ≥2 kontrol kecil `grid grid-cols-2 sm:flex`; lebar kontrol `w-full sm:w-[Npx]` — dilarang fiks ≥120px tanpa fallback; tabel `overflow-auto`; dialog stack `sm:grid-cols-2`; verifikasi 375/768/≥1280px) → **R42 (Bagian 12)**; dicek sebagian oleh `design-guard.sh` (#10, scope `pages/app`).
+- **Responsive Data Table** (WAJIB primitive shadcn `<Table>` yang `overflow-auto`; dilarang `<table>` mentah; jangan `overflow-hidden`/lebar tetap yang memotong scroll; pakai `[&_td]:whitespace-nowrap [&_th]:whitespace-nowrap`) → **R43 (Bagian 12)**; dicek otomatis oleh `design-guard.sh` (#11).
+- **Responsive Tabs** (`TabsList` WAJIB `w-full justify-start overflow-x-auto sm:w-auto`; dilarang `flex-wrap`; toolbar tab+aksi `flex-col sm:flex-row`; tombol submit penting di bawah pada mobile) → **R44 (Bagian 12)**; dicek otomatis oleh `design-guard.sh` (#12).
 
 > Setiap perubahan komponen/pattern **wajib** tunduk pada Versioning (2C.15) & tercatat di Changelog.
