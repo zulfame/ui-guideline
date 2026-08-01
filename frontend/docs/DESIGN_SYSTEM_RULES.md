@@ -311,6 +311,29 @@ Dicek otomatis oleh `design-guard.sh` (**#11** — mendeteksi `<table>` mentah d
 
 Dicek otomatis oleh `design-guard.sh` (**#12** — `TabsList` tanpa `overflow-x-auto`).
 
+### R45 — Skala Tipografi Halaman Aplikasi (Non-Negotiable)
+
+> Ditetapkan agar teks di halaman fitur CMS tetap padat & konsisten (mencegah teks kebesaran).
+
+**Skala kanonik untuk konten aplikasi (`pages/app`):**
+
+| Peran | Kelas |
+|---|---|
+| Judul section / `CardTitle` / judul halaman | `text-base font-semibold` |
+| Body, label form, isi tabel | `text-sm` (input boleh `text-base md:text-sm` — bawaan shadcn, mencegah zoom iOS) |
+| Helper / meta / caption | `text-xs` |
+
+**Aturan:**
+
+1. **DILARANG** `text-xl`, `text-2xl`, `text-3xl`, `text-4xl` (dst.) di dalam `pages/app`
+   (halaman fitur CMS). Judul cukup `text-base`.
+2. Gunakan `CardTitle` (sudah `text-base`) untuk judul kartu/section; jangan bikin `<h1>` besar sendiri.
+3. **Pengecualian** (di luar scope cek): layar auth (Login/Forgot), serta halaman **katalog design-system**
+   & marketing yang memang memakai `PageHeader` (`text-2xl`) atau hero besar. Ini bukan halaman fitur CMS.
+4. Verifikasi visual di **375 / 768 / ≥1280px** (Definition of Done).
+
+Dicek otomatis oleh `design-guard.sh` (**#13** — `text-xl/2xl/3xl/4xl…` di `pages/app`).
+
 **Prinsip:** *Compact & elegant on every screen.* Jangan memaksa layout desktop ke mobile,
 dan jangan menambah label/elemen yang membuat toolbar "gendut" — jaga tetap **compact**
 (lihat R39) sambil tetap **rapi di semua ukuran**.
@@ -338,5 +361,6 @@ Bagian ini hanya **penunjuk**; definisi lengkap & otoritatif ada di `DESIGN_SYST
 - **Responsive Design** (mobile-first; toolbar/filter menumpuk `flex-col sm:flex-row`; ≥2 kontrol kecil `grid grid-cols-2 sm:flex`; lebar kontrol `w-full sm:w-[Npx]` — dilarang fiks ≥120px tanpa fallback; tabel `overflow-auto`; dialog stack `sm:grid-cols-2`; verifikasi 375/768/≥1280px) → **R42 (Bagian 12)**; dicek sebagian oleh `design-guard.sh` (#10, scope `pages/app`).
 - **Responsive Data Table** (WAJIB primitive shadcn `<Table>` yang `overflow-auto`; dilarang `<table>` mentah; jangan `overflow-hidden`/lebar tetap yang memotong scroll; pakai `[&_td]:whitespace-nowrap [&_th]:whitespace-nowrap`) → **R43 (Bagian 12)**; dicek otomatis oleh `design-guard.sh` (#11).
 - **Responsive Tabs** (`TabsList` WAJIB `w-full justify-start overflow-x-auto sm:w-auto`; dilarang `flex-wrap`; toolbar tab+aksi `flex-col sm:flex-row`; tombol submit penting di bawah pada mobile) → **R44 (Bagian 12)**; dicek otomatis oleh `design-guard.sh` (#12).
+- **Skala Tipografi** (konten `pages/app`: judul/`CardTitle` `text-base font-semibold`, body/label/tabel `text-sm`, helper `text-xs`; dilarang `text-xl/2xl/3xl/4xl`; auth & katalog design-system dikecualikan) → **R45 (Bagian 12)**; dicek otomatis oleh `design-guard.sh` (#13).
 
 > Setiap perubahan komponen/pattern **wajib** tunduk pada Versioning (2C.15) & tercatat di Changelog.

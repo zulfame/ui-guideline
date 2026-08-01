@@ -100,6 +100,7 @@ async def lifespan(_app: FastAPI):
     await db.audit_logs.create_index("action")
     await db.broadcast_configs.create_index("key", unique=True)
     await db.branding.create_index("key", unique=True)
+    await db.sitemap_urls.create_index("path", unique=True)
     logger.info("Startup complete: indexes ensured.")
     if AUTO_SEED:
         try:
@@ -2648,6 +2649,134 @@ async def get_branding_asset(file_id: str):
 
 
 # ---------------------------------------------------------------------------
+# Sitemap URLs (CRUD) — the list of public paths included in sitemap.xml.
+# Seeded with the site root by default; fully manageable by the admin.
+# ---------------------------------------------------------------------------
+_CHANGEFREQ = {"always", "hourly", "daily", "weekly", "monthly", "yearly", "never"}
+
+
+class SitemapUrlCreate(BaseModel):
+    path: str
+    changefreq: Optional[str] = "weekly"
+    priority: Optional[str] = "0.5"
+    enabled: Optional[bool] = True
+
+
+class SitemapUrlUpdate(BaseModel):
+    path: Optional[str] = None
+    changefreq: Optional[str] = None
+    priority: Optional[str] = None
+    enabled: Optional[bool] = None
+
+
+def _norm_path(p: Optional[str]) -> Optional[str]:
+    p = (p or "").strip()
+    if not p:
+        return None
+    if not p.startswith("/"):
+        p = "/" + p
+    return p
+
+
+def _norm_priority(v) -> str:
+    try:
+        f = max(0.0, min(1.0, float(v)))
+    except (TypeError, ValueError):
+        f = 0.5
+    return f"{f:.1f}"
+
+
+async def _seed_sitemap_if_empty():
+    if await db.sitemap_urls.count_documents({}) == 0:
+        now = datetime.now(timezone.utc).isoformat()
+        await db.sitemap_urls.insert_one({
+            "id": str(uuid.uuid4()), "path": "/", "changefreq": "weekly",
+            "priority": "1.0", "enabled": True, "created_at": now, "updated_at": now,
+        })
+
+
+@api_router.get("/sitemap-urls", tags=["Branding"], summary="List sitemap URLs")
+async def list_sitemap_urls():
+    await _seed_sitemap_if_empty()
+    docs = await db.sitemap_urls.find({}, {"_id": 0}).sort("path", 1).to_list(1000)
+    return docs
+
+
+@api_router.post("/sitemap-urls", status_code=201, tags=["Branding"], summary="Add a sitemap URL")
+async def create_sitemap_url(body: SitemapUrlCreate):
+    path = _norm_path(body.path)
+    if not path:
+        raise HTTPException(status_code=400, detail="Path is required.")
+    changefreq = (body.changefreq or "weekly").lower()
+    if changefreq not in _CHANGEFREQ:
+        raise HTTPException(status_code=400, detail="Invalid change frequency.")
+    if await db.sitemap_urls.find_one({"path": path}):
+        raise HTTPException(status_code=409, detail="This path is already in the sitemap.")
+    now = datetime.now(timezone.utc).isoformat()
+    doc = {
+        "id": str(uuid.uuid4()), "path": path, "changefreq": changefreq,
+        "priority": _norm_priority(body.priority), "enabled": bool(body.enabled),
+        "created_at": now, "updated_at": now,
+    }
+    await db.sitemap_urls.insert_one(dict(doc))
+    await log_audit(
+        "create", "branding", entity_id=doc["id"], entity_label=path,
+        summary=f"Added sitemap URL {path}",
+        method="POST", path="/api/sitemap-urls", status_code=201, request={"path": path},
+    )
+    return {k: v for k, v in doc.items() if k != "_id"}
+
+
+@api_router.put("/sitemap-urls/{url_id}", tags=["Branding"], summary="Update a sitemap URL")
+async def update_sitemap_url(url_id: str, body: SitemapUrlUpdate):
+    existing = await db.sitemap_urls.find_one({"id": url_id})
+    if not existing:
+        raise HTTPException(status_code=404, detail="Sitemap URL not found")
+    updates = {}
+    if body.path is not None:
+        path = _norm_path(body.path)
+        if not path:
+            raise HTTPException(status_code=400, detail="Path is required.")
+        clash = await db.sitemap_urls.find_one({"path": path, "id": {"$ne": url_id}})
+        if clash:
+            raise HTTPException(status_code=409, detail="This path is already in the sitemap.")
+        updates["path"] = path
+    if body.changefreq is not None:
+        cf = body.changefreq.lower()
+        if cf not in _CHANGEFREQ:
+            raise HTTPException(status_code=400, detail="Invalid change frequency.")
+        updates["changefreq"] = cf
+    if body.priority is not None:
+        updates["priority"] = _norm_priority(body.priority)
+    if body.enabled is not None:
+        updates["enabled"] = bool(body.enabled)
+    updates["updated_at"] = datetime.now(timezone.utc).isoformat()
+    await db.sitemap_urls.update_one({"id": url_id}, {"$set": updates})
+    await log_audit(
+        "update", "branding", entity_id=url_id, entity_label=updates.get("path", existing["path"]),
+        summary=f"Updated sitemap URL {existing['path']}",
+        method="PUT", path=f"/api/sitemap-urls/{url_id}", status_code=200,
+        changes=_diff_changes(existing, updates),
+    )
+    doc = await db.sitemap_urls.find_one({"id": url_id}, {"_id": 0})
+    return doc
+
+
+@api_router.delete("/sitemap-urls/{url_id}", tags=["Branding"], summary="Delete a sitemap URL")
+async def delete_sitemap_url(url_id: str):
+    existing = await db.sitemap_urls.find_one({"id": url_id})
+    if not existing:
+        raise HTTPException(status_code=404, detail="Sitemap URL not found")
+    await db.sitemap_urls.delete_one({"id": url_id})
+    await log_audit(
+        "delete", "branding", entity_id=url_id, entity_label=existing["path"],
+        summary=f"Deleted sitemap URL {existing['path']}",
+        method="DELETE", path=f"/api/sitemap-urls/{url_id}", status_code=200,
+    )
+    return {"success": True}
+
+
+# ---------------------------------------------------------------------------
 # SEO endpoints — dynamic robots.txt (from Branding visibility) + sitemap.xml.
 # Served under /api; the frontend dev proxy (src/setupProxy.js) exposes them at
 # the root paths /robots.txt and /sitemap.xml that crawlers expect.
@@ -2676,18 +2805,28 @@ async def sitemap_xml():
 
     b = _serialize_branding(await _get_branding_doc())
     site = _branding_site(b)
-    lastmod = (b.get("updated_at") or "")[:10]
+    default_lastmod = (b.get("updated_at") or "")[:10]
     body = [
         '<?xml version="1.0" encoding="UTF-8"?>',
         '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
     ]
     # Only emit URLs when a public site URL is configured (avoids leaking internal paths).
     if site:
-        body.append("  <url>")
-        body.append(f"    <loc>{escape(site)}/</loc>")
-        if lastmod:
-            body.append(f"    <lastmod>{lastmod}</lastmod>")
-        body.append("  </url>")
+        await _seed_sitemap_if_empty()
+        entries = await db.sitemap_urls.find({"enabled": True}, {"_id": 0}).sort("path", 1).to_list(1000)
+        for e in entries:
+            path = e.get("path") or "/"
+            loc = f"{site}{path}"
+            lm = e.get("lastmod") or default_lastmod
+            body.append("  <url>")
+            body.append(f"    <loc>{escape(loc)}</loc>")
+            if lm:
+                body.append(f"    <lastmod>{lm}</lastmod>")
+            if e.get("changefreq"):
+                body.append(f"    <changefreq>{e['changefreq']}</changefreq>")
+            if e.get("priority"):
+                body.append(f"    <priority>{e['priority']}</priority>")
+            body.append("  </url>")
     body.append("</urlset>")
     return Response("\n".join(body) + "\n", media_type="application/xml")
 

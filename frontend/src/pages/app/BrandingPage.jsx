@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { ImageIcon, Loader2, RotateCcw, Save, Upload } from "lucide-react";
+import { ImageIcon, Loader2, Plus, RotateCcw, Save, Trash2, Upload } from "lucide-react";
 import { toast } from "sonner";
 
 import API from "@/lib/api";
@@ -11,6 +11,24 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+
+const CHANGEFREQS = ["always", "hourly", "daily", "weekly", "monthly", "yearly", "never"];
+const PRIORITIES = ["1.0", "0.9", "0.8", "0.7", "0.6", "0.5", "0.4", "0.3", "0.2", "0.1", "0.0"];
 
 const TEXT_FIELDS = [
   "app_name",
@@ -117,6 +135,214 @@ function AssetField({ kind, label, hint, previewUrl, onChanged }) {
   );
 }
 
+function SitemapManager() {
+  const [urls, setUrls] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [newPath, setNewPath] = useState("");
+  const [newFreq, setNewFreq] = useState("weekly");
+  const [newPriority, setNewPriority] = useState("0.5");
+  const [adding, setAdding] = useState(false);
+
+  const fetchUrls = async () => {
+    try {
+      const { data } = await API.get("/sitemap-urls");
+      setUrls(data);
+    } catch {
+      toast.error("Failed to load sitemap URLs.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchUrls();
+  }, []);
+
+  const add = async () => {
+    if (!newPath.trim()) {
+      toast.error("Path is required.");
+      return;
+    }
+    setAdding(true);
+    try {
+      await API.post("/sitemap-urls", {
+        path: newPath.trim(),
+        changefreq: newFreq,
+        priority: newPriority,
+      });
+      toast.success("URL added");
+      setNewPath("");
+      setNewFreq("weekly");
+      setNewPriority("0.5");
+      fetchUrls();
+    } catch (err) {
+      toast.error(err?.response?.data?.detail || "Failed to add URL.");
+    } finally {
+      setAdding(false);
+    }
+  };
+
+  const patch = async (id, field, value) => {
+    setUrls((prev) => prev.map((u) => (u.id === id ? { ...u, [field]: value } : u)));
+    try {
+      await API.put(`/sitemap-urls/${id}`, { [field]: value });
+    } catch (err) {
+      toast.error(err?.response?.data?.detail || "Update failed.");
+      fetchUrls();
+    }
+  };
+
+  const remove = async (id) => {
+    try {
+      await API.delete(`/sitemap-urls/${id}`);
+      toast.success("URL removed");
+      fetchUrls();
+    } catch {
+      toast.error("Delete failed.");
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <p className="text-sm text-muted-foreground">
+        Manage the public pages included in <span className="font-medium text-foreground">sitemap.xml</span>.
+        The site root is added automatically; add, edit, or remove entries as needed. Paths combine
+        with the <span className="font-medium text-foreground">Site URL</span> from the SEO tab.
+      </p>
+
+      {/* Add row */}
+      <div className="flex flex-col gap-2 rounded-md border p-3 sm:flex-row sm:items-end">
+        <div className="flex-1 space-y-1.5">
+          <Label htmlFor="sitemap-new-path">Path</Label>
+          <Input
+            id="sitemap-new-path"
+            value={newPath}
+            onChange={(e) => setNewPath(e.target.value)}
+            placeholder="/about"
+            data-testid="sitemap-new-path"
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label>Change freq</Label>
+          <Select value={newFreq} onValueChange={setNewFreq}>
+            <SelectTrigger className="w-full sm:w-36" data-testid="sitemap-new-freq">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {CHANGEFREQS.map((f) => (
+                <SelectItem key={f} value={f}>{f}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-1.5">
+          <Label>Priority</Label>
+          <Select value={newPriority} onValueChange={setNewPriority}>
+            <SelectTrigger className="w-full sm:w-24" data-testid="sitemap-new-priority">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {PRIORITIES.map((p) => (
+                <SelectItem key={p} value={p}>{p}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <Button
+          onClick={add}
+          disabled={adding}
+          className="w-full sm:w-auto"
+          data-testid="sitemap-add-btn"
+        >
+          {adding ? <Loader2 className="size-4 animate-spin" /> : <Plus className="size-4" />}
+          Add
+        </Button>
+      </div>
+
+      <div className="rounded-md border">
+        <Table
+          data-testid="sitemap-table"
+          className="[&_td]:whitespace-nowrap [&_th]:whitespace-nowrap"
+        >
+          <TableHeader>
+            <TableRow className="bg-muted/50 hover:bg-muted/50">
+              <TableHead>Path</TableHead>
+              <TableHead>Change freq</TableHead>
+              <TableHead>Priority</TableHead>
+              <TableHead>Enabled</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {loading ? (
+              <TableRow>
+                <TableCell colSpan={5} className="text-center text-muted-foreground">
+                  Loading…
+                </TableCell>
+              </TableRow>
+            ) : urls.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={5} className="text-center text-muted-foreground">
+                  No URLs yet.
+                </TableCell>
+              </TableRow>
+            ) : (
+              urls.map((u) => (
+                <TableRow key={u.id} data-testid={`sitemap-row-${u.id}`}>
+                  <TableCell className="font-medium">{u.path}</TableCell>
+                  <TableCell>
+                    <Select value={u.changefreq} onValueChange={(v) => patch(u.id, "changefreq", v)}>
+                      <SelectTrigger className="w-full sm:w-36">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {CHANGEFREQS.map((f) => (
+                          <SelectItem key={f} value={f}>{f}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </TableCell>
+                  <TableCell>
+                    <Select value={u.priority} onValueChange={(v) => patch(u.id, "priority", v)}>
+                      <SelectTrigger className="w-full sm:w-24">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {PRIORITIES.map((p) => (
+                          <SelectItem key={p} value={p}>{p}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </TableCell>
+                  <TableCell>
+                    <Switch
+                      checked={Boolean(u.enabled)}
+                      onCheckedChange={(v) => patch(u.id, "enabled", v)}
+                      data-testid={`sitemap-enabled-${u.id}`}
+                    />
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="size-8 text-destructive"
+                      onClick={() => remove(u.id)}
+                      aria-label="Delete URL"
+                      data-testid={`sitemap-delete-${u.id}`}
+                    >
+                      <Trash2 className="size-4" />
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </div>
+    </div>
+  );
+}
+
 export default function BrandingPage() {
   const { branding, refresh, assetUrl } = useBranding();
   const [form, setForm] = useState(null);
@@ -152,6 +378,7 @@ export default function BrandingPage() {
             <TabsTrigger value="general" data-testid="branding-tab-general">General</TabsTrigger>
             <TabsTrigger value="logos" data-testid="branding-tab-logos">Logos & Favicon</TabsTrigger>
             <TabsTrigger value="seo" data-testid="branding-tab-seo">SEO</TabsTrigger>
+            <TabsTrigger value="sitemap" data-testid="branding-tab-sitemap">Sitemap</TabsTrigger>
             <TabsTrigger value="social" data-testid="branding-tab-social">Social</TabsTrigger>
             <TabsTrigger value="contact" data-testid="branding-tab-contact">Contact</TabsTrigger>
           </TabsList>
@@ -311,6 +538,15 @@ export default function BrandingPage() {
                 </a>{" "}
                 (uses the Site URL above). Save your changes first to see them update.
               </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Sitemap */}
+        <TabsContent value="sitemap">
+          <Card>
+            <CardContent className="pt-6">
+              <SitemapManager />
             </CardContent>
           </Card>
         </TabsContent>

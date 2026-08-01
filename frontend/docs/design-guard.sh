@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # design-guard.sh — heuristic compact/token guard for the UI Guidelines design system.
 # Scans AUTHORED feature code (pages, composite, layout) for anti-patterns
-# (R05/R06/R09/R39/R41/R42/R43/R44, 2B.8, 2C.14). Exit 0 = clean, Exit 1 = violations.
+# (R05/R06/R09/R39/R41/R42/R43/R44/R45, 2B.8, 2C.14). Exit 0 = clean, Exit 1 = violations.
 # NOTE: responsive layout (R42) is only partially automatable (#10); full sign-off
 #       still requires a VISUAL check at mobile 375 / tablet 768 / desktop >=1280.
 # Run BEFORE finishing any UI work.
@@ -94,6 +94,11 @@ report "Raw <table> di kode fitur (wajib primitive shadcn <Table> agar tabel scr
 # screens. Canonical: `w-full justify-start overflow-x-auto sm:w-auto`.
 report "TabsList tanpa 'overflow-x-auto' (wajib scroll-x di mobile; dilarang wrap) — R44" \
   "$(scan '<TabsList\b' | grep -vE 'overflow-x-auto')"
+
+# 13) Typography scale (R45): feature pages (pages/app) must stay dense — no
+# oversized headings. Titles use `text-base`; text-xl and larger are forbidden.
+report "Teks oversized (text-xl/2xl/3xl/4xl...) di pages/app — R45; judul cukup 'text-base'" \
+  "$(scan_app 'text-(xl|[2-9]xl)')"
 
 echo ""
 if [ "$fail" -eq 0 ]; then
