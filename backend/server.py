@@ -1131,14 +1131,35 @@ BACKUP_BUCKET = "backups"
 # GridFS internal collections for the backup store itself — never dump/restore these.
 _BACKUP_INTERNAL = (f"{BACKUP_BUCKET}.files", f"{BACKUP_BUCKET}.chunks")
 
+# Collections excluded from logical (JSON) backup + restore:
+#  - GridFS buckets (binary; cannot round-trip through JSON without corruption/duplication)
+#  - transient/ephemeral runtime data (tokens, throttles, idempotency, usage counters)
+# Excluding these keeps backups small and prevents restore from duplicating them.
+_BACKUP_EXCLUDE = {
+    f"{BACKUP_BUCKET}.files", f"{BACKUP_BUCKET}.chunks",
+    "branding_assets.files", "branding_assets.chunks",
+    "password_resets", "login_attempts", "idempotency_keys", "api_usage_daily",
+}
+
+# For restore mode='update', collections keyed by a natural field (not the app `id`).
+# Prevents duplicate inserts on repeated restores (root cause of past data blow-up).
+_RESTORE_NATURAL_KEY = {
+    "email_templates": "key",
+    "app_settings": "key",
+    "broadcast_configs": "key",
+    "branding": "key",
+    "sitemap_urls": "loc",
+}
+
 
 def _backup_bucket() -> AsyncIOMotorGridFSBucket:
     return AsyncIOMotorGridFSBucket(db, bucket_name=BACKUP_BUCKET)
 
 
 async def _dump_all_collections() -> tuple[dict, dict]:
-    """Return ({collection: [docs...]}, {collection: count}) for every collection."""
-    names = [n for n in await db.list_collection_names() if n not in _BACKUP_INTERNAL]
+    """Return ({collection: [docs...]}, {collection: count}) for every collection.
+    GridFS + transient collections are excluded (see _BACKUP_EXCLUDE)."""
+    names = [n for n in await db.list_collection_names() if n not in _BACKUP_EXCLUDE]
     collections, counts = {}, {}
     for name in sorted(names):
         docs = await db[name].find({}, {"_id": 0}).to_list(length=None)
@@ -1167,13 +1188,17 @@ def _verify_backup(payload) -> dict:
 
 async def _apply_restore(payload: dict, mode: str) -> dict:
     """Apply a verified backup. mode='replace' wipes each collection first;
-    mode='update' upserts docs by their `id` field. Backup store is never touched."""
+    mode='update' upserts docs by `id` (or a natural key) — never blind-inserts
+    keyed docs, so repeated restores stay idempotent. GridFS + transient
+    collections are skipped (see _BACKUP_EXCLUDE)."""
     result = {}
     for name, docs in payload["collections"].items():
-        if name in _BACKUP_INTERNAL:
+        if name in _BACKUP_EXCLUDE:
+            result[name] = {"mode": mode, "skipped": "excluded (gridfs/transient)"}
             continue
         col = db[name]
         clean = [{k: v for k, v in d.items() if k != "_id"} for d in docs]
+        nat = _RESTORE_NATURAL_KEY.get(name)
         try:
             if mode == "replace":
                 await col.delete_many({})
@@ -1185,6 +1210,8 @@ async def _apply_restore(payload: dict, mode: str) -> dict:
                 for d in clean:
                     if d.get("id") is not None:
                         ops.append(UpdateOne({"id": d["id"]}, {"$set": d}, upsert=True))
+                    elif nat and d.get(nat) is not None:
+                        ops.append(UpdateOne({nat: d[nat]}, {"$set": d}, upsert=True))
                     else:
                         ops.append(InsertOne(d))
                 if ops:
