@@ -110,6 +110,9 @@ import { DensityToggle } from "@/components/density-toggle";
 
 const NONE = "__none__";
 
+// Roles that grant full access and must never be deleted (match by name).
+const isProtectedRole = (name) => (name || "").trim().toLowerCase() === "super admin";
+
 const PALETTE = [
   // guard-allow: org-chart swimlane colors are user-facing data, not design tokens
   { name: "Blue", hex: "#3b82f6" }, // guard-allow
@@ -839,6 +842,7 @@ export default function RolesPage() {
           <Checkbox
             checked={row.getIsSelected()}
             onCheckedChange={(v) => row.toggleSelected(!!v)}
+            disabled={isProtectedRole(row.original.name)}
             aria-label="Select row"
             data-testid={`roles-select-${row.original.id}`}
           />
@@ -927,13 +931,15 @@ export default function RolesPage() {
               >
                 <Pencil className="size-4" /> Edit
               </DropdownMenuItem>
-              <DropdownMenuItem
-                className="text-destructive focus:text-destructive"
-                onClick={() => setDeleteTarget(row.original)}
-                data-testid={`roles-delete-${row.original.id}`}
-              >
-                <Trash2 className="size-4" /> Delete
-              </DropdownMenuItem>
+              {!isProtectedRole(row.original.name) && (
+                <DropdownMenuItem
+                  className="text-destructive focus:text-destructive"
+                  onClick={() => setDeleteTarget(row.original)}
+                  data-testid={`roles-delete-${row.original.id}`}
+                >
+                  <Trash2 className="size-4" /> Delete
+                </DropdownMenuItem>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         ),

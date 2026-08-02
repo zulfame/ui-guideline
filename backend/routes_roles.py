@@ -16,6 +16,14 @@ from server import (
     DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE,
 )
 
+# Roles that grant full access and must never be deleted (match by name,
+# case-insensitive). Protects against accidental removal of the admin role.
+PROTECTED_ROLE_NAMES = {"super admin"}
+
+
+def _is_protected_role(name: Optional[str]) -> bool:
+    return bool(name) and name.strip().lower() in PROTECTED_ROLE_NAMES
+
 
 # ---------------------------------------------------------------------------
 # Roles / Jabatan (CMS) — hierarchical tree via parent_id
@@ -163,6 +171,14 @@ async def bulk_delete_roles(payload: BulkDeleteRequest):
     Batch Processing) to reduce round-trips and the partial-failure window.
     """
     deleted_set = set(payload.ids)
+    protected = await db.roles.find(
+        {"id": {"$in": payload.ids}}, {"_id": 0, "name": 1}
+    ).to_list(len(payload.ids) or 1)
+    if any(_is_protected_role(r.get("name")) for r in protected):
+        raise HTTPException(
+            status_code=409,
+            detail="The 'Super Admin' role is protected and cannot be deleted.",
+        )
     in_use = await db.users.distinct(
         "role_id", {"role_id": {"$in": payload.ids}, "deleted_at": None}
     )
@@ -249,6 +265,11 @@ async def delete_role(
     doc = await db.roles.find_one({"id": role_id}, {"_id": 0})
     if not doc:
         raise HTTPException(status_code=404, detail="Role not found")
+    if _is_protected_role(doc.get("name")):
+        raise HTTPException(
+            status_code=409,
+            detail="The 'Super Admin' role is protected and cannot be deleted.",
+        )
     linked = await db.users.count_documents({"role_id": role_id, "deleted_at": None})
     if linked:
         if not reassign_to:
