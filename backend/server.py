@@ -3290,33 +3290,19 @@ import routes_email_auth  # noqa: E402,F401  (side-effect: route registration)
 from routes_email_auth import _public_base_url  # used by robots.txt / sitemap.xml
 import routes_database_ext  # noqa: E402,F401  (side-effect: route registration + scheduler)
 # ---------------------------------------------------------------------------
-# API Clients — admin-managed API credentials with scoped access.
+# API Clients — admin-managed API credentials with per-key rate limits.
 # ---------------------------------------------------------------------------
-AVAILABLE_SCOPES = ["read", "write", "users", "roles", "offices", "broadcast", "audit"]
-
-
 class ClientCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=120)
-    scopes: List[str] = Field(default_factory=list)
     rate_limit: Optional[int] = Field(None, ge=1, le=100000)
     rate_window_seconds: Optional[int] = Field(None, ge=1, le=86400)
 
 
 class ClientUpdate(BaseModel):
     name: Optional[str] = Field(None, min_length=1, max_length=120)
-    scopes: Optional[List[str]] = None
     active: Optional[bool] = None
     rate_limit: Optional[int] = Field(None, ge=1, le=100000)
     rate_window_seconds: Optional[int] = Field(None, ge=1, le=86400)
-
-
-def _sanitize_scopes(scopes):
-    seen, out = set(), []
-    for s in (scopes or []):
-        if s in AVAILABLE_SCOPES and s not in seen:
-            seen.add(s)
-            out.append(s)
-    return out
 
 
 def _generate_api_key():
@@ -3329,7 +3315,6 @@ def _client_public(doc):
     return {
         "id": doc["id"],
         "name": doc.get("name"),
-        "scopes": doc.get("scopes", []),
         "active": bool(doc.get("active", True)),
         "key_prefix": doc.get("key_prefix"),
         "key_last4": doc.get("key_last4"),
@@ -3342,11 +3327,6 @@ def _client_public(doc):
         "created_by": doc.get("created_by"),
         "revoked_at": doc.get("revoked_at"),
     }
-
-
-@api_router.get("/clients/scopes", tags=["Clients"], summary="List available API scopes")
-async def list_client_scopes(current=Depends(_require_admin)):
-    return {"scopes": AVAILABLE_SCOPES}
 
 
 @api_router.get("/clients", tags=["Clients"], summary="List API clients")
@@ -3362,7 +3342,6 @@ async def create_client(payload: ClientCreate, current=Depends(_require_admin)):
     doc = {
         "id": str(uuid.uuid4()),
         "name": payload.name.strip(),
-        "scopes": _sanitize_scopes(payload.scopes),
         "active": True,
         "rate_limit": payload.rate_limit,
         "rate_window_seconds": payload.rate_window_seconds,
@@ -3395,8 +3374,6 @@ async def update_client(client_id: str, payload: ClientUpdate, current=Depends(_
     update = {}
     if data.get("name") is not None:
         update["name"] = data["name"].strip()
-    if data.get("scopes") is not None:
-        update["scopes"] = _sanitize_scopes(data["scopes"])
     if data.get("active") is not None:
         update["active"] = bool(data["active"])
     if "rate_limit" in data:
@@ -3557,19 +3534,9 @@ async def _user_from_token(token: Optional[str]):
     return await db.users.find_one({"id": payload.get("sub"), "deleted_at": None})
 
 
-# API-key auth: keys never reach management/auth/system endpoints; GET needs the
-# resource scope (or "read"), mutations need "write".
+# API-key auth: keys never reach management/auth/system endpoints. API function
+# is not defined yet, so an active key is allowed on all other /api routes.
 _APIKEY_BLOCKED_PREFIXES = ("/api/clients", "/api/auth", "/api/database", "/api/login-attempts")
-_APIKEY_RESOURCE_SCOPES = (
-    ("/api/users", "users"),
-    ("/api/roles", "roles"),
-    ("/api/levels", "roles"),
-    ("/api/offices", "offices"),
-    ("/api/audit-logs", "audit"),
-    ("/api/broadcast", "broadcast"),
-    ("/api/branding", "write"),
-    ("/api/sitemap-urls", "write"),
-)
 
 
 async def _client_from_api_key(api_key: str):
@@ -3585,19 +3552,7 @@ APIKEY_RATE_WINDOW_SECONDS = int(os.environ.get("APIKEY_RATE_WINDOW_SECONDS") or
 def _apikey_authorize(client, path: str, method: str):
     if any(path.startswith(p) for p in _APIKEY_BLOCKED_PREFIXES):
         return False, "API key not permitted for this endpoint"
-    scopes = set(client.get("scopes") or [])
-    resource_scope = None
-    for prefix, sc in _APIKEY_RESOURCE_SCOPES:
-        if path.startswith(prefix):
-            resource_scope = sc
-            break
-    if method == "GET":
-        if "read" in scopes or (resource_scope and resource_scope in scopes):
-            return True, ""
-        return False, "API key missing required scope"
-    if "write" in scopes:
-        return True, ""
-    return False, "API key missing 'write' scope"
+    return True, ""
 
 
 async def _authz_middleware(request, call_next):

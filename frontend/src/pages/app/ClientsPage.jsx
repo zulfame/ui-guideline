@@ -1,31 +1,60 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  Plus,
-  KeyRound,
-  Copy,
-  Check,
-  RefreshCw,
+  flexRender,
+  getCoreRowModel,
+  getFilteredRowModel,
+  getPaginationRowModel,
+  getSortedRowModel,
+  useReactTable,
+} from "@tanstack/react-table";
+import {
+  ArrowDown,
+  ArrowUp,
+  ArrowUpDown,
   Ban,
-  Trash2,
-  ShieldCheck,
-  Loader2,
-  Pencil,
   BarChart3,
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  Copy,
+  FilterX,
+  Loader2,
+  MoreHorizontal,
+  Pencil,
+  Plus,
+  RefreshCw,
+  Search,
+  ShieldCheck,
+  Trash2,
 } from "lucide-react";
 import { Bar, BarChart, CartesianGrid, XAxis } from "recharts";
 
+import API from "@/lib/api";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Dialog,
+  DialogBody,
+  DialogClose,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -37,95 +66,104 @@ import {
   AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
-  AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/composite/EmptyState";
+import { DensityToggle } from "@/components/density-toggle";
 import { toast } from "@/components/ui/sonner";
-import API from "@/lib/api";
 
 const usageChartConfig = { count: { label: "Requests", color: "hsl(var(--chart-1))" } };
 
-function fmtDate(iso) {
+const fmtDate = (iso) => {
   if (!iso) return "—";
-  try {
-    return new Date(iso).toLocaleString();
-  } catch {
-    return "—";
-  }
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? "—" : d.toLocaleString();
+};
+
+function SortableHeader({ column, children, align = "left" }) {
+  const sorted = column.getIsSorted();
+  return (
+    <button
+      type="button"
+      className={`flex h-full w-full items-center gap-1 font-medium ${align === "right" ? "justify-end text-right" : "text-left"}`}
+      data-testid={`sort-${column.id}`}
+      onClick={() => column.toggleSorting(sorted === "asc")}
+    >
+      {children}
+      {sorted === "asc" ? (
+        <ArrowUp className="size-3.5" aria-hidden="true" />
+      ) : sorted === "desc" ? (
+        <ArrowDown className="size-3.5" aria-hidden="true" />
+      ) : (
+        <ArrowUpDown className="size-3.5 opacity-50" aria-hidden="true" />
+      )}
+    </button>
+  );
 }
 
 export default function ClientsPage() {
   const [clients, setClients] = useState([]);
-  const [scopes, setScopes] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [status, setStatus] = useState("loading"); // loading | ready | error
+  const [globalFilter, setGlobalFilter] = useState("");
+  const [sorting, setSorting] = useState([]);
 
+  // Create / edit form
   const [formOpen, setFormOpen] = useState(false);
   const [formMode, setFormMode] = useState("create");
   const [editingId, setEditingId] = useState(null);
   const [name, setName] = useState("");
-  const [selectedScopes, setSelectedScopes] = useState([]);
   const [limitInput, setLimitInput] = useState("");
   const [windowInput, setWindowInput] = useState("");
   const [saving, setSaving] = useState(false);
 
+  // Reveal key (once)
   const [revealKey, setRevealKey] = useState(null);
   const [copied, setCopied] = useState(false);
 
+  // Confirms
   const [revokeTarget, setRevokeTarget] = useState(null);
   const [regenTarget, setRegenTarget] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [acting, setActing] = useState(false);
 
+  // Usage
   const [usageTarget, setUsageTarget] = useState(null);
   const [usage, setUsage] = useState(null);
   const [usageLoading, setUsageLoading] = useState(false);
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const fetchClients = useCallback(async () => {
+    setStatus("loading");
     try {
-      const [c, s] = await Promise.all([API.get("/clients"), API.get("/clients/scopes")]);
-      setClients(c.data);
-      setScopes(s.data.scopes || []);
+      const { data } = await API.get("/clients");
+      setClients(data);
+      setStatus("ready");
     } catch {
-      toast.error("Failed to load API clients");
-    } finally {
-      setLoading(false);
+      setStatus("error");
     }
   }, []);
 
   useEffect(() => {
-    load();
-  }, [load]);
-
-  const toggleScope = (scope) =>
-    setSelectedScopes((prev) =>
-      prev.includes(scope) ? prev.filter((s) => s !== scope) : [...prev, scope],
-    );
+    fetchClients();
+  }, [fetchClients]);
 
   const openCreate = () => {
     setFormMode("create");
     setEditingId(null);
     setName("");
-    setSelectedScopes([]);
     setLimitInput("");
     setWindowInput("");
     setFormOpen(true);
@@ -135,7 +173,6 @@ export default function ClientsPage() {
     setFormMode("edit");
     setEditingId(c.id);
     setName(c.name);
-    setSelectedScopes(c.scopes || []);
     setLimitInput(c.rate_limit != null ? String(c.rate_limit) : "");
     setWindowInput(c.rate_window_seconds != null ? String(c.rate_window_seconds) : "");
     setFormOpen(true);
@@ -158,27 +195,18 @@ export default function ClientsPage() {
     }
     setSaving(true);
     try {
+      const body = { name: name.trim(), rate_limit, rate_window_seconds };
       if (formMode === "create") {
-        const { data } = await API.post("/clients", {
-          name: name.trim(),
-          scopes: selectedScopes,
-          rate_limit,
-          rate_window_seconds,
-        });
+        const { data } = await API.post("/clients", body);
         setFormOpen(false);
         setRevealKey({ key: data.api_key, name: data.name });
         toast.success("API client created");
       } else {
-        await API.put(`/clients/${editingId}`, {
-          name: name.trim(),
-          scopes: selectedScopes,
-          rate_limit,
-          rate_window_seconds,
-        });
+        await API.put(`/clients/${editingId}`, body);
         setFormOpen(false);
         toast.success("Client updated");
       }
-      await load();
+      await fetchClients();
     } catch (e) {
       toast.error(e?.response?.data?.detail || "Failed to save client");
     } finally {
@@ -192,7 +220,7 @@ export default function ClientsPage() {
       const { data } = await API.post(`/clients/${regenTarget.id}/regenerate`);
       setRegenTarget(null);
       setRevealKey({ key: data.api_key, name: data.name });
-      await load();
+      await fetchClients();
       toast.success("Key regenerated");
     } catch (e) {
       toast.error(e?.response?.data?.detail || "Failed to regenerate key");
@@ -206,7 +234,7 @@ export default function ClientsPage() {
     try {
       await API.post(`/clients/${revokeTarget.id}/revoke`);
       setRevokeTarget(null);
-      await load();
+      await fetchClients();
       toast.success("Client revoked");
     } catch (e) {
       toast.error(e?.response?.data?.detail || "Failed to revoke client");
@@ -220,7 +248,7 @@ export default function ClientsPage() {
     try {
       await API.delete(`/clients/${deleteTarget.id}`);
       setDeleteTarget(null);
-      await load();
+      await fetchClients();
       toast.success("Client deleted");
     } catch (e) {
       toast.error(e?.response?.data?.detail || "Failed to delete client");
@@ -253,153 +281,277 @@ export default function ClientsPage() {
     }
   };
 
-  const hasClients = clients.length > 0;
+  const columns = useMemo(
+    () => [
+      {
+        accessorKey: "name",
+        header: ({ column }) => <SortableHeader column={column}>Name</SortableHeader>,
+        cell: ({ row }) => <span className="font-medium">{row.original.name}</span>,
+      },
+      {
+        accessorKey: "key_masked",
+        header: ({ column }) => <SortableHeader column={column}>Key</SortableHeader>,
+        cell: ({ row }) => (
+          <code className="rounded bg-muted px-1.5 py-0.5 text-xs">{row.original.key_masked}</code>
+        ),
+      },
+      {
+        id: "rate_limit",
+        accessorFn: (r) => r.rate_limit ?? 0,
+        header: ({ column }) => <SortableHeader column={column}>Rate limit</SortableHeader>,
+        cell: ({ row }) => (
+          <span className="text-muted-foreground" data-testid={`client-rate-${row.original.id}`}>
+            {row.original.rate_limit != null
+              ? `${row.original.rate_limit}/${row.original.rate_window_seconds ?? 60}s`
+              : "Default"}
+          </span>
+        ),
+      },
+      {
+        id: "status",
+        accessorFn: (r) => (r.active ? "Active" : "Revoked"),
+        header: ({ column }) => <SortableHeader column={column}>Status</SortableHeader>,
+        cell: ({ row }) => (
+          <Badge
+            variant={row.original.active ? "secondary" : "destructive"}
+            className="font-normal"
+            data-testid={`client-status-${row.original.id}`}
+          >
+            {row.original.active ? "Active" : "Revoked"}
+          </Badge>
+        ),
+      },
+      {
+        id: "requests",
+        accessorFn: (r) => r.request_count ?? 0,
+        header: ({ column }) => <SortableHeader column={column} align="right">Requests</SortableHeader>,
+        cell: ({ row }) => (
+          <div className="text-right tabular-nums" data-testid={`client-requests-${row.original.id}`}>
+            {(row.original.request_count ?? 0).toLocaleString()}
+          </div>
+        ),
+      },
+      {
+        accessorKey: "last_used_at",
+        header: ({ column }) => <SortableHeader column={column}>Last used</SortableHeader>,
+        cell: ({ row }) => (
+          <span className="text-muted-foreground">{fmtDate(row.original.last_used_at)}</span>
+        ),
+      },
+      {
+        id: "actions",
+        enableSorting: false,
+        cell: ({ row }) => {
+          const c = row.original;
+          return (
+            <div className="text-right">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="size-8"
+                    aria-label="Row actions"
+                    data-testid={`client-row-actions-${c.id}`}
+                  >
+                    <MoreHorizontal className="size-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => openUsage(c)} data-testid={`client-usage-${c.id}`}>
+                    <BarChart3 className="size-4" /> View usage
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => openEdit(c)} data-testid={`client-edit-${c.id}`}>
+                    <Pencil className="size-4" /> Edit
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setRegenTarget(c)} data-testid={`client-regenerate-${c.id}`}>
+                    <RefreshCw className="size-4" /> Regenerate key
+                  </DropdownMenuItem>
+                  {c.active && (
+                    <DropdownMenuItem onClick={() => setRevokeTarget(c)} data-testid={`client-revoke-${c.id}`}>
+                      <Ban className="size-4" /> Revoke
+                    </DropdownMenuItem>
+                  )}
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    className="text-destructive focus:text-destructive"
+                    onClick={() => setDeleteTarget(c)}
+                    data-testid={`client-delete-${c.id}`}
+                  >
+                    <Trash2 className="size-4" /> Delete
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          );
+        },
+      },
+    ],
+    [],
+  );
+
+  const table = useReactTable({
+    data: clients,
+    columns,
+    state: { sorting, globalFilter },
+    getRowId: (row) => row.id,
+    onSortingChange: setSorting,
+    onGlobalFilterChange: setGlobalFilter,
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    initialState: { pagination: { pageSize: 10 } },
+  });
+
+  const { pageIndex, pageSize } = table.getState().pagination;
+  const totalRows = table.getFilteredRowModel().rows.length;
+  const hasSearch = globalFilter.trim().length > 0;
 
   return (
     <div className="space-y-6" data-testid="clients-page">
       <Card>
         <CardHeader className="flex flex-col gap-3 space-y-0 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <CardTitle className="text-base">API Clients</CardTitle>
-            <CardDescription>
-              Manage API credentials, scopes and per-key rate limits. Keys are shown only once.
-            </CardDescription>
-          </div>
+          <CardTitle className="text-base">API Clients</CardTitle>
           <Button size="sm" onClick={openCreate} data-testid="clients-add">
             <Plus className="size-4" /> New Client
           </Button>
         </CardHeader>
-        <CardContent>
-          {loading ? (
-            <div className="space-y-2">
-              {[0, 1, 2].map((i) => (
-                <Skeleton key={i} className="h-12 w-full" />
-              ))}
+        <CardContent className="space-y-4">
+          {/* Toolbar */}
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div className="relative max-w-xs flex-1">
+              <Search className="absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+              <Input
+                value={globalFilter}
+                onChange={(e) => setGlobalFilter(e.target.value)}
+                placeholder="Search clients..."
+                className="pl-8"
+                data-testid="clients-search"
+              />
             </div>
-          ) : !hasClients ? (
-            <EmptyState
-              icon={KeyRound}
-              title="No API clients yet"
-              description="Create your first API client to issue a scoped key."
-              action={
-                <Button size="sm" onClick={openCreate} data-testid="clients-empty-add">
-                  <Plus className="size-4" /> New Client
+            <div className="flex flex-wrap items-center gap-2">
+              {hasSearch && (
+                <Button variant="outline" size="sm" onClick={() => setGlobalFilter("")} data-testid="clients-reset">
+                  <FilterX className="size-4" /> Reset
                 </Button>
-              }
-            />
-          ) : (
-            <div className="overflow-x-auto">
-              <Table>
+              )}
+              <DensityToggle />
+            </div>
+          </div>
+
+          {/* Table / states */}
+          <div className="rounded-md border">
+            {status === "error" ? (
+              <EmptyState
+                variant="error"
+                action={
+                  <Button variant="outline" size="sm" onClick={fetchClients} data-testid="clients-retry">
+                    <RefreshCw className="size-4" /> Try again
+                  </Button>
+                }
+              />
+            ) : status === "loading" ? (
+              <div className="space-y-2 p-4" data-testid="clients-loading">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <Skeleton key={i} className="h-9 w-full" />
+                ))}
+              </div>
+            ) : clients.length === 0 ? (
+              <EmptyState
+                variant="first-time"
+                title="No API clients yet"
+                description="Create your first API client to issue a key."
+                action={
+                  <Button size="sm" onClick={openCreate} data-testid="clients-empty-add">
+                    <Plus className="size-4" /> New Client
+                  </Button>
+                }
+              />
+            ) : (
+              <Table data-testid="clients-table" className="[&_td]:whitespace-nowrap [&_th]:whitespace-nowrap">
                 <TableHeader>
-                  <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Key</TableHead>
-                    <TableHead>Scopes</TableHead>
-                    <TableHead>Rate limit</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Requests</TableHead>
-                    <TableHead>Last used</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
+                  {table.getHeaderGroups().map((hg) => (
+                    <TableRow key={hg.id} className="bg-muted/50 hover:bg-muted/50">
+                      {hg.headers.map((h) => (
+                        <TableHead key={h.id}>
+                          {h.isPlaceholder ? null : flexRender(h.column.columnDef.header, h.getContext())}
+                        </TableHead>
+                      ))}
+                    </TableRow>
+                  ))}
                 </TableHeader>
                 <TableBody>
-                  {clients.map((c) => (
-                    <TableRow key={c.id} data-testid={`client-row-${c.id}`}>
-                      <TableCell className="font-medium">{c.name}</TableCell>
-                      <TableCell>
-                        <code className="rounded bg-muted px-1.5 py-0.5 text-xs">{c.key_masked}</code>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex flex-wrap gap-1">
-                          {c.scopes.length ? (
-                            c.scopes.map((s) => (
-                              <Badge key={s} variant="secondary" className="font-normal">
-                                {s}
-                              </Badge>
-                            ))
-                          ) : (
-                            <span className="text-xs text-muted-foreground">none</span>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground" data-testid={`client-rate-${c.id}`}>
-                        {c.rate_limit != null
-                          ? `${c.rate_limit}/${c.rate_window_seconds ?? 60}s`
-                          : "Default"}
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant={c.active ? "secondary" : "destructive"}
-                          className="font-normal"
-                          data-testid={`client-status-${c.id}`}
-                        >
-                          {c.active ? "Active" : "Revoked"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="tabular-nums" data-testid={`client-requests-${c.id}`}>
-                        {(c.request_count ?? 0).toLocaleString()}
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">{fmtDate(c.last_used_at)}</TableCell>
-                      <TableCell>
-                        <div className="flex items-center justify-end gap-1">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="size-8"
-                            aria-label="View usage"
-                            onClick={() => openUsage(c)}
-                            data-testid={`client-usage-${c.id}`}
-                          >
-                            <BarChart3 className="size-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="size-8"
-                            aria-label="Edit client"
-                            onClick={() => openEdit(c)}
-                            data-testid={`client-edit-${c.id}`}
-                          >
-                            <Pencil className="size-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="size-8"
-                            aria-label="Regenerate key"
-                            onClick={() => setRegenTarget(c)}
-                            data-testid={`client-regenerate-${c.id}`}
-                          >
-                            <RefreshCw className="size-4" />
-                          </Button>
-                          {c.active && (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="size-8"
-                              aria-label="Revoke client"
-                              onClick={() => setRevokeTarget(c)}
-                              data-testid={`client-revoke-${c.id}`}
-                            >
-                              <Ban className="size-4" />
-                            </Button>
-                          )}
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="size-8 text-destructive hover:text-destructive"
-                            aria-label="Delete client"
-                            onClick={() => setDeleteTarget(c)}
-                            data-testid={`client-delete-${c.id}`}
-                          >
-                            <Trash2 className="size-4" />
+                  {table.getRowModel().rows.length ? (
+                    table.getRowModel().rows.map((row) => (
+                      <TableRow key={row.id} data-testid={`client-row-${row.original.id}`}>
+                        {row.getVisibleCells().map((cell) => (
+                          <TableCell key={cell.id}>
+                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                          </TableCell>
+                        ))}
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={columns.length} className="h-24 text-center text-muted-foreground">
+                        <div className="flex flex-col items-center gap-2" data-testid="clients-empty-filtered">
+                          <span>No clients match your search.</span>
+                          <Button variant="outline" size="sm" onClick={() => setGlobalFilter("")} data-testid="clients-clear-search">
+                            <FilterX className="size-4" /> Reset
                           </Button>
                         </div>
                       </TableCell>
                     </TableRow>
-                  ))}
+                  )}
                 </TableBody>
               </Table>
+            )}
+          </div>
+
+          {/* Footer */}
+          {status === "ready" && clients.length > 0 && (
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <Select value={String(pageSize)} onValueChange={(v) => table.setPageSize(Number(v))}>
+                  <SelectTrigger className="h-8 w-[70px]" data-testid="clients-page-size">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {[10, 20, 50].map((n) => (
+                      <SelectItem key={n} value={String(n)}>{n}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <span>of {totalRows} rows</span>
+              </div>
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                <span className="text-xs text-muted-foreground">
+                  Page {pageIndex + 1} of {Math.max(1, table.getPageCount())}
+                </span>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="size-8"
+                    onClick={() => table.previousPage()}
+                    disabled={!table.getCanPreviousPage()}
+                    aria-label="Previous page"
+                  >
+                    <ChevronLeft className="size-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="size-8"
+                    onClick={() => table.nextPage()}
+                    disabled={!table.getCanNextPage()}
+                    aria-label="Next page"
+                  >
+                    <ChevronRight className="size-4" />
+                  </Button>
+                </div>
+              </div>
             </div>
           )}
         </CardContent>
@@ -407,44 +559,28 @@ export default function ClientsPage() {
 
       {/* Create / Edit dialog */}
       <Dialog open={formOpen} onOpenChange={setFormOpen}>
-        <DialogContent data-testid="clients-form-dialog">
+        <DialogContent className="sm:max-w-lg" data-testid="clients-form-dialog">
           <DialogHeader>
-            <DialogTitle>{formMode === "create" ? "New API client" : "Edit API client"}</DialogTitle>
+            <DialogTitle>{formMode === "create" ? "Add API Client" : "Edit API Client"}</DialogTitle>
             <DialogDescription>
-              Set the name, access scopes and an optional custom rate limit.
+              {formMode === "create"
+                ? "Create a new API client. Name is required; rate limits are optional."
+                : "Update the client name and rate limits."}
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="client-name">Name</Label>
-              <Input
-                id="client-name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="e.g. Mobile App"
-                data-testid="client-name-input"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Scopes</Label>
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                {scopes.map((s) => (
-                  <label
-                    key={s}
-                    className="flex cursor-pointer items-center gap-2 rounded-md border border-border/60 px-3 py-2 text-sm"
-                  >
-                    <Checkbox
-                      checked={selectedScopes.includes(s)}
-                      onCheckedChange={() => toggleScope(s)}
-                      data-testid={`client-scope-${s}`}
-                    />
-                    {s}
-                  </label>
-                ))}
+          <DialogBody>
+            <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2">
+              <div className="space-y-1.5 sm:col-span-2">
+                <Label htmlFor="client-name">Name</Label>
+                <Input
+                  id="client-name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="e.g. Mobile App"
+                  data-testid="client-name-input"
+                />
               </div>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 <Label htmlFor="client-limit">Rate limit (requests)</Label>
                 <Input
                   id="client-limit"
@@ -456,7 +592,7 @@ export default function ClientsPage() {
                   data-testid="client-limit-input"
                 />
               </div>
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 <Label htmlFor="client-window">Window (seconds)</Label>
                 <Input
                   id="client-window"
@@ -469,14 +605,12 @@ export default function ClientsPage() {
                 />
               </div>
             </div>
-            <p className="text-xs text-muted-foreground">
-              Leave rate fields blank to use the server default.
-            </p>
-          </div>
+            <p className="text-xs text-muted-foreground">Leave rate fields blank to use the server default.</p>
+          </DialogBody>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setFormOpen(false)}>
-              Cancel
-            </Button>
+            <DialogClose asChild>
+              <Button type="button" variant="outline" data-testid="clients-form-cancel">Cancel</Button>
+            </DialogClose>
             <Button onClick={submitForm} disabled={saving} data-testid="clients-form-submit">
               {saving ? <Loader2 className="size-4 animate-spin" /> : <ShieldCheck className="size-4" />}
               {formMode === "create" ? "Create client" : "Save changes"}
@@ -491,22 +625,19 @@ export default function ClientsPage() {
           <DialogHeader>
             <DialogTitle>Copy your API key</DialogTitle>
             <DialogDescription>
-              This is the only time the full key for <strong>{revealKey?.name}</strong> is shown.
-              Store it securely.
+              This is the only time the full key for <strong>{revealKey?.name}</strong> is shown. Store it securely.
             </DialogDescription>
           </DialogHeader>
-          <div className="flex items-center gap-2 rounded-md border bg-muted/50 p-3">
-            <code className="flex-1 break-all text-xs" data-testid="client-key-value">
-              {revealKey?.key}
-            </code>
-            <Button size="icon" variant="ghost" className="size-8" onClick={copyKey} data-testid="client-key-copy">
-              {copied ? <Check className="size-4 text-primary" /> : <Copy className="size-4" />}
-            </Button>
-          </div>
+          <DialogBody>
+            <div className="flex items-center gap-2 rounded-md border bg-muted/50 p-3">
+              <code className="flex-1 break-all text-xs" data-testid="client-key-value">{revealKey?.key}</code>
+              <Button size="icon" variant="ghost" className="size-8" onClick={copyKey} data-testid="client-key-copy">
+                {copied ? <Check className="size-4 text-primary" /> : <Copy className="size-4" />}
+              </Button>
+            </div>
+          </DialogBody>
           <DialogFooter>
-            <Button onClick={() => setRevealKey(null)} data-testid="client-key-done">
-              Done
-            </Button>
+            <Button onClick={() => setRevealKey(null)} data-testid="client-key-done">Done</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -520,44 +651,47 @@ export default function ClientsPage() {
               Requests per day (last 14 days){usage ? ` — ${usage.total.toLocaleString()} total` : ""}.
             </DialogDescription>
           </DialogHeader>
-          {usageLoading ? (
-            <Skeleton className="h-56 w-full" />
-          ) : usage && usage.total > 0 ? (
-            <ChartContainer config={usageChartConfig} className="h-56 w-full">
-              <BarChart data={usage.series}>
-                <CartesianGrid vertical={false} />
-                <XAxis
-                  dataKey="date"
-                  tickLine={false}
-                  axisLine={false}
-                  tickMargin={8}
-                  tickFormatter={(v) => v.slice(5)}
-                />
-                <ChartTooltip content={<ChartTooltipContent />} />
-                <Bar dataKey="count" fill="var(--color-count)" radius={4} isAnimationActive={false} />
-              </BarChart>
-            </ChartContainer>
-          ) : (
-            <p className="py-10 text-center text-sm text-muted-foreground" data-testid="client-usage-empty">
-              No requests recorded yet for this key.
-            </p>
-          )}
+          <DialogBody>
+            {usageLoading ? (
+              <Skeleton className="h-56 w-full" />
+            ) : usage && usage.total > 0 ? (
+              <ChartContainer config={usageChartConfig} className="h-56 w-full">
+                <BarChart data={usage.series}>
+                  <CartesianGrid vertical={false} />
+                  <XAxis dataKey="date" tickLine={false} axisLine={false} tickMargin={8} tickFormatter={(v) => v.slice(5)} />
+                  <ChartTooltip content={<ChartTooltipContent />} />
+                  <Bar dataKey="count" fill="var(--color-count)" radius={4} isAnimationActive={false} />
+                </BarChart>
+              </ChartContainer>
+            ) : (
+              <p className="py-10 text-center text-sm text-muted-foreground" data-testid="client-usage-empty">
+                No requests recorded yet for this key.
+              </p>
+            )}
+          </DialogBody>
         </DialogContent>
       </Dialog>
 
       {/* Regenerate confirm */}
       <AlertDialog open={!!regenTarget} onOpenChange={(o) => !o && setRegenTarget(null)}>
-        <AlertDialogContent>
+        <AlertDialogContent data-testid="client-regenerate-dialog">
           <AlertDialogHeader>
             <AlertDialogTitle>Regenerate key?</AlertDialogTitle>
-            <AlertDialogDescription>
-              The current key for <strong>{regenTarget?.name}</strong> will stop working immediately
-              and a new key will be issued.
-            </AlertDialogDescription>
           </AlertDialogHeader>
+          <div className="px-6 py-4 text-sm text-muted-foreground">
+            The current key for <span className="font-medium text-foreground">{regenTarget?.name}</span> will stop
+            working immediately and a new key will be issued.
+          </div>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={doRegenerate} disabled={acting} data-testid="client-regenerate-confirm">
+            <AlertDialogCancel data-testid="client-regenerate-cancel">Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                doRegenerate();
+              }}
+              disabled={acting}
+              data-testid="client-regenerate-confirm"
+            >
               Regenerate
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -566,16 +700,25 @@ export default function ClientsPage() {
 
       {/* Revoke confirm */}
       <AlertDialog open={!!revokeTarget} onOpenChange={(o) => !o && setRevokeTarget(null)}>
-        <AlertDialogContent>
+        <AlertDialogContent data-testid="client-revoke-dialog">
           <AlertDialogHeader>
             <AlertDialogTitle>Revoke client?</AlertDialogTitle>
-            <AlertDialogDescription>
-              <strong>{revokeTarget?.name}</strong> will be disabled and its key will stop working.
-            </AlertDialogDescription>
           </AlertDialogHeader>
+          <div className="px-6 py-4 text-sm text-muted-foreground">
+            <span className="font-medium text-foreground">{revokeTarget?.name}</span> will be disabled and its key
+            will stop working.
+          </div>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={doRevoke} disabled={acting} data-testid="client-revoke-confirm">
+            <AlertDialogCancel data-testid="client-revoke-cancel">Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                doRevoke();
+              }}
+              disabled={acting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              data-testid="client-revoke-confirm"
+            >
               Revoke
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -584,18 +727,21 @@ export default function ClientsPage() {
 
       {/* Delete confirm */}
       <AlertDialog open={!!deleteTarget} onOpenChange={(o) => !o && setDeleteTarget(null)}>
-        <AlertDialogContent>
+        <AlertDialogContent data-testid="client-delete-dialog">
           <AlertDialogHeader>
             <AlertDialogTitle>Delete client?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This permanently removes <strong>{deleteTarget?.name}</strong> and its key. This cannot
-              be undone.
-            </AlertDialogDescription>
           </AlertDialogHeader>
+          <div className="px-6 py-4 text-sm text-muted-foreground">
+            This permanently removes <span className="font-medium text-foreground">{deleteTarget?.name}</span> and
+            its key. This cannot be undone.
+          </div>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel data-testid="client-delete-cancel">Cancel</AlertDialogCancel>
             <AlertDialogAction
-              onClick={doDelete}
+              onClick={(e) => {
+                e.preventDefault();
+                doDelete();
+              }}
               disabled={acting}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               data-testid="client-delete-confirm"
