@@ -324,6 +324,16 @@ export default function UsersPage() {
         enableSorting: false,
       }] : []),
       {
+        id: "user_id",
+        accessorFn: (r) => r.user_id ?? 0,
+        header: ({ column }) => <SortableHeader column={column}>User ID</SortableHeader>,
+        cell: ({ row }) => (
+          <span className="tabular-nums text-muted-foreground" data-testid={`user-userid-${row.original.id}`}>
+            {row.original.user_id ?? "—"}
+          </span>
+        ),
+      },
+      {
         accessorKey: "name",
         header: ({ column }) => <SortableHeader column={column}>Name</SortableHeader>,
         cell: ({ row }) => <span className="font-medium">{row.original.name}</span>,

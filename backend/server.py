@@ -10,7 +10,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 import time
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorGridFSBucket
 from bson import ObjectId
-from pymongo import UpdateOne, InsertOne
+from pymongo import UpdateOne, InsertOne, ReturnDocument
 import os
 import io
 import re
@@ -243,6 +243,10 @@ async def lifespan(_app: FastAPI):
             await _auto_seed_if_empty()
         except Exception as exc:  # pragma: no cover - non-fatal
             logger.error("Auto-seed failed (non-fatal): %s", exc)
+    try:
+        await _backfill_user_ids()
+    except Exception as exc:  # pragma: no cover - non-fatal
+        logger.error("user_id backfill failed (non-fatal): %s", exc)
     try:
         import routes_database_ext as _bk
         _bk.start_scheduler()
@@ -1185,7 +1189,7 @@ EMAIL_RE = r"^[^@\s]+@[^@\s]+\.[^@\s]+$"
 
 # Nullable + unique business fields (enforced at the application layer so
 # soft-deleted records can free their values and multiple NULLs are allowed).
-UNIQUE_USER_FIELDS = ["username", "phone", "email", "alias", "mso_code", "collector_code"]
+UNIQUE_USER_FIELDS = ["user_id", "username", "phone", "email", "alias", "mso_code", "collector_code"]
 # Optional fields normalized "" -> None so blanks never collide on uniqueness.
 NULLABLE_USER_FIELDS = [
     "username", "phone", "alias", "mso_code", "collector_code",
@@ -1232,6 +1236,7 @@ def _user_public(doc: dict, roles: dict = None, offices: dict = None) -> dict:
     status, expired = _password_status(doc)
     return {
         "id": doc["id"],
+        "user_id": doc.get("user_id"),
         "name": doc.get("name"),
         "username": doc.get("username"),
         "phone": doc.get("phone"),
@@ -1280,6 +1285,41 @@ async def _assert_user_unique(data: dict, exclude_id: Optional[str] = None):
             raise HTTPException(status_code=409, detail=f"User {field} already exists")
 
 
+async def _next_user_id() -> int:
+    """Return the next auto-increment user_id (unique). Uses a counters doc and
+    guards against manually-set ids that are ahead of the counter."""
+    doc = await db.counters.find_one_and_update(
+        {"_id": "user_id"}, {"$inc": {"seq": 1}}, upsert=True, return_document=ReturnDocument.AFTER,
+    )
+    seq = int(doc.get("seq", 1))
+    top = await db.users.find({"user_id": {"$type": "number"}}, {"_id": 0, "user_id": 1}).sort("user_id", -1).limit(1).to_list(1)
+    mx = int(top[0]["user_id"]) if top else 0
+    if seq <= mx:
+        seq = mx + 1
+        await db.counters.update_one({"_id": "user_id"}, {"$set": {"seq": seq}}, upsert=True)
+    return seq
+
+
+async def _backfill_user_ids():
+    """Assign a sequential user_id to any existing user that lacks one (idempotent)."""
+    missing = await db.users.find(
+        {"$or": [{"user_id": {"$exists": False}}, {"user_id": None}]},
+        {"_id": 0, "id": 1, "created_at": 1},
+    ).sort("created_at", 1).to_list(100000)
+    if not missing:
+        return
+    top = await db.users.find({"user_id": {"$type": "number"}}, {"_id": 0, "user_id": 1}).sort("user_id", -1).limit(1).to_list(1)
+    seq = int(top[0]["user_id"]) if top else 0
+    ops = []
+    for u in missing:
+        seq += 1
+        ops.append(UpdateOne({"id": u["id"]}, {"$set": {"user_id": seq}}))
+    if ops:
+        await db.users.bulk_write(ops)
+    await db.counters.update_one({"_id": "user_id"}, {"$set": {"seq": seq}}, upsert=True)
+    logger.info("Backfilled user_id for %d user(s).", len(ops))
+
+
 async def _validate_role_office(role_id: Optional[str], office_id: Optional[str]):
     if role_id is not None:
         if not await db.roles.find_one({"id": role_id}, {"_id": 0, "id": 1}):
@@ -1294,6 +1334,7 @@ class UserCreate(BaseModel):
     email: str = Field(..., pattern=EMAIL_RE)
     role_id: str = Field(..., min_length=1)
     office_id: str = Field(..., min_length=1)
+    user_id: Optional[int] = Field(None, ge=1)
     username: Optional[str] = None
     phone: Optional[str] = None
     alias: Optional[str] = None
@@ -1311,6 +1352,7 @@ class UserUpdate(BaseModel):
     email: Optional[str] = Field(None, pattern=EMAIL_RE)
     role_id: Optional[str] = Field(None, min_length=1)
     office_id: Optional[str] = Field(None, min_length=1)
+    user_id: Optional[int] = Field(None, ge=1)
     username: Optional[str] = None
     phone: Optional[str] = None
     alias: Optional[str] = None
@@ -1335,6 +1377,8 @@ class ResetPasswordRequest(BaseModel):
 async def create_user(payload: UserCreate):
     """Create a user with the system default password (must be changed on first login)."""
     data = _normalize_optionals(payload.model_dump())
+    if data.get("user_id") is None:
+        data["user_id"] = await _next_user_id()
     await _assert_user_unique(data)
     await _validate_role_office(data["role_id"], data["office_id"])
     now = datetime.now(timezone.utc)
@@ -1418,6 +1462,8 @@ async def update_user(user_id: str, payload: UserUpdate):
     if not doc:
         raise HTTPException(status_code=404, detail="User not found")
     updates = _normalize_optionals(payload.model_dump(exclude_unset=True))
+    if "user_id" in updates and updates["user_id"] is None:
+        updates.pop("user_id")  # user_id cannot be cleared
     if updates:
         await _assert_user_unique({**doc, **updates}, exclude_id=user_id)
         await _validate_role_office(updates.get("role_id"), updates.get("office_id"))
@@ -2085,7 +2131,7 @@ async def _apply_users(items: list):
         else:
             pw = _hash_password(DEFAULT_USER_PASSWORD)
             await db.users.insert_one({
-                "id": str(uuid.uuid4()), **base,
+                "id": str(uuid.uuid4()), "user_id": await _next_user_id(), **base,
                 "password": pw, "password_history": [pw],
                 "password_changed_at": now_iso,
                 "password_expires_at": (now + timedelta(days=PASSWORD_EXPIRY_DAYS)).isoformat(),

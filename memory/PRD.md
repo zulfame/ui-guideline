@@ -22,6 +22,11 @@ Membangun template **UI Guidelines / Design System** generik sebagai fondasi apl
 - **R38**: Modifikasi primitive/composite harus jaga compact spacing (`px-6 py-4`), grid 4px, token monochrome (`border-border`), typography tepat. Verifikasi semua consumer via screenshot sebelum selesai.
 
 ## Sudah Diimplementasikan
+- (2026-06-02) **Kolom user_id (auto-increment, unik, editable) pada Users** [FEATURE]:
+  - Backend `server.py`: field `user_id` (int) di `UserCreate`/`UserUpdate`, ditambahkan ke `UNIQUE_USER_FIELDS` & `_user_public`. Helper `_next_user_id()` (koleksi `counters` via `find_one_and_update $inc`, guard terhadap id manual yang lebih tinggi) + `_backfill_user_ids()` (dipanggil di lifespan startup, mengisi user lama berurutan by created_at). Create: auto-assign bila kosong; Update: bisa diubah, tidak bisa dikosongkan; Import: auto-assign. Nilai duplikat ditolak 409.
+  - Frontend: kolom **User ID** (sortable, paling depan) di `UsersPage`; field **User ID** editable (placeholder "Auto", hint) di `UserFormPage`.
+  - Verifikasi via curl: auto-assign OK, ubah custom OK, duplikat 409; backfill jalan (Administrator=30); design-guard PASS; screenshot Users list & Add User form OK. (pytest tidak dijalankan.)
+
 - (2026-06-02) **Dev Guidelines merge + A-Z, delete data Security, Audit page-size/checkbox, format ribuan** [FIX/FEATURE]:
   - Dev Guidelines: dua menu duplikat (id "api" sama) digabung jadi satu "API Engineering" (3 topik unik dipindahkan), semua grup diurutkan A-Z di config/developmentGuidelines.js.
   - Login Security & Password Reset Requests kini bisa dihapus: DELETE/clear login-attempts & password-resets; LoginSecurityPage jadi DataTable standar + Clear all + Delete per baris.

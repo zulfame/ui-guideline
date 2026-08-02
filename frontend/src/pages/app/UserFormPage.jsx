@@ -35,7 +35,7 @@ import {
 } from "@/components/ui/form";
 import { EmptyState } from "@/components/composite/EmptyState";
 
-const UNIQUE_FIELDS = ["email", "username", "phone", "alias", "mso_code", "collector_code"];
+const UNIQUE_FIELDS = ["user_id", "email", "username", "phone", "alias", "mso_code", "collector_code"];
 const OPTIONAL_TEXT = [
   "username", "phone", "alias", "mso_code", "collector_code",
   "device_identifier", "device_name", "device_os", "fcm_token",
@@ -46,6 +46,7 @@ const userSchema = z.object({
   email: z.string().min(1, "Email is required").email("Invalid email"),
   role_id: z.string().min(1, "Role is required"),
   office_id: z.string().min(1, "Office is required"),
+  user_id: z.string().optional().refine((v) => !v || /^\d+$/.test(v.trim()), "Must be a positive number"),
   is_active: z.boolean(),
   username: z.string().optional(),
   phone: z.string().optional(),
@@ -59,7 +60,7 @@ const userSchema = z.object({
 });
 
 const emptyUser = {
-  name: "", email: "", role_id: "", office_id: "", is_active: true,
+  name: "", email: "", role_id: "", office_id: "", user_id: "", is_active: true,
   username: "", phone: "", alias: "", mso_code: "", collector_code: "",
   device_identifier: "", device_name: "", device_os: "", fcm_token: "",
 };
@@ -69,6 +70,7 @@ function toUserForm(u) {
   return {
     name: u.name ?? "", email: u.email ?? "",
     role_id: u.role_id ?? "", office_id: u.office_id ?? "",
+    user_id: u.user_id != null ? String(u.user_id) : "",
     is_active: u.is_active !== false,
     username: u.username ?? "", phone: u.phone ?? "", alias: u.alias ?? "",
     mso_code: u.mso_code ?? "", collector_code: u.collector_code ?? "",
@@ -90,6 +92,8 @@ function buildUserPayload(data, isEdit) {
     if (v) payload[k] = v;
     else if (isEdit) payload[k] = null;
   });
+  const uid = data.user_id != null ? String(data.user_id).trim() : "";
+  if (uid !== "" && /^\d+$/.test(uid)) payload.user_id = parseInt(uid, 10);
   return payload;
 }
 
@@ -232,6 +236,28 @@ export default function UserFormPage() {
               </CardHeader>
               <CardContent className="space-y-5">
                 <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                  <FormField
+                    control={form.control}
+                    name="user_id"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>User ID</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            min="1"
+                            placeholder={isEdit ? "" : "Auto"}
+                            {...field}
+                            data-testid="user-field-user_id"
+                          />
+                        </FormControl>
+                        <p className="text-xs text-muted-foreground">
+                          {isEdit ? "Unique. You can change it." : "Auto-generated if left blank. Unique; can be edited."}
+                        </p>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                   {TEXT_FIELDS.map((f) => (
                     <FormField
                       key={f.name}
