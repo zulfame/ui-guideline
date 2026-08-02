@@ -1,0 +1,738 @@
+{
+  "levels": [
+    {
+      "id": "86f6c136-4a82-4d91-97d7-af29cea90f43",
+      "name": "Komisari",
+      "order": 1,
+      "color": null,
+      "created_at": "2026-08-02T12:38:21.369541+00:00",
+      "updated_at": "2026-08-02T12:38:21.369548+00:00"
+    },
+    {
+      "id": "94aed7aa-55ea-4fa2-a8bd-17f0adf70ba3",
+      "name": "Dirut",
+      "order": 2,
+      "color": null,
+      "created_at": "2026-08-02T12:38:26.197355+00:00",
+      "updated_at": "2026-08-02T12:38:26.197358+00:00"
+    },
+    {
+      "id": "cf7f5b6c-f60f-4892-9096-6e4cfbf8f74e",
+      "name": "Direksi",
+      "order": 3,
+      "color": null,
+      "created_at": "2026-08-02T12:38:29.912111+00:00",
+      "updated_at": "2026-08-02T12:38:29.912118+00:00"
+    },
+    {
+      "id": "ca495cff-0c8f-4840-92d3-76c52a61c6e9",
+      "name": "Kabag",
+      "order": 4,
+      "color": null,
+      "created_at": "2026-08-02T12:39:36.250950+00:00",
+      "updated_at": "2026-08-02T12:39:36.250956+00:00"
+    },
+    {
+      "id": "d8d2e9cf-2107-4d4d-a942-ec6303f29b61",
+      "name": "Kasi",
+      "order": 5,
+      "color": null,
+      "created_at": "2026-08-02T12:39:39.599783+00:00",
+      "updated_at": "2026-08-02T12:39:39.599789+00:00"
+    },
+    {
+      "id": "419688d4-79be-413b-b3f9-902461a14135",
+      "name": "Staff",
+      "order": 6,
+      "color": null,
+      "created_at": "2026-08-02T12:39:42.081924+00:00",
+      "updated_at": "2026-08-02T12:39:42.081929+00:00"
+    }
+  ],
+  "roles": [
+    {
+      "id": "5834dfec-6d80-467b-a330-7f8c24cfb83c",
+      "name": "Super Admin",
+      "parent_id": null,
+      "dotted_parent_id": null,
+      "level_id": null,
+      "order": 0,
+      "created_at": "2026-08-02T12:23:15.908842+00:00",
+      "updated_at": "2026-08-02T12:23:15.908850+00:00"
+    },
+    {
+      "id": "656df98c-bee3-4500-bc0d-05b59a27e2df",
+      "name": "Dewan Komisaris",
+      "parent_id": null,
+      "dotted_parent_id": null,
+      "level_id": "86f6c136-4a82-4d91-97d7-af29cea90f43",
+      "order": 0,
+      "created_at": "2026-08-02T12:37:16.365683+00:00",
+      "updated_at": "2026-08-02T12:39:52.648899+00:00"
+    },
+    {
+      "id": "923fd985-e1da-4833-bb0a-9c65a1ec9477",
+      "name": "Direktur Utama",
+      "parent_id": "656df98c-bee3-4500-bc0d-05b59a27e2df",
+      "dotted_parent_id": null,
+      "level_id": "94aed7aa-55ea-4fa2-a8bd-17f0adf70ba3",
+      "order": 0,
+      "created_at": "2026-08-02T12:37:23.140420+00:00",
+      "updated_at": "2026-08-02T12:39:59.130281+00:00"
+    },
+    {
+      "id": "f6208e73-a917-46f3-933c-d408dc2fcc75",
+      "name": "Direktur Kepatuhan",
+      "parent_id": "923fd985-e1da-4833-bb0a-9c65a1ec9477",
+      "dotted_parent_id": null,
+      "level_id": "cf7f5b6c-f60f-4892-9096-6e4cfbf8f74e",
+      "order": 0,
+      "created_at": "2026-08-02T12:37:37.283350+00:00",
+      "updated_at": "2026-08-02T12:40:26.602337+00:00"
+    },
+    {
+      "id": "07cb524d-8518-49dd-be34-29461c2b97e1",
+      "name": "Direktur Bisnis",
+      "parent_id": "923fd985-e1da-4833-bb0a-9c65a1ec9477",
+      "dotted_parent_id": null,
+      "level_id": "cf7f5b6c-f60f-4892-9096-6e4cfbf8f74e",
+      "order": 0,
+      "created_at": "2026-08-02T12:37:43.898886+00:00",
+      "updated_at": "2026-08-02T12:40:06.670522+00:00"
+    },
+    {
+      "id": "e077ac7d-03bf-439b-9f20-ea8b1fc49e92",
+      "name": "Kabag Operasional",
+      "parent_id": "f6208e73-a917-46f3-933c-d408dc2fcc75",
+      "dotted_parent_id": null,
+      "level_id": "ca495cff-0c8f-4840-92d3-76c52a61c6e9",
+      "order": 0,
+      "created_at": "2026-08-02T12:37:52.102525+00:00",
+      "updated_at": "2026-08-02T12:40:36.875833+00:00"
+    },
+    {
+      "id": "7674048e-6e36-4f28-b990-54adce3bc16f",
+      "name": "Kabag Kepatuhan",
+      "parent_id": "f6208e73-a917-46f3-933c-d408dc2fcc75",
+      "dotted_parent_id": null,
+      "level_id": "ca495cff-0c8f-4840-92d3-76c52a61c6e9",
+      "order": 0,
+      "created_at": "2026-08-02T12:37:59.868653+00:00",
+      "updated_at": "2026-08-02T12:40:31.895473+00:00"
+    },
+    {
+      "id": "51205bd6-f454-4805-8d04-4c9d5ee8b861",
+      "name": "Kabag Pendanaan",
+      "parent_id": "07cb524d-8518-49dd-be34-29461c2b97e1",
+      "dotted_parent_id": null,
+      "level_id": "ca495cff-0c8f-4840-92d3-76c52a61c6e9",
+      "order": 0,
+      "created_at": "2026-08-02T12:38:06.886144+00:00",
+      "updated_at": "2026-08-02T12:40:12.755647+00:00"
+    },
+    {
+      "id": "e3fb049c-218b-4f17-aef3-69c1f0e7a917",
+      "name": "Kabag Kredit",
+      "parent_id": "07cb524d-8518-49dd-be34-29461c2b97e1",
+      "dotted_parent_id": null,
+      "level_id": "ca495cff-0c8f-4840-92d3-76c52a61c6e9",
+      "order": 0,
+      "created_at": "2026-08-02T12:40:53.148218+00:00",
+      "updated_at": "2026-08-02T12:40:53.148225+00:00"
+    },
+    {
+      "id": "4e05279d-5591-45c2-bd63-015c5138cfbb",
+      "name": "Kabag Analis",
+      "parent_id": "07cb524d-8518-49dd-be34-29461c2b97e1",
+      "dotted_parent_id": null,
+      "level_id": "ca495cff-0c8f-4840-92d3-76c52a61c6e9",
+      "order": 0,
+      "created_at": "2026-08-02T12:41:18.278626+00:00",
+      "updated_at": "2026-08-02T12:41:18.278632+00:00"
+    },
+    {
+      "id": "a38f7609-950f-41d8-8021-ddf2935001e4",
+      "name": "Kabag Teknologi Informasi",
+      "parent_id": "923fd985-e1da-4833-bb0a-9c65a1ec9477",
+      "dotted_parent_id": null,
+      "level_id": "ca495cff-0c8f-4840-92d3-76c52a61c6e9",
+      "order": 0,
+      "created_at": "2026-08-02T12:41:31.272351+00:00",
+      "updated_at": "2026-08-02T12:41:31.272356+00:00"
+    },
+    {
+      "id": "548df1f3-f511-49bf-b916-287029e54f75",
+      "name": "Kabag SDM dan Umum",
+      "parent_id": "923fd985-e1da-4833-bb0a-9c65a1ec9477",
+      "dotted_parent_id": null,
+      "level_id": "ca495cff-0c8f-4840-92d3-76c52a61c6e9",
+      "order": 0,
+      "created_at": "2026-08-02T12:41:39.824573+00:00",
+      "updated_at": "2026-08-02T12:41:39.824577+00:00"
+    },
+    {
+      "id": "db2583ba-baa3-49a0-b7a3-29344b64cdd1",
+      "name": "Kabag Audit Intern",
+      "parent_id": "923fd985-e1da-4833-bb0a-9c65a1ec9477",
+      "dotted_parent_id": "656df98c-bee3-4500-bc0d-05b59a27e2df",
+      "level_id": "ca495cff-0c8f-4840-92d3-76c52a61c6e9",
+      "order": 0,
+      "created_at": "2026-08-02T12:41:47.735819+00:00",
+      "updated_at": "2026-08-02T12:41:56.438012+00:00"
+    },
+    {
+      "id": "e3d645d3-766c-49cb-937c-b8a71b97d28e",
+      "name": "Kasi Frontliner",
+      "parent_id": "e077ac7d-03bf-439b-9f20-ea8b1fc49e92",
+      "dotted_parent_id": null,
+      "level_id": "d8d2e9cf-2107-4d4d-a942-ec6303f29b61",
+      "order": 0,
+      "created_at": "2026-08-02T12:42:13.444648+00:00",
+      "updated_at": "2026-08-02T12:42:13.444655+00:00"
+    },
+    {
+      "id": "814c2668-4d27-4dc4-84c6-2a33762e34a0",
+      "name": "Kasi Keuangan dan Akuntansi",
+      "parent_id": "e077ac7d-03bf-439b-9f20-ea8b1fc49e92",
+      "dotted_parent_id": null,
+      "level_id": "d8d2e9cf-2107-4d4d-a942-ec6303f29b61",
+      "order": 0,
+      "created_at": "2026-08-02T12:42:24.527462+00:00",
+      "updated_at": "2026-08-02T12:42:24.527469+00:00"
+    },
+    {
+      "id": "dcf23176-18be-4970-8565-77f5f2dc021a",
+      "name": "Kepala Kantor Kas",
+      "parent_id": "e077ac7d-03bf-439b-9f20-ea8b1fc49e92",
+      "dotted_parent_id": null,
+      "level_id": "d8d2e9cf-2107-4d4d-a942-ec6303f29b61",
+      "order": 0,
+      "created_at": "2026-08-02T12:42:34.357975+00:00",
+      "updated_at": "2026-08-02T12:42:34.357981+00:00"
+    },
+    {
+      "id": "9c7d9051-e9b2-41a5-ae30-b4696f6a713b",
+      "name": "Kasi Pendanaan",
+      "parent_id": "51205bd6-f454-4805-8d04-4c9d5ee8b861",
+      "dotted_parent_id": null,
+      "level_id": "d8d2e9cf-2107-4d4d-a942-ec6303f29b61",
+      "order": 0,
+      "created_at": "2026-08-02T12:42:43.449539+00:00",
+      "updated_at": "2026-08-02T12:42:43.449547+00:00"
+    },
+    {
+      "id": "682af777-ac24-4839-8005-0b81bb7190d8",
+      "name": "Kasi Kredit",
+      "parent_id": "e3fb049c-218b-4f17-aef3-69c1f0e7a917",
+      "dotted_parent_id": null,
+      "level_id": "d8d2e9cf-2107-4d4d-a942-ec6303f29b61",
+      "order": 0,
+      "created_at": "2026-08-02T12:42:57.152019+00:00",
+      "updated_at": "2026-08-02T12:42:57.152027+00:00"
+    },
+    {
+      "id": "6d858927-5ab3-4a36-ad9c-b281af696b44",
+      "name": "Kasi Remedial",
+      "parent_id": "e3fb049c-218b-4f17-aef3-69c1f0e7a917",
+      "dotted_parent_id": null,
+      "level_id": "d8d2e9cf-2107-4d4d-a942-ec6303f29b61",
+      "order": 0,
+      "created_at": "2026-08-02T12:43:07.338337+00:00",
+      "updated_at": "2026-08-02T12:43:07.338343+00:00"
+    },
+    {
+      "id": "df5fa97b-6f13-4635-ae23-52216398b427",
+      "name": "Kasi Administrasi Kredit",
+      "parent_id": "4e05279d-5591-45c2-bd63-015c5138cfbb",
+      "dotted_parent_id": null,
+      "level_id": "d8d2e9cf-2107-4d4d-a942-ec6303f29b61",
+      "order": 0,
+      "created_at": "2026-08-02T12:43:17.318383+00:00",
+      "updated_at": "2026-08-02T12:43:17.318389+00:00"
+    },
+    {
+      "id": "8d92b295-4e89-43c4-b1fd-0c6d5fe21abb",
+      "name": "Kasi Analis",
+      "parent_id": "4e05279d-5591-45c2-bd63-015c5138cfbb",
+      "dotted_parent_id": null,
+      "level_id": "d8d2e9cf-2107-4d4d-a942-ec6303f29b61",
+      "order": 0,
+      "created_at": "2026-08-02T12:43:30.740572+00:00",
+      "updated_at": "2026-08-02T12:43:30.740577+00:00"
+    },
+    {
+      "id": "eb75e792-b34b-43cc-91a2-b78d88859b78",
+      "name": "Kasi Umum",
+      "parent_id": "548df1f3-f511-49bf-b916-287029e54f75",
+      "dotted_parent_id": null,
+      "level_id": "d8d2e9cf-2107-4d4d-a942-ec6303f29b61",
+      "order": 0,
+      "created_at": "2026-08-02T12:43:45.620747+00:00",
+      "updated_at": "2026-08-02T12:43:45.620752+00:00"
+    },
+    {
+      "id": "c2e9c592-61d3-4ace-8c3f-f3ada9a2891b",
+      "name": "Kasi Rekrutmen & Development",
+      "parent_id": "548df1f3-f511-49bf-b916-287029e54f75",
+      "dotted_parent_id": null,
+      "level_id": "d8d2e9cf-2107-4d4d-a942-ec6303f29b61",
+      "order": 0,
+      "created_at": "2026-08-02T12:43:52.798965+00:00",
+      "updated_at": "2026-08-02T12:43:52.798971+00:00"
+    },
+    {
+      "id": "9384fcd4-a1cf-4ae9-aa4a-1ec397a74723",
+      "name": "Teller",
+      "parent_id": "e3d645d3-766c-49cb-937c-b8a71b97d28e",
+      "dotted_parent_id": null,
+      "level_id": "419688d4-79be-413b-b3f9-902461a14135",
+      "order": 0,
+      "created_at": "2026-08-02T12:44:11.125332+00:00",
+      "updated_at": "2026-08-02T12:44:11.125340+00:00"
+    },
+    {
+      "id": "c98197df-b071-4a3b-9f77-0bcbd5326f6e",
+      "name": "Customer Service",
+      "parent_id": "e3d645d3-766c-49cb-937c-b8a71b97d28e",
+      "dotted_parent_id": null,
+      "level_id": "419688d4-79be-413b-b3f9-902461a14135",
+      "order": 0,
+      "created_at": "2026-08-02T12:44:20.236520+00:00",
+      "updated_at": "2026-08-02T12:44:20.236528+00:00"
+    },
+    {
+      "id": "5a4d350c-030d-4e90-96e3-c41ce815f3a6",
+      "name": "Akunting",
+      "parent_id": "814c2668-4d27-4dc4-84c6-2a33762e34a0",
+      "dotted_parent_id": null,
+      "level_id": "419688d4-79be-413b-b3f9-902461a14135",
+      "order": 0,
+      "created_at": "2026-08-02T12:44:28.287088+00:00",
+      "updated_at": "2026-08-02T12:44:28.287095+00:00"
+    },
+    {
+      "id": "11fe7f44-a1cb-49e6-968f-5754f484ea1d",
+      "name": "Costumer Care",
+      "parent_id": "e077ac7d-03bf-439b-9f20-ea8b1fc49e92",
+      "dotted_parent_id": null,
+      "level_id": "419688d4-79be-413b-b3f9-902461a14135",
+      "order": 0,
+      "created_at": "2026-08-02T12:44:41.728770+00:00",
+      "updated_at": "2026-08-02T12:44:41.728776+00:00"
+    },
+    {
+      "id": "0ea3a9a8-5543-494b-a997-fccac485b0b3",
+      "name": "Staff Kepatuhan Manajemen Risiko",
+      "parent_id": "7674048e-6e36-4f28-b990-54adce3bc16f",
+      "dotted_parent_id": null,
+      "level_id": "419688d4-79be-413b-b3f9-902461a14135",
+      "order": 0,
+      "created_at": "2026-08-02T12:44:49.818128+00:00",
+      "updated_at": "2026-08-02T12:44:49.818133+00:00"
+    },
+    {
+      "id": "3ed8174d-70ea-4970-b2f0-e6bac1f6dfe2",
+      "name": "Staff Kepatuhan APU-PPT PPPSPM",
+      "parent_id": "7674048e-6e36-4f28-b990-54adce3bc16f",
+      "dotted_parent_id": null,
+      "level_id": "419688d4-79be-413b-b3f9-902461a14135",
+      "order": 0,
+      "created_at": "2026-08-02T12:44:58.251919+00:00",
+      "updated_at": "2026-08-02T12:44:58.251926+00:00"
+    },
+    {
+      "id": "7030830d-b92d-497e-890b-79de568c398c",
+      "name": "Collection Funding Officer",
+      "parent_id": "9c7d9051-e9b2-41a5-ae30-b4696f6a713b",
+      "dotted_parent_id": null,
+      "level_id": "419688d4-79be-413b-b3f9-902461a14135",
+      "order": 0,
+      "created_at": "2026-08-02T12:45:07.246597+00:00",
+      "updated_at": "2026-08-02T12:45:07.246605+00:00"
+    },
+    {
+      "id": "df696842-fb12-489e-b45a-f47b06b00027",
+      "name": "AO Funding",
+      "parent_id": "9c7d9051-e9b2-41a5-ae30-b4696f6a713b",
+      "dotted_parent_id": null,
+      "level_id": "419688d4-79be-413b-b3f9-902461a14135",
+      "order": 0,
+      "created_at": "2026-08-02T12:45:14.736821+00:00",
+      "updated_at": "2026-08-02T12:45:14.736827+00:00"
+    },
+    {
+      "id": "dcb40ea3-ebe0-45c8-a770-eb025a975633",
+      "name": "AO Kredit",
+      "parent_id": "682af777-ac24-4839-8005-0b81bb7190d8",
+      "dotted_parent_id": null,
+      "level_id": "419688d4-79be-413b-b3f9-902461a14135",
+      "order": 0,
+      "created_at": "2026-08-02T12:45:23.647038+00:00",
+      "updated_at": "2026-08-02T12:45:23.647043+00:00"
+    },
+    {
+      "id": "4198efc9-288a-457d-ba80-98d7ffa0102d",
+      "name": "Staff Remedial",
+      "parent_id": "6d858927-5ab3-4a36-ad9c-b281af696b44",
+      "dotted_parent_id": null,
+      "level_id": "419688d4-79be-413b-b3f9-902461a14135",
+      "order": 0,
+      "created_at": "2026-08-02T12:45:40.282985+00:00",
+      "updated_at": "2026-08-02T12:45:40.282991+00:00"
+    },
+    {
+      "id": "7c2942bf-1dad-45df-8de1-bc2c6878406d",
+      "name": "Staff Legal",
+      "parent_id": "e3fb049c-218b-4f17-aef3-69c1f0e7a917",
+      "dotted_parent_id": null,
+      "level_id": "419688d4-79be-413b-b3f9-902461a14135",
+      "order": 0,
+      "created_at": "2026-08-02T12:45:50.151746+00:00",
+      "updated_at": "2026-08-02T12:45:50.151753+00:00"
+    },
+    {
+      "id": "b4a6edaa-3d7d-4fb7-9b32-2c9742f17135",
+      "name": "Staff Administrasi Kredit",
+      "parent_id": "df5fa97b-6f13-4635-ae23-52216398b427",
+      "dotted_parent_id": null,
+      "level_id": "419688d4-79be-413b-b3f9-902461a14135",
+      "order": 0,
+      "created_at": "2026-08-02T12:46:02.989633+00:00",
+      "updated_at": "2026-08-02T12:46:02.989638+00:00"
+    },
+    {
+      "id": "0f698ba7-97bc-460f-9a42-e1d98cf682e2",
+      "name": "Staff Analis",
+      "parent_id": "8d92b295-4e89-43c4-b1fd-0c6d5fe21abb",
+      "dotted_parent_id": null,
+      "level_id": "419688d4-79be-413b-b3f9-902461a14135",
+      "order": 0,
+      "created_at": "2026-08-02T12:46:11.705686+00:00",
+      "updated_at": "2026-08-02T12:46:11.705693+00:00"
+    },
+    {
+      "id": "94464036-c4a8-456c-a126-0c0e96f6955e",
+      "name": "Staff Jaringan Sistem Operasi",
+      "parent_id": "a38f7609-950f-41d8-8021-ddf2935001e4",
+      "dotted_parent_id": null,
+      "level_id": "419688d4-79be-413b-b3f9-902461a14135",
+      "order": 0,
+      "created_at": "2026-08-02T12:46:22.724477+00:00",
+      "updated_at": "2026-08-02T12:46:22.724485+00:00"
+    },
+    {
+      "id": "87c50d46-f515-428a-ba2c-3bf396b46f37",
+      "name": "Staff System Development",
+      "parent_id": "a38f7609-950f-41d8-8021-ddf2935001e4",
+      "dotted_parent_id": null,
+      "level_id": "419688d4-79be-413b-b3f9-902461a14135",
+      "order": 0,
+      "created_at": "2026-08-02T12:46:30.371382+00:00",
+      "updated_at": "2026-08-02T12:46:30.371390+00:00"
+    },
+    {
+      "id": "8a6c0ff0-42b1-466d-b76f-2cef199ddba2",
+      "name": "Staff Digital Marketing",
+      "parent_id": "a38f7609-950f-41d8-8021-ddf2935001e4",
+      "dotted_parent_id": null,
+      "level_id": "419688d4-79be-413b-b3f9-902461a14135",
+      "order": 0,
+      "created_at": "2026-08-02T12:46:38.291186+00:00",
+      "updated_at": "2026-08-02T12:46:38.291193+00:00"
+    },
+    {
+      "id": "c3e41da4-5ad8-46b4-973d-b6e87cb9e349",
+      "name": "Staff Electronic Data Processing",
+      "parent_id": "a38f7609-950f-41d8-8021-ddf2935001e4",
+      "dotted_parent_id": null,
+      "level_id": "419688d4-79be-413b-b3f9-902461a14135",
+      "order": 0,
+      "created_at": "2026-08-02T12:47:06.619414+00:00",
+      "updated_at": "2026-08-02T12:47:06.619420+00:00"
+    },
+    {
+      "id": "bdae9cde-a7eb-4b29-ac85-2ed9e2044cfe",
+      "name": "Staff Umum",
+      "parent_id": "eb75e792-b34b-43cc-91a2-b78d88859b78",
+      "dotted_parent_id": null,
+      "level_id": "419688d4-79be-413b-b3f9-902461a14135",
+      "order": 0,
+      "created_at": "2026-08-02T12:47:15.913319+00:00",
+      "updated_at": "2026-08-02T12:47:15.913323+00:00"
+    },
+    {
+      "id": "f4bcd039-22d4-4cf6-94c0-6c4cdf6810da",
+      "name": "Satpam",
+      "parent_id": "eb75e792-b34b-43cc-91a2-b78d88859b78",
+      "dotted_parent_id": null,
+      "level_id": "419688d4-79be-413b-b3f9-902461a14135",
+      "order": 0,
+      "created_at": "2026-08-02T12:47:24.962733+00:00",
+      "updated_at": "2026-08-02T12:47:24.962740+00:00"
+    },
+    {
+      "id": "987d5105-f976-4c78-8d84-be40143d914c",
+      "name": "Driver",
+      "parent_id": "eb75e792-b34b-43cc-91a2-b78d88859b78",
+      "dotted_parent_id": null,
+      "level_id": "419688d4-79be-413b-b3f9-902461a14135",
+      "order": 0,
+      "created_at": "2026-08-02T12:47:38.223132+00:00",
+      "updated_at": "2026-08-02T12:47:38.223137+00:00"
+    },
+    {
+      "id": "464f088a-7d41-416c-a0f7-1b349f9ce6ac",
+      "name": "Staff Admin SDM",
+      "parent_id": "c2e9c592-61d3-4ace-8c3f-f3ada9a2891b",
+      "dotted_parent_id": null,
+      "level_id": "419688d4-79be-413b-b3f9-902461a14135",
+      "order": 0,
+      "created_at": "2026-08-02T12:48:59.017696+00:00",
+      "updated_at": "2026-08-02T12:48:59.017702+00:00"
+    },
+    {
+      "id": "f980df98-a2f2-41ee-b306-987b82eb6cfd",
+      "name": "Staff Audit Intern",
+      "parent_id": "db2583ba-baa3-49a0-b7a3-29344b64cdd1",
+      "dotted_parent_id": null,
+      "level_id": "419688d4-79be-413b-b3f9-902461a14135",
+      "order": 0,
+      "created_at": "2026-08-02T12:49:07.702889+00:00",
+      "updated_at": "2026-08-02T12:49:07.702894+00:00"
+    }
+  ],
+  "offices": [
+    {
+      "id": "e9471b65-da74-4394-835a-3234330c9bde",
+      "code": "KP-PMK",
+      "name": "Pamanukan",
+      "address": "Jl. H. Iksan No.89 Mulyasari Pamanukan",
+      "telephone": "(0260) 550500",
+      "longitude": 107.820866,
+      "latitude": -6.286353,
+      "radius": 50.0,
+      "note": "1.100.2.2",
+      "created_at": "2026-08-01T12:40:39.780921+00:00",
+      "updated_at": "2026-08-01T12:41:23.405057+00:00"
+    },
+    {
+      "id": "4587ada8-4aaa-4f34-bbcd-72a4655573a6",
+      "code": "KK-CGK",
+      "name": "Jalancagak",
+      "address": "Jl. Raya Jalancagak No.54, RT 10 RW002 Jalancagak",
+      "telephone": "(0260) 472660",
+      "longitude": 107.687477,
+      "latitude": -6.678356,
+      "radius": 50.0,
+      "note": "1.100.4.01",
+      "created_at": "2026-08-01T12:41:19.452833+00:00",
+      "updated_at": "2026-08-01T12:41:43.589493+00:00"
+    },
+    {
+      "id": "00391ba0-9a11-4d66-8714-91b644b5a3c5",
+      "code": "KK-SBG",
+      "name": "Subang",
+      "address": "Jl. Oto Iskandardinata No.73 Subang",
+      "telephone": "(0260) 412449",
+      "longitude": 107.76650632954036,
+      "latitude": -6.56371289779991,
+      "radius": 50.0,
+      "note": "1.100.4.02",
+      "created_at": "2026-08-01T12:42:14.317565+00:00",
+      "updated_at": "2026-08-01T12:42:14.317568+00:00"
+    },
+    {
+      "id": "0b1d720b-8d37-4d4d-ba32-f1459ddf3483",
+      "code": "KS-SKM",
+      "name": "Sukamandi",
+      "address": "Jl. Ahmad Yani No.7 Ciasem",
+      "telephone": "(0260) 523170",
+      "longitude": 107.66646,
+      "latitude": -6.338422,
+      "radius": 50.0,
+      "note": "1.100.4.03",
+      "created_at": "2026-08-01T12:42:48.912440+00:00",
+      "updated_at": "2026-08-01T12:42:48.912443+00:00"
+    },
+    {
+      "id": "82d4746b-42f9-4f66-8fde-dbbd69daa419",
+      "code": "KK-PGD",
+      "name": "Pagaden",
+      "address": "Jl. Kamarung Selatan RT 37 RW 10 Pagaden",
+      "telephone": "(0260) 450400",
+      "longitude": 107.81163645767195,
+      "latitude": -6.459625199999994,
+      "radius": 50.0,
+      "note": "1.100.4.04",
+      "created_at": "2026-08-01T12:43:26.624476+00:00",
+      "updated_at": "2026-08-01T12:43:26.624480+00:00"
+    },
+    {
+      "id": "ef002bfd-e611-4a77-97c1-d32621f27f07",
+      "code": "KK-KJT",
+      "name": "Kalijati",
+      "address": "Kp Babakan Bandung RT/RW  009/03 Kalijati Barat, Kalijati",
+      "telephone": "(0260) 4641126",
+      "longitude": 107.672142,
+      "latitude": -6.52093,
+      "radius": 50.0,
+      "note": "1.100.4.05",
+      "created_at": "2026-08-01T12:44:27.184310+00:00",
+      "updated_at": "2026-08-01T12:44:27.184313+00:00"
+    },
+    {
+      "id": "e963908b-f54f-48d0-a4bd-7749a98a346a",
+      "code": "KK-PSK",
+      "name": "Pusakajaya",
+      "address": "Jl. Raya Pantura Pusakanagara",
+      "telephone": "(0260) 550500",
+      "longitude": 107.87405846668649,
+      "latitude": -6.284570038713936,
+      "radius": 50.0,
+      "note": "1.100.4.06",
+      "created_at": "2026-08-01T12:45:00.922238+00:00",
+      "updated_at": "2026-08-01T12:45:00.922242+00:00"
+    }
+  ],
+  "users": [
+    {
+      "id": "f1222c03-dc28-452b-bf68-4d559613d7b3",
+      "name": "Super Admin",
+      "email": "sa@bprbangunarta.co.id",
+      "username": "superadmin",
+      "phone": null,
+      "role_id": "5834dfec-6d80-467b-a330-7f8c24cfb83c",
+      "office_id": "e9471b65-da74-4394-835a-3234330c9bde",
+      "alias": null,
+      "mso_code": null,
+      "collector_code": null,
+      "device_identifier": null,
+      "device_name": null,
+      "device_os": null,
+      "fcm_token": null,
+      "password": "$2b$12$3Ft6lH64ejireIp29HfI0uz8ulr1Ojnf0I1iRFTyMLu43Jycvejee",
+      "password_history": [
+        "$2b$12$3Ft6lH64ejireIp29HfI0uz8ulr1Ojnf0I1iRFTyMLu43Jycvejee",
+        "$2b$12$OA/e8L.p64mgIsHX1ySE3OZWmya5CnXHjPavTnI.JKyKbdcFNPb4G"
+      ],
+      "password_changed_at": "2026-08-02T12:26:42.798675+00:00",
+      "password_expires_at": "2026-10-31T12:26:42.798675+00:00",
+      "must_change_password": false,
+      "is_admin": true,
+      "deleted_at": null,
+      "created_at": "2026-08-01T06:47:33.647146+00:00",
+      "updated_at": "2026-08-02T12:26:42.798675+00:00",
+      "user_id": 1,
+      "is_active": true
+    }
+  ],
+  "broadcast_configs": [
+    {
+      "config": {
+        "bot_token": "6823377898:AAEJvjUc5cFtuzXKKyU5EXNLaQdaK0xCtZ0",
+        "chat_id": "-1002137699003",
+        "message_thread_id": "3180"
+      },
+      "status": "configured",
+      "last_error": null,
+      "updated_at": "2026-08-02T12:20:24.982973+00:00",
+      "id": "0166ddbb-bde4-48de-bfdd-4a5228fcedbb",
+      "key": "telegram",
+      "created_at": "2026-08-01T12:33:21.616011+00:00",
+      "last_tested_at": "2026-08-02T12:20:23.935466+00:00"
+    },
+    {
+      "config": {
+        "host": "smtp.gmail.com",
+        "port": 587,
+        "username": "noreply@bprbangunarta.co.id",
+        "password": "ilbj rfen dfxx pawo",
+        "from_address": "noreply@bprbangunarta.co.id",
+        "from_name": "BPR Bangunarta",
+        "use_tls": false,
+        "starttls": true
+      },
+      "status": "configured",
+      "last_error": null,
+      "updated_at": "2026-08-02T12:20:33.302778+00:00",
+      "id": "42b934d6-1c70-4fb7-8485-7df4028428ee",
+      "key": "email",
+      "created_at": "2026-08-01T12:34:50.048198+00:00",
+      "last_tested_at": "2026-08-02T12:20:32.456611+00:00"
+    },
+    {
+      "config": {
+        "webhook_url": "https://discord.com/api/webhooks/FAKE/FAKE"
+      },
+      "status": "configured",
+      "last_error": null,
+      "updated_at": "2026-08-02T04:31:47.372890+00:00",
+      "id": "ee69a88a-7ba4-4e1b-bd06-943134cb58b0",
+      "key": "discord",
+      "created_at": "2026-08-01T14:34:10.104432+00:00"
+    },
+    {
+      "config": {},
+      "status": "not_configured",
+      "last_error": null,
+      "updated_at": "2026-08-01T23:53:36.769914+00:00",
+      "id": "af93f815-665a-4b85-bfcd-73396a0c2843",
+      "key": "slack",
+      "created_at": "2026-08-01T14:34:15.044644+00:00"
+    },
+    {
+      "config": {
+        "url": "https://invalid.invalid/hook",
+        "header_name": "",
+        "header_value": "SUPERSECRET"
+      },
+      "status": "configured",
+      "last_error": null,
+      "updated_at": "2026-08-02T04:31:36.273830+00:00",
+      "id": "2491d864-648d-4596-b684-7418a85e4812",
+      "key": "webhook",
+      "created_at": "2026-08-01T14:34:17.019395+00:00"
+    }
+  ],
+  "email_templates": [
+    {
+      "key": "password_reset",
+      "subject": "Reset your password - Authty: BPR Bangunarta",
+      "updated_at": "2026-08-02T12:21:00.038872+00:00",
+      "body_html": "<div style=\"font-family:Arial,Helvetica,sans-serif;max-width:520px;margin:0 auto;padding:24px;color:#111\"><h2 style=\"margin:0 0 16px;font-size:20px\">Reset your {{app_name}} password</h2><p style=\"margin:0 0 12px;font-size:14px;line-height:1.6\">Hi {{user_name}},</p><p style=\"margin:0 0 20px;font-size:14px;line-height:1.6\">We received a request to reset your password. Click the button below to choose a new one. This link expires in <strong>{{expiry_minutes}} minutes</strong>.</p><p style=\"margin:0 0 24px\"><a href=\"{{reset_link}}\" style=\"background:#111;color:#fff;text-decoration:none;padding:12px 20px;border-radius:6px;font-size:14px;display:inline-block\">Reset password</a></p><p style=\"margin:0 0 8px;font-size:12px;color:#666;line-height:1.6\">If the button doesn't work, copy and paste this link into your browser:</p><p style=\"margin:0 0 20px;font-size:12px;word-break:break-all\"><a {{reset_link}}href=\"{{reset_link}}\">{{reset_link}}</a></p><p style=\"margin:0 0 20px;font-size:12px;color:#666;line-height:1.6\">If you didn't request this, you can safely ignore this email — your password won't change.</p><hr style=\"border:none;border-top:1px solid #eee;margin:20px 0\"/><p style=\"margin:0;font-size:11px;color:#999\">{{copyright_text}}</p></div>",
+      "enabled": true
+    },
+    {
+      "key": "account_verification",
+      "body_html": "<div style=\"font-family:Arial,Helvetica,sans-serif;max-width:520px;margin:0 auto;padding:24px;color:#111\"><h2 style=\"margin:0 0 16px;font-size:20px\">Welcome to {{app_name}}, {{user_name}}!</h2><p style=\"margin:0 0 12px;font-size:14px;line-height:1.6\">Your account has been created. You can now sign in and start using {{app_name}}.</p><p style=\"margin:0 0 24px\"><a href=\"{{login_url}}\" style=\"background:#111;color:#fff;text-decoration:none;padding:12px 20px;border-radius:6px;font-size:14px;display:inline-block\">Sign in</a></p><p style=\"margin:0 0 8px;font-size:12px;color:#666;line-height:1.6\">If the button doesn't work, copy and paste this link into your browser:</p><p style=\"margin:0 0 20px;font-size:12px;word-break:break-all\"><a href=\"{{login_url}}\">{{login_url}}</a></p><p style=\"margin:0 0 20px;font-size:12px;color:#666;line-height:1.6\">Need help? Reach us at <a href=\"mailto:{{support_email}}\">{{support_email}}</a>.</p><hr style=\"border:none;border-top:1px solid #eee;margin:20px 0\"/><p style=\"margin:0;font-size:11px;color:#999\">{{copyright_text}}</p></div>",
+      "enabled": true,
+      "subject": "{{app_name}}: BPR Bangunarta",
+      "updated_at": "2026-08-02T04:33:56.872445+00:00"
+    }
+  ],
+  "branding": [
+    {
+      "app_name": "Authty",
+      "tagline": "Secure Identity",
+      "meta_description": "Manage authentication for all your apps from one place with Authty. Supports centralized login, high security, and user access management.",
+      "meta_keywords": "authty, bangunarta",
+      "og_title": "Authty: Secure Identity",
+      "og_description": "Manage authentication for all your apps from one place with Authty. Supports centralized login, high security, and user access management.",
+      "site_url": "https://ui-rules.preview.emergentagent.com",
+      "canonical_url": "https://auth.bprbangunarta.co.id",
+      "allow_indexing": false,
+      "support_email": "info@bprbangunarta.co.id",
+      "copyright_text": "@ 2026 BPR Bangunarta. All Rights Reserved.",
+      "updated_at": "2026-08-02T12:20:07.754216+00:00",
+      "key": "branding",
+      "created_at": "2026-08-01T12:25:06.376745+00:00",
+      "assets": {
+        "favicon": {
+          "file_id": "6a6f35d6bfbf37a8d492eff9",
+          "filename": "Logo.png",
+          "content_type": "image/png"
+        }
+      }
+    }
+  ]
+}

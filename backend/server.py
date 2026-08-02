@@ -105,7 +105,7 @@ def _error_body(request, status_code: int, detail, code: Optional[str] = None) -
 
 
 async def _auto_seed_if_empty():
-    """Insert sample data only when all CMS collections are empty (idempotent)."""
+    """Insert the default snapshot only when all CMS collections are empty (idempotent)."""
     counts = [
         await db.offices.count_documents({}),
         await db.roles.count_documents({}),
@@ -115,21 +115,16 @@ async def _auto_seed_if_empty():
     if any(counts):
         logger.info("Auto-seed skipped: existing data present.")
         return
-    from seed_data import build_documents  # local import: avoids CLI deps at module load
+    from seed_data import load_seed_snapshot, SEED_COLLECTIONS  # local import
 
-    levels, roles, offices, users = build_documents()
-    if levels:
-        await db.levels.insert_many(levels)
-    if roles:
-        await db.roles.insert_many(roles)
-    if offices:
-        await db.offices.insert_many(offices)
-    if users:
-        await db.users.insert_many(users)
-    logger.info(
-        "Auto-seed: inserted %d levels, %d roles, %d offices, %d users (empty DB).",
-        len(levels), len(roles), len(offices), len(users),
-    )
+    snap = load_seed_snapshot()
+    summary = {}
+    for coll in SEED_COLLECTIONS:
+        docs = snap.get(coll) or []
+        if docs:
+            await db[coll].insert_many([dict(d) for d in docs])
+        summary[coll] = len(docs)
+    logger.info("Auto-seed from snapshot (empty DB): %s", summary)
 
 
 async def _seed_admin():
