@@ -1,12 +1,16 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   AlertTriangle,
+  CalendarClock,
+  Cloud,
   Download,
   DatabaseBackup,
   HardDriveDownload,
   Loader2,
   RefreshCw,
   RotateCcw,
+  Save,
+  Trash2,
   Upload,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -18,8 +22,22 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Separator } from "@/components/ui/separator";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   Dialog,
   DialogBody,
@@ -30,6 +48,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -45,6 +70,16 @@ const BACKUP_SORT = {
   total: (b) => b.total ?? 0,
   size: (b) => b.size ?? 0,
 };
+
+const WEEKDAYS = [
+  { value: "0", label: "Monday" },
+  { value: "1", label: "Tuesday" },
+  { value: "2", label: "Wednesday" },
+  { value: "3", label: "Thursday" },
+  { value: "4", label: "Friday" },
+  { value: "5", label: "Saturday" },
+  { value: "6", label: "Sunday" },
+];
 
 const formatBytes = (n) => {
   if (!n && n !== 0) return "—";
@@ -78,12 +113,19 @@ export default function DatabasePage() {
   const [file, setFile] = useState(null);
   const fileRef = useRef(null);
 
+  // Backup settings (retention / schedule / S3)
+  const [settings, setSettings] = useState(null);
+  const [savingSettings, setSavingSettings] = useState(false);
+  const [testingS3, setTestingS3] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleting, setDeleting] = useState(false);
+
   // Restore dialog state
   const [restoreOpen, setRestoreOpen] = useState(false);
-  const [source, setSource] = useState(null); // {type:'upload'|'server', file?, id?, filename?}
-  const [verify, setVerify] = useState(null); // verification summary
+  const [source, setSource] = useState(null);
+  const [verify, setVerify] = useState(null);
   const [mode, setMode] = useState("update");
-  const [phase, setPhase] = useState("idle"); // idle | verifying | applying
+  const [phase, setPhase] = useState("idle");
 
   const fetchBackups = useCallback(async () => {
     setStatus("loading");
@@ -96,25 +138,85 @@ export default function DatabasePage() {
     }
   }, []);
 
+  const fetchSettings = useCallback(async () => {
+    try {
+      const res = await API.get("/database/settings");
+      setSettings(res.data);
+    } catch {
+      /* settings are optional; leave null on failure */
+    }
+  }, []);
+
   useEffect(() => {
     fetchBackups();
-  }, [fetchBackups]);
+    fetchSettings();
+  }, [fetchBackups, fetchSettings]);
+
+  const setField = (key, value) => setSettings((s) => ({ ...s, [key]: value }));
+
+  const saveSettings = async () => {
+    setSavingSettings(true);
+    try {
+      const payload = {
+        retention_count: Number(settings.retention_count) || 7,
+        schedule_enabled: settings.schedule_enabled,
+        schedule_interval: settings.schedule_interval,
+        schedule_time: settings.schedule_time,
+        schedule_weekday: Number(settings.schedule_weekday) || 0,
+        s3_enabled: settings.s3_enabled,
+        s3_endpoint_url: settings.s3_endpoint_url,
+        s3_region: settings.s3_region,
+        s3_bucket: settings.s3_bucket,
+        s3_access_key_id: settings.s3_access_key_id,
+        s3_prefix: settings.s3_prefix,
+      };
+      if (settings.s3_secret_access_key) payload.s3_secret_access_key = settings.s3_secret_access_key;
+      const res = await API.put("/database/settings", payload);
+      setSettings(res.data);
+      toast.success("Backup settings saved");
+    } catch {
+      toast.error("Could not save settings. Please try again.");
+    } finally {
+      setSavingSettings(false);
+    }
+  };
+
+  const testS3 = async () => {
+    setTestingS3(true);
+    try {
+      const body = {
+        s3_endpoint_url: settings.s3_endpoint_url,
+        s3_region: settings.s3_region,
+        s3_bucket: settings.s3_bucket,
+        s3_access_key_id: settings.s3_access_key_id,
+        s3_prefix: settings.s3_prefix,
+      };
+      if (settings.s3_secret_access_key) body.s3_secret_access_key = settings.s3_secret_access_key;
+      const { data } = await API.post("/database/s3/test", body);
+      if (data.ok) toast.success(data.message || "S3 connection OK");
+      else toast.error(data.error || "S3 connection failed");
+    } catch {
+      toast.error("S3 test failed. Please try again.");
+    } finally {
+      setTestingS3(false);
+    }
+  };
 
   const createBackup = async () => {
     setBackingUp(true);
     try {
       const { data } = await API.post("/database/backup");
       toast.success("Backup created", {
-        description: `${data.filename} — ${data.total} documents (${formatBytes(data.size)})`,
+        description: `${data.filename} — ${data.total} documents (${formatBytes(data.size)})${data.s3_key ? " · uploaded to S3" : ""}`,
       });
-      // also download the just-created file
       try {
         const dl = await API.get(`/database/backups/${data.id}/download`, { responseType: "blob" });
         downloadBlob(dl.data, data.filename);
       } catch {
-        /* download is best-effort; file is safely stored on the server */
+        /* download is best-effort */
       }
       fetchBackups();
+      fetchSettings();
     } catch {
       toast.error("Backup failed. Please try again.");
     } finally {
@@ -131,7 +233,21 @@ export default function DatabasePage() {
     }
   };
 
-  // Open the restore dialog for a given source and run verification (dry-run).
+  const confirmDeleteBackup = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      await API.delete(`/database/backups/${deleteTarget.id}`);
+      toast.success("Backup deleted", { description: deleteTarget.filename });
+      setDeleteTarget(null);
+      fetchBackups();
+    } catch {
+      toast.error("Delete failed. Please try again.");
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   const openRestore = async (src) => {
     setSource(src);
     setMode("update");
@@ -203,8 +319,8 @@ export default function DatabasePage() {
           </CardHeader>
           <CardContent className="flex-1">
             <p className="text-sm text-muted-foreground">
-              Create a full snapshot of the entire database. The file is stored on the server and
-              downloaded to your device.
+              Create a full snapshot of the entire database. The file is stored on the server
+              (and mirrored to S3 when configured) and downloaded to your device.
             </p>
           </CardContent>
           <CardFooter className="border-t pt-4">
@@ -248,7 +364,192 @@ export default function DatabasePage() {
         </Card>
       </div>
 
-      {/* Row 2: Backup history */}
+      {/* Row 2: Backup settings — retention, schedule, S3 */}
+      {settings && (
+        <Card data-testid="database-settings-card">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <CalendarClock className="size-4" /> Backup Settings
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-5">
+            {/* Retention */}
+            <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="retention">Keep last N backups</Label>
+                <Input
+                  id="retention"
+                  type="number"
+                  min={1}
+                  max={365}
+                  value={settings.retention_count ?? 7}
+                  onChange={(e) => setField("retention_count", e.target.value)}
+                  data-testid="settings-retention"
+                />
+                <p className="text-xs text-muted-foreground">Older backups are pruned automatically.</p>
+              </div>
+            </div>
+
+            <Separator />
+
+            {/* Schedule */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium">Scheduled backups</p>
+                  <p className="text-xs text-muted-foreground">Automatically run a backup on a recurring schedule (times are UTC).</p>
+                </div>
+                <Switch
+                  checked={!!settings.schedule_enabled}
+                  onCheckedChange={(v) => setField("schedule_enabled", v)}
+                  data-testid="settings-schedule-enabled"
+                  aria-label="Enable scheduled backups"
+                />
+              </div>
+              {settings.schedule_enabled && (
+                <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                  <div className="space-y-1.5">
+                    <Label>Interval</Label>
+                    <Select value={settings.schedule_interval} onValueChange={(v) => setField("schedule_interval", v)}>
+                      <SelectTrigger data-testid="settings-schedule-interval">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="hourly">Hourly</SelectItem>
+                        <SelectItem value="daily">Daily</SelectItem>
+                        <SelectItem value="weekly">Weekly</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {settings.schedule_interval !== "hourly" && (
+                    <div className="space-y-1.5">
+                      <Label htmlFor="sched-time">Time (HH:MM)</Label>
+                      <Input
+                        id="sched-time"
+                        type="time"
+                        value={settings.schedule_time || "02:00"}
+                        onChange={(e) => setField("schedule_time", e.target.value)}
+                        data-testid="settings-schedule-time"
+                      />
+                    </div>
+                  )}
+                  {settings.schedule_interval === "hourly" && (
+                    <div className="space-y-1.5">
+                      <Label htmlFor="sched-min">Minute</Label>
+                      <Input
+                        id="sched-min"
+                        type="number"
+                        min={0}
+                        max={59}
+                        value={(settings.schedule_time || "02:00").split(":")[1] || "0"}
+                        onChange={(e) => setField("schedule_time", `00:${String(e.target.value).padStart(2, "0")}`)}
+                        data-testid="settings-schedule-minute"
+                      />
+                    </div>
+                  )}
+                  {settings.schedule_interval === "weekly" && (
+                    <div className="space-y-1.5">
+                      <Label>Day of week</Label>
+                      <Select value={String(settings.schedule_weekday ?? 0)} onValueChange={(v) => setField("schedule_weekday", v)}>
+                        <SelectTrigger data-testid="settings-schedule-weekday">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {WEEKDAYS.map((d) => (
+                            <SelectItem key={d.value} value={d.value}>{d.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+                  <div className="space-y-1.5">
+                    <Label>Next run</Label>
+                    <div className="flex h-8 items-center rounded-md border px-3 text-sm text-muted-foreground" data-testid="settings-next-run">
+                      {formatTime(settings.next_run_at)}
+                    </div>
+                  </div>
+                </div>
+              )}
+              {settings.last_run_at && (
+                <p className="text-xs text-muted-foreground" data-testid="settings-last-run">
+                  Last run: {formatTime(settings.last_run_at)}
+                  {settings.last_status ? ` · ${settings.last_status}` : ""}
+                  {settings.last_error ? ` · ${settings.last_error}` : ""}
+                </p>
+              )}
+            </div>
+
+            <Separator />
+
+            {/* S3 */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="flex items-center gap-2 text-sm font-medium">
+                    <Cloud className="size-4" /> S3 storage
+                  </p>
+                  <p className="text-xs text-muted-foreground">Mirror each backup to AWS S3 or any S3-compatible bucket.</p>
+                </div>
+                <Switch
+                  checked={!!settings.s3_enabled}
+                  onCheckedChange={(v) => setField("s3_enabled", v)}
+                  data-testid="settings-s3-enabled"
+                  aria-label="Enable S3 backup"
+                />
+              </div>
+              {settings.s3_enabled && (
+                <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="s3-bucket">Bucket</Label>
+                    <Input id="s3-bucket" value={settings.s3_bucket || ""} onChange={(e) => setField("s3_bucket", e.target.value)} data-testid="settings-s3-bucket" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="s3-region">Region</Label>
+                    <Input id="s3-region" placeholder="us-east-1" value={settings.s3_region || ""} onChange={(e) => setField("s3_region", e.target.value)} data-testid="settings-s3-region" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="s3-endpoint">Endpoint URL</Label>
+                    <Input id="s3-endpoint" placeholder="Leave blank for AWS S3" value={settings.s3_endpoint_url || ""} onChange={(e) => setField("s3_endpoint_url", e.target.value)} data-testid="settings-s3-endpoint" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="s3-prefix">Prefix / folder path</Label>
+                    <Input id="s3-prefix" placeholder="backups/cms" value={settings.s3_prefix || ""} onChange={(e) => setField("s3_prefix", e.target.value)} data-testid="settings-s3-prefix" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="s3-access">Access key ID</Label>
+                    <Input id="s3-access" value={settings.s3_access_key_id || ""} onChange={(e) => setField("s3_access_key_id", e.target.value)} data-testid="settings-s3-access-key" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="s3-secret">Secret access key</Label>
+                    <Input
+                      id="s3-secret"
+                      type="password"
+                      placeholder={settings.s3_secret_access_key_set ? "Leave blank to keep current" : ""}
+                      value={settings.s3_secret_access_key || ""}
+                      onChange={(e) => setField("s3_secret_access_key", e.target.value)}
+                      data-testid="settings-s3-secret-key"
+                    />
+                  </div>
+                  <div className="flex items-end">
+                    <Button type="button" variant="outline" onClick={testS3} disabled={testingS3} data-testid="settings-s3-test">
+                      {testingS3 ? <Loader2 className="size-4 animate-spin" /> : <Cloud className="size-4" />}
+                      Test connection
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </CardContent>
+          <CardFooter className="border-t pt-4">
+            <Button onClick={saveSettings} disabled={savingSettings} data-testid="settings-save">
+              {savingSettings ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
+              Save settings
+            </Button>
+          </CardFooter>
+        </Card>
+      )}
+
+      {/* Row 3: Backup history */}
       <Card data-testid="database-history-card">
         <CardHeader className="flex flex-col gap-3 space-y-0 sm:flex-row sm:items-center sm:justify-between">
           <CardTitle className="text-base">Backup History</CardTitle>
@@ -295,6 +596,7 @@ export default function DatabasePage() {
                     <TableHead>
                       <SortHead label="Size" sortKey="size" sort={sort} onToggle={toggle} />
                     </TableHead>
+                    <TableHead>Storage</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -305,6 +607,15 @@ export default function DatabasePage() {
                       <TableCell className="text-muted-foreground">{formatTime(b.created_at)}</TableCell>
                       <TableCell>{b.total ?? "—"}</TableCell>
                       <TableCell className="text-muted-foreground">{formatBytes(b.size)}</TableCell>
+                      <TableCell>
+                        {b.s3_key ? (
+                          <Badge variant="secondary" className="font-normal" data-testid={`database-s3-badge-${b.id}`}>
+                            <Cloud className="size-3" /> S3
+                          </Badge>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">Server</span>
+                        )}
+                      </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-1">
                           <Button
@@ -323,6 +634,15 @@ export default function DatabasePage() {
                           >
                             <RotateCcw className="size-4" /> Restore
                           </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-destructive hover:text-destructive"
+                            onClick={() => setDeleteTarget(b)}
+                            data-testid={`database-delete-${b.id}`}
+                          >
+                            <Trash2 className="size-4" /> Delete
+                          </Button>
                         </div>
                       </TableCell>
                     </TableRow>
@@ -334,15 +654,40 @@ export default function DatabasePage() {
         </CardContent>
       </Card>
 
+      {/* Delete backup confirm */}
+      <AlertDialog open={!!deleteTarget} onOpenChange={(v) => !v && setDeleteTarget(null)}>
+        <AlertDialogContent data-testid="database-delete-dialog">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete backup?</AlertDialogTitle>
+          </AlertDialogHeader>
+          <div className="px-6 py-4 text-sm text-muted-foreground">
+            This permanently deletes <span className="font-medium text-foreground">{deleteTarget?.filename}</span>
+            {deleteTarget?.s3_key ? " from the server and S3." : " from the server."} This cannot be undone.
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-testid="database-delete-cancel">Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                confirmDeleteBackup();
+              }}
+              disabled={deleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              data-testid="database-delete-confirm"
+            >
+              {deleting ? <Loader2 className="size-4 animate-spin" /> : <Trash2 className="size-4" />} Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* Restore verify + confirm dialog */}
       <Dialog open={restoreOpen} onOpenChange={(v) => !busy && setRestoreOpen(v)}>
         <DialogContent className="sm:max-w-lg" data-testid="database-restore-dialog">
           <DialogHeader>
             <DialogTitle>Restore database</DialogTitle>
             <DialogDescription>
-              {source?.type === "upload"
-                ? source?.file?.name
-                : source?.filename}
+              {source?.type === "upload" ? source?.file?.name : source?.filename}
             </DialogDescription>
           </DialogHeader>
           <DialogBody className="space-y-4">

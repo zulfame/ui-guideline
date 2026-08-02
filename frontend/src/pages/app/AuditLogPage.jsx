@@ -2,10 +2,15 @@ import { useCallback, useEffect, useState } from "react";
 import {
   ChevronLeft,
   ChevronRight,
+  Download,
   Eye,
+  FileSpreadsheet,
+  FileText,
   FilterX,
+  Loader2,
   RefreshCw,
   Search,
+  Trash2,
 } from "lucide-react";
 
 import API from "@/lib/api";
@@ -15,15 +20,38 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Dialog,
   DialogBody,
+  DialogClose,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { AlertTriangle } from "lucide-react";
+import { toast } from "sonner";
+
+const downloadBlob = (blob, filename) => {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+};
 import {
   Select,
   SelectContent,
@@ -80,8 +108,22 @@ export default function AuditLogPage() {
   const toggleSort = (key) =>
     setSort((p) => (p.key === key ? { key, dir: p.dir === "asc" ? "desc" : "asc" } : { key, dir: "asc" }));
 
+  const [exporting, setExporting] = useState(false);
+  const [purgeOpen, setPurgeOpen] = useState(false);
+  const [purgeFrom, setPurgeFrom] = useState("");
+  const [purgeTo, setPurgeTo] = useState("");
+  const [purging, setPurging] = useState(false);
+
   const pageCount = Math.max(1, Math.ceil(total / pageSize));
   const hasFilters = q.trim() || dateFrom || dateTo;
+
+  const filterParams = useCallback(() => {
+    const params = {};
+    if (q.trim()) params.q = q.trim();
+    if (dateFrom) params.date_from = dateFrom;
+    if (dateTo) params.date_to = dateTo;
+    return params;
+  }, [q, dateFrom, dateTo]);
 
   const fetchLogs = useCallback(async () => {
     setStatus("loading");
@@ -114,14 +156,83 @@ export default function AuditLogPage() {
     setPage(0);
   };
 
+  const exportLogs = async (format) => {
+    setExporting(true);
+    try {
+      const params = { ...filterParams(), format };
+      const res = await API.get("/audit-logs/export", { params, responseType: "blob" });
+      const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "");
+      downloadBlob(res.data, `audit_log_${stamp}.${format === "xlsx" ? "xlsx" : "csv"}`);
+    } catch {
+      toast.error("Export failed. Please try again.");
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const openPurge = () => {
+    setPurgeFrom(dateFrom || "");
+    setPurgeTo(dateTo || "");
+    setPurgeOpen(true);
+  };
+
+  const runPurge = async () => {
+    if (!purgeFrom && !purgeTo) {
+      toast.error("Choose a from and/or to date to purge.");
+      return;
+    }
+    setPurging(true);
+    try {
+      const { data } = await API.post("/audit-logs/purge", {
+        date_from: purgeFrom || undefined,
+        date_to: purgeTo || undefined,
+      });
+      toast.success(`Purged ${data.deleted} audit entr${data.deleted === 1 ? "y" : "ies"}`);
+      setPurgeOpen(false);
+      setPage(0);
+      fetchLogs();
+    } catch (err) {
+      const detail = err?.response?.data?.detail;
+      toast.error(typeof detail === "string" ? detail : "Purge failed. Please try again.");
+    } finally {
+      setPurging(false);
+    }
+  };
+
   return (
     <div className="space-y-6" data-testid="audit-log-page">
       <Card>
         <CardHeader className="flex flex-col gap-3 space-y-0 sm:flex-row sm:items-center sm:justify-between">
           <CardTitle className="text-base">Activity List</CardTitle>
-          <Button variant="outline" size="sm" onClick={fetchLogs} data-testid="audit-refresh">
-            <RefreshCw className="size-4" /> Refresh
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" disabled={exporting} data-testid="audit-export">
+                  {exporting ? <Loader2 className="size-4 animate-spin" /> : <Download className="size-4" />} Export
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => exportLogs("csv")} data-testid="audit-export-csv">
+                  <FileText className="size-4" /> Export CSV
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => exportLogs("xlsx")} data-testid="audit-export-xlsx">
+                  <FileSpreadsheet className="size-4" /> Export Excel
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-destructive hover:text-destructive"
+              onClick={openPurge}
+              data-testid="audit-purge-open"
+            >
+              <Trash2 className="size-4" /> Purge
+            </Button>
+            <Button variant="outline" size="sm" onClick={fetchLogs} data-testid="audit-refresh">
+              <RefreshCw className="size-4" /> Refresh
+            </Button>
+          </div>
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Filters */}
@@ -401,6 +512,63 @@ export default function AuditLogPage() {
               </div>
             </DialogBody>
           )}
+        </DialogContent>
+      </Dialog>
+      {/* Purge (retention) dialog */}
+      <Dialog open={purgeOpen} onOpenChange={(v) => !purging && setPurgeOpen(v)}>
+        <DialogContent className="sm:max-w-md" data-testid="audit-purge-dialog">
+          <DialogHeader>
+            <DialogTitle>Purge audit logs</DialogTitle>
+            <DialogDescription>
+              Permanently delete audit entries within a date range. At least one bound is required.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogBody className="space-y-4">
+            <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <Label htmlFor="purge-from">From date</Label>
+                <Input
+                  id="purge-from"
+                  type="date"
+                  value={purgeFrom}
+                  onChange={(e) => setPurgeFrom(e.target.value)}
+                  data-testid="audit-purge-from"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="purge-to">To date</Label>
+                <Input
+                  id="purge-to"
+                  type="date"
+                  value={purgeTo}
+                  onChange={(e) => setPurgeTo(e.target.value)}
+                  data-testid="audit-purge-to"
+                />
+              </div>
+            </div>
+            <Alert variant="destructive">
+              <AlertTriangle className="size-4" />
+              <AlertTitle>Destructive action</AlertTitle>
+              <AlertDescription>
+                Deleted audit entries cannot be recovered. Export first if you need a copy.
+              </AlertDescription>
+            </Alert>
+          </DialogBody>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="outline" disabled={purging} data-testid="audit-purge-cancel">
+                Cancel
+              </Button>
+            </DialogClose>
+            <Button
+              onClick={runPurge}
+              disabled={purging}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              data-testid="audit-purge-confirm"
+            >
+              {purging ? <Loader2 className="size-4 animate-spin" /> : <Trash2 className="size-4" />} Purge
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

@@ -316,7 +316,7 @@ export default function UserFormPage() {
                     control={form.control}
                     name="is_active"
                     render={({ field }) => (
-                      <FormItem className="flex flex-col justify-start">
+                      <FormItem>
                         <FormLabel>Status</FormLabel>
                         <div className="flex h-10 items-center gap-2 rounded-md border px-3">
                           <Switch

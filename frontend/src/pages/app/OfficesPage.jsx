@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -378,6 +379,7 @@ function SortableHeader({ column, children, align = "left" }) {
 
 export default function OfficesPage() {
   const { isAdmin } = useAuth();
+  const navigate = useNavigate();
   const [offices, setOffices] = useState([]);
   const [status, setStatus] = useState("loading"); // loading | ready | error
   const [globalFilter, setGlobalFilter] = useState("");
@@ -408,16 +410,8 @@ export default function OfficesPage() {
     fetchOffices();
   }, [fetchOffices]);
 
-  const openCreate = () => {
-    setFormMode("create");
-    setEditing(null);
-    setFormOpen(true);
-  };
-  const openEdit = (office) => {
-    setFormMode("edit");
-    setEditing(office);
-    setFormOpen(true);
-  };
+  const openCreate = () => navigate("/offices/new");
+  const openEdit = (office) => navigate(`/offices/${office.id}/edit`);
 
   const closeDelete = () => {
     setDeleteTarget(null);
@@ -782,14 +776,6 @@ export default function OfficesPage() {
       )}
         </CardContent>
       </Card>
-
-      <OfficeFormDialog
-        open={formOpen}
-        onOpenChange={setFormOpen}
-        mode={formMode}
-        initialValues={editing}
-        onSaved={fetchOffices}
-      />
 
       <ImportDialog
         open={importOpen}

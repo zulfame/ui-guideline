@@ -16,6 +16,8 @@ import OfficesPage from "@/pages/app/OfficesPage";
 import RolesPage from "@/pages/app/RolesPage";
 import UsersPage from "@/pages/app/UsersPage";
 import UserFormPage from "@/pages/app/UserFormPage";
+import OfficeFormPage from "@/pages/app/OfficeFormPage";
+import RoleFormPage from "@/pages/app/RoleFormPage";
 import AuditLogPage from "@/pages/app/AuditLogPage";
 import DatabasePage from "@/pages/app/DatabasePage";
 import BroadcastPage from "@/pages/app/BroadcastPage";
@@ -100,7 +102,11 @@ function App() {
           <Route path="/users/new" element={<AdminRoute><UserFormPage /></AdminRoute>} />
           <Route path="/users/:id/edit" element={<AdminRoute><UserFormPage /></AdminRoute>} />
           <Route path="/roles" element={<RolesPage />} />
+          <Route path="/roles/new" element={<AdminRoute><RoleFormPage /></AdminRoute>} />
+          <Route path="/roles/:id/edit" element={<AdminRoute><RoleFormPage /></AdminRoute>} />
           <Route path="/offices" element={<OfficesPage />} />
+          <Route path="/offices/new" element={<AdminRoute><OfficeFormPage /></AdminRoute>} />
+          <Route path="/offices/:id/edit" element={<AdminRoute><OfficeFormPage /></AdminRoute>} />
           <Route path="/clients" element={<AdminRoute><ClientsPage /></AdminRoute>} />
           <Route path="/branding" element={<AdminRoute><BrandingPage /></AdminRoute>} />
           <Route path="/broadcast" element={<AdminRoute><BroadcastPage /></AdminRoute>} />

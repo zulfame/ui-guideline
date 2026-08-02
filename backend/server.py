@@ -243,7 +243,17 @@ async def lifespan(_app: FastAPI):
             await _auto_seed_if_empty()
         except Exception as exc:  # pragma: no cover - non-fatal
             logger.error("Auto-seed failed (non-fatal): %s", exc)
+    try:
+        import routes_database_ext as _bk
+        _bk.start_scheduler()
+    except Exception as exc:  # pragma: no cover - non-fatal
+        logger.error("Backup scheduler start failed (non-fatal): %s", exc)
     yield
+    try:
+        import routes_database_ext as _bk
+        _bk.stop_scheduler()
+    except Exception:  # pragma: no cover
+        pass
     client.close()
     logger.info("Shutdown complete: Mongo client closed.")
 
@@ -374,13 +384,33 @@ async def log_audit(
         logger.error("Audit log write failed (non-fatal): %s", exc)
 
 
-AUDIT_ENTITY_TYPES = ["user", "role", "office", "level", "database", "broadcast", "branding"]
+AUDIT_ENTITY_TYPES = ["user", "role", "office", "level", "database", "broadcast", "branding", "audit"]
 AUDIT_ACTIONS = [
     "create", "update", "delete", "bulk_delete",
     "import", "reassign", "change_password", "reset_password",
     "backup", "restore", "configure", "test", "send_test",
-    "password_reset_requested", "password_reset",
+    "password_reset_requested", "password_reset", "purge", "export",
 ]
+
+
+def _audit_query(entity_type, action, q, date_from, date_to) -> dict:
+    """Shared filter builder for the audit list / export / purge endpoints."""
+    query = {}
+    if entity_type:
+        query["entity_type"] = entity_type
+    if action:
+        query["action"] = action
+    if q:
+        rx = {"$regex": re.escape(q), "$options": "i"}
+        query["$or"] = [{"summary": rx}, {"entity_label": rx}, {"actor": rx}]
+    if date_from or date_to:
+        rng = {}
+        if date_from:
+            rng["$gte"] = date_from
+        if date_to:
+            rng["$lte"] = date_to if len(date_to) > 10 else date_to + "T23:59:59.999999+00:00"
+        query["created_at"] = rng
+    return query
 
 
 @api_router.get("/audit-logs", tags=["Audit"], summary="List audit logs (paginated, filterable)")
@@ -434,6 +464,85 @@ async def list_audit_logs(
 async def audit_meta():
     """Static filter options for the Audit Log UI."""
     return {"entity_types": AUDIT_ENTITY_TYPES, "actions": AUDIT_ACTIONS}
+
+
+# Hard cap for a single export so we never stream an unbounded result set.
+AUDIT_EXPORT_CAP = 50000
+
+
+@api_router.get("/audit-logs/export", tags=["Audit"], summary="Export filtered audit logs (CSV/Excel)")
+async def export_audit_logs(
+    format: str = Query("csv", description="csv | xlsx"),
+    entity_type: Optional[str] = Query(None),
+    action: Optional[str] = Query(None),
+    q: Optional[str] = Query(None),
+    date_from: Optional[str] = Query(None),
+    date_to: Optional[str] = Query(None),
+):
+    """Stream the matching audit entries as a CSV or Excel file (same filters as the list)."""
+    query = _audit_query(entity_type, action, q, date_from, date_to)
+    docs = (
+        await db.audit_logs.find(query, {"_id": 0})
+        .sort("created_at", -1)
+        .limit(AUDIT_EXPORT_CAP)
+        .to_list(AUDIT_EXPORT_CAP)
+    )
+    cols = ["created_at", "actor", "action", "entity_type", "entity_label", "summary", "method", "path", "status_code"]
+    stamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+    if format == "xlsx":
+        wb = Workbook()
+        ws = wb.active
+        ws.title = "Audit Log"
+        ws.append([c.replace("_", " ").title() for c in cols])
+        for d in docs:
+            ws.append([d.get(c) for c in cols])
+        buf = io.BytesIO()
+        wb.save(buf)
+        buf.seek(0)
+        return StreamingResponse(
+            buf,
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={"Content-Disposition": f'attachment; filename="audit_log_{stamp}.xlsx"'},
+        )
+    import csv
+    sbuf = io.StringIO()
+    writer = csv.writer(sbuf)
+    writer.writerow([c.replace("_", " ").title() for c in cols])
+    for d in docs:
+        writer.writerow([d.get(c) if d.get(c) is not None else "" for c in cols])
+    data = sbuf.getvalue().encode("utf-8-sig")
+    return StreamingResponse(
+        io.BytesIO(data),
+        media_type="text/csv",
+        headers={"Content-Disposition": f'attachment; filename="audit_log_{stamp}.csv"'},
+    )
+
+
+class AuditPurgeRequest(BaseModel):
+    date_from: Optional[str] = None
+    date_to: Optional[str] = None
+
+
+@api_router.post("/audit-logs/purge", tags=["Audit"], summary="Delete audit logs in a date range (retention)")
+async def purge_audit_logs(payload: AuditPurgeRequest):
+    """Delete audit entries within a date range. At least one bound is required.
+
+    The purge itself is recorded as a new audit entry for traceability.
+    """
+    if not payload.date_from and not payload.date_to:
+        raise HTTPException(status_code=400, detail="Provide date_from and/or date_to to purge.")
+    query = _audit_query(None, None, None, payload.date_from, payload.date_to)
+    result = await db.audit_logs.delete_many(query)
+    await log_audit(
+        "purge", "audit",
+        summary=f"Purged {result.deleted_count} audit log entry(ies) in range "
+                f"{payload.date_from or '…'} → {payload.date_to or '…'}",
+        method="POST", path="/api/audit-logs/purge", status_code=200,
+        request={"date_from": payload.date_from, "date_to": payload.date_to},
+        response={"deleted": result.deleted_count},
+        metadata={"deleted": result.deleted_count},
+    )
+    return {"success": True, "deleted": result.deleted_count}
 
 
 # ---------------------------------------------------------------------------
@@ -2041,38 +2150,13 @@ async def _apply_restore(payload: dict, mode: str) -> dict:
 
 @api_router.post("/database/backup", tags=["Database"], summary="Create a full DB backup (stored on server)")
 async def create_backup():
-    """Snapshot every collection to a JSON file in GridFS; returns its metadata."""
-    collections, counts = await _dump_all_collections()
-    now = datetime.now(timezone.utc)
-    payload = {
-        "meta": {
-            "created_at": now.isoformat(),
-            "app": "UI Guidelines CMS",
-            "version": "1.0.0",
-            "collections": sorted(counts.keys()),
-            "counts": counts,
-            "total": sum(counts.values()),
-        },
-        "collections": collections,
-    }
-    data = json.dumps(payload, default=str).encode("utf-8")
-    filename = f"backup_{now.strftime('%Y%m%d_%H%M%S')}.json"
-    bucket = _backup_bucket()
-    grid_in = bucket.open_upload_stream(
-        filename,
-        metadata={"created_at": now.isoformat(), "counts": counts, "total": sum(counts.values())},
-    )
-    await grid_in.write(data)
-    await grid_in.close()
-    file_id = str(grid_in._id)
-    await log_audit(
-        "backup", "database", entity_id=file_id, entity_label=filename,
-        summary=f"Created database backup {filename} ({sum(counts.values())} docs)",
-        method="POST", path="/api/database/backup", status_code=200,
-        response={"id": file_id, "size": len(data)}, metadata={"counts": counts},
-    )
-    return {"id": file_id, "filename": filename, "size": len(data),
-            "created_at": now.isoformat(), "counts": counts, "total": sum(counts.values())}
+    """Snapshot every collection to a JSON file in GridFS; returns its metadata.
+
+    Delegates to the backup module which also mirrors to S3 (when configured)
+    and enforces the retention limit (Guideline: Backup/Restore + Retention).
+    """
+    import routes_database_ext as _bk
+    return await _bk.perform_backup(reason="manual")
 
 
 @api_router.get("/database/backups", tags=["Database"], summary="List server backups")
@@ -2091,6 +2175,7 @@ async def list_backups():
             or (upload_date.isoformat() if hasattr(upload_date, "isoformat") else upload_date),
             "total": meta.get("total"),
             "counts": meta.get("counts", {}),
+            "s3_key": meta.get("s3_key"),
         })
     return out
 
@@ -3203,6 +3288,7 @@ async def _require_admin(authorization: Optional[str] = Header(None)):
 # ---------------------------------------------------------------------------
 import routes_email_auth  # noqa: E402,F401  (side-effect: route registration)
 from routes_email_auth import _public_base_url  # used by robots.txt / sitemap.xml
+import routes_database_ext  # noqa: E402,F401  (side-effect: route registration + scheduler)
 # ---------------------------------------------------------------------------
 # API Clients — admin-managed API credentials with scoped access.
 # ---------------------------------------------------------------------------

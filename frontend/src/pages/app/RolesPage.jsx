@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -681,6 +682,7 @@ function SortableHeader({ column, children, align = "left" }) {
 
 export default function RolesPage() {
   const { isAdmin } = useAuth();
+  const navigate = useNavigate();
   const [roles, setRoles] = useState([]);
   const [levels, setLevels] = useState([]);
   const [status, setStatus] = useState("loading");
@@ -746,14 +748,8 @@ export default function RolesPage() {
 
   const treeData = useMemo(() => buildTree(roles), [roles]);
 
-  const openCreate = () => {
-    setEditing(null);
-    setDialogOpen(true);
-  };
-  const openEdit = (role) => {
-    setEditing(role);
-    setDialogOpen(true);
-  };
+  const openCreate = () => navigate("/roles/new");
+  const openEdit = (role) => navigate(`/roles/${role.id}/edit`);
 
   const moveRole = async (role, dir) => {
     const sibs = roles
@@ -1194,15 +1190,6 @@ export default function RolesPage() {
           )}
         </CardContent>
       </Card>
-
-      <RoleFormDialog
-        open={dialogOpen}
-        onOpenChange={setDialogOpen}
-        editing={editing}
-        roles={roles}
-        levels={levels}
-        onSaved={load}
-      />
 
       <LevelManagerDialog
         open={levelsOpen}
