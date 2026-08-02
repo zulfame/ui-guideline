@@ -22,6 +22,12 @@ Membangun template **UI Guidelines / Design System** generik sebagai fondasi apl
 - **R38**: Modifikasi primitive/composite harus jaga compact spacing (`px-6 py-4`), grid 4px, token monochrome (`border-border`), typography tepat. Verifikasi semua consumer via screenshot sebelum selesai.
 
 ## Sudah Diimplementasikan
+- (2026-08-02) **Semua respons API diseragamkan ke Bahasa Inggris** [FIX]: pesan pada `routes_mobile_auth.py` yang sebelumnya Indonesia (mengikuti screenshot kontrak) diubah ke Inggris (mis. "The credentials you entered are incorrect", "This account is already linked to another device", "Session ended. Please sign in again.", "Logged out successfully.").
+- (2026-08-02) **Admin Unbind Device + Toggle Aktif/Nonaktif cepat di baris Users** [FEATURE]:
+  - Backend: `POST /api/users/{id}/unbind-device` (admin) → `$unset mobile_device` + audit `unbind_device`; 404 bila user tak ada, 409 bila tak ada perangkat terikat. `_user_public` kini menyertakan `device_bound: bool`. Toggle aktif memakai `PUT /api/users/{id}` `{is_active}` (sudah ada).
+  - Frontend `UsersPage.jsx`: aksi baris **Activate/Deactivate** (label dinamis by `is_active`, testid `users-toggle-active-{id}`) dan **Unbind device** (hanya tampil bila `device_bound`, testid `users-unbind-{id}`) dengan dialog konfirmasi `users-unbind-dialog`.
+  - Diverifikasi curl: unbind → success & `device_bound=false`; token mobile lama ditolak `/jwt-me` (401 "Session ended..."); toggle is_active false→true 200. Screenshot menu baris menampilkan Deactivate; Unbind tersembunyi untuk user tak terikat. design-guard exit 0.
+
 - (2026-08-02) **Filter cepat Status (Active/Inactive) di toolbar Users** [FEATURE/UI]: `UsersPage.jsx` — Select "All status / Active / Inactive" (testid `users-status-filter`, opsi `users-status-all|active|inactive`) di toolbar; data difilter via `displayUsers` memo (by `is_active`) sebelum masuk TanStack table (search tetap berlaku di atasnya). Tombol **Reset** kini membersihkan search + status (muncul saat salah satu aktif). Diverifikasi: pilih Inactive → 434 baris nonaktif; design-guard exit 0 (SelectTrigger pakai `w-full sm:w-[140px]` sesuai R42).
 
 - (2026-08-02) **API Auth Mobile (JWT) — paritas collection Postman "JWT Mobile" (Flutter)** [FEATURE/AUTH]: modul baru `backend/routes_mobile_auth.py` (pola `from server import ...`, route register saat import di server.py sebelum `include_router`; 4 path ditambah ke `_PUBLIC_API_PATHS` agar bypass middleware admin & divalidasi sendiri). Endpoint:

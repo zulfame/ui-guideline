@@ -249,6 +249,29 @@ async def reset_password(user_id: str, payload: ResetPasswordRequest):
     return {"success": True, "must_change_password": True}
 
 
+@api_router.post("/users/{user_id}/unbind-device", tags=["Users"], summary="Unbind mobile device")
+async def unbind_device(user_id: str):
+    """Release the single-device binding so the user can log in on a new device."""
+    doc = await db.users.find_one({"id": user_id, "deleted_at": None}, {"_id": 0})
+    if not doc:
+        raise HTTPException(status_code=404, detail="User not found")
+    if not doc.get("mobile_device"):
+        raise HTTPException(status_code=409, detail="This user has no bound device")
+    now = datetime.now(timezone.utc).isoformat()
+    await db.users.update_one(
+        {"id": user_id},
+        {"$unset": {"mobile_device": ""}, "$set": {"updated_at": now}},
+    )
+    await log_audit(
+        "unbind_device", "user", entity_id=user_id,
+        entity_label=f"{doc['name']} <{doc['email']}>",
+        summary=f"Unbound mobile device for {doc['name']} <{doc['email']}>",
+        method="POST", path=f"/api/users/{user_id}/unbind-device", status_code=200,
+        response={"success": True},
+    )
+    return {"success": True}
+
+
 @api_router.delete("/users/{user_id}", tags=["Users"], summary="Soft-delete user")
 async def delete_user(user_id: str):
     """Soft-delete a user (sets deleted_at); 404 if not found or already deleted."""

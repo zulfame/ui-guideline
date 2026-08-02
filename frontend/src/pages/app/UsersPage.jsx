@@ -23,9 +23,11 @@ import {
   MoreHorizontal,
   Pencil,
   Plus,
+  Power,
   RefreshCw,
   RotateCcw,
   Search,
+  Smartphone,
   Trash2,
   Upload,
 } from "lucide-react";
@@ -230,6 +232,7 @@ export default function UsersPage() {
   const [pwTarget, setPwTarget] = useState(null);
   const [resetTarget, setResetTarget] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const [unbindTarget, setUnbindTarget] = useState(null);
   const [bulkOpen, setBulkOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
 
@@ -278,6 +281,29 @@ export default function UsersPage() {
       fetchUsers();
     } catch {
       toast.error("Failed to reset password");
+    }
+  };
+
+  const toggleActive = async (user) => {
+    const next = user.is_active === false;
+    try {
+      await API.put(`/users/${user.id}`, { is_active: next });
+      toast.success(next ? "User activated" : "User deactivated", { description: user.name });
+      fetchUsers();
+    } catch {
+      toast.error("Failed to update status");
+    }
+  };
+
+  const unbindDevice = async (user) => {
+    try {
+      await API.post(`/users/${user.id}/unbind-device`, {});
+      toast.success("Device unbound", { description: `${user.name} can now sign in on a new device.` });
+      setUnbindTarget(null);
+      fetchUsers();
+    } catch (err) {
+      const d = err?.response?.data?.detail;
+      toast.error(typeof d === "string" ? d : "Failed to unbind device");
     }
   };
 
@@ -418,6 +444,21 @@ export default function UsersPage() {
                 >
                   <RotateCcw className="size-4" /> Reset to default
                 </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => toggleActive(row.original)}
+                  data-testid={`users-toggle-active-${row.original.id}`}
+                >
+                  <Power className="size-4" />
+                  {row.original.is_active === false ? "Activate" : "Deactivate"}
+                </DropdownMenuItem>
+                {row.original.device_bound && (
+                  <DropdownMenuItem
+                    onClick={() => setUnbindTarget(row.original)}
+                    data-testid={`users-unbind-${row.original.id}`}
+                  >
+                    <Smartphone className="size-4" /> Unbind device
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
                   className="text-destructive focus:text-destructive"
@@ -726,6 +767,30 @@ export default function UsersPage() {
               data-testid="users-delete-confirm"
             >
               Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={!!unbindTarget} onOpenChange={(v) => !v && setUnbindTarget(null)}>
+        <AlertDialogContent data-testid="users-unbind-dialog">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Unbind mobile device?</AlertDialogTitle>
+          </AlertDialogHeader>
+          <div className="px-6 py-4">
+            <AlertDialogDescription>
+              This releases the device linked to{" "}
+              <span className="font-medium text-foreground">{unbindTarget?.name}</span>. They will
+              be able to sign in on a new device. Any active mobile session ends.
+            </AlertDialogDescription>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-testid="users-unbind-cancel">Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => unbindDevice(unbindTarget)}
+              data-testid="users-unbind-confirm"
+            >
+              Unbind device
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

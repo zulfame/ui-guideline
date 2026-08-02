@@ -141,14 +141,14 @@ async def _profile_payload(doc: dict) -> dict:
 async def jwt_auth(payload: MobileLoginRequest, request: Request):
     ident = (payload.username or "").strip()
     if not ident or not payload.password:
-        return _fail("Kredensial yang Anda masukkan tidak sesuai", 401)
+        return _fail("The credentials you entered are incorrect", 401)
 
     ident_lower = ident.lower()
     ip = _client_ip(request)
     key = f"mobile:{ip}:{ident_lower}"
 
     if await _login_locked_until(key):
-        return _fail("Terlalu banyak percobaan gagal. Silakan coba lagi nanti.", 429)
+        return _fail("Too many failed attempts. Please try again later.", 429)
 
     doc = await db.users.find_one({
         "deleted_at": None,
@@ -164,10 +164,10 @@ async def jwt_auth(payload: MobileLoginRequest, request: Request):
             summary=f"Failed mobile login for {ident} from {ip}",
             method="POST", path="/api/jwt-auth", status_code=401, actor=ident,
         )
-        return _fail("Kredensial yang Anda masukkan tidak sesuai", 401)
+        return _fail("The credentials you entered are incorrect", 401)
 
     if doc.get("is_active") is False:
-        return _fail("Akun Anda tidak aktif.", 401)
+        return _fail("Your account is inactive.", 401)
 
     incoming_did = (payload.device_identifier or "").strip()
     bound = doc.get("mobile_device") or {}
@@ -178,7 +178,7 @@ async def jwt_auth(payload: MobileLoginRequest, request: Request):
             summary=f"Mobile login blocked (bound to another device) for {doc.get('email')} from {ip}",
             method="POST", path="/api/jwt-auth", status_code=401, actor=doc.get("email"),
         )
-        return _fail("Akun sudah terhubungan dengan perangkat lain", 401)
+        return _fail("This account is already linked to another device", 401)
 
     await _clear_login_attempts(key)
     jti = uuid.uuid4().hex
@@ -215,10 +215,10 @@ async def jwt_auth(payload: MobileLoginRequest, request: Request):
 async def jwt_me(authorization: Optional[str] = Header(None)):
     payload = _decode_mobile(_bearer(authorization), verify_exp=True)
     if payload is None:
-        return _fail("Token tidak valid atau kedaluwarsa.", 401)
+        return _fail("Invalid or expired token.", 401)
     doc = await _user_for_token(payload)
     if not doc:
-        return _fail("Sesi berakhir. Silakan masuk kembali.", 401)
+        return _fail("Session ended. Please sign in again.", 401)
     return _ok(await _profile_payload(doc))
 
 
@@ -227,17 +227,17 @@ async def jwt_refresh(authorization: Optional[str] = Header(None)):
     # Allow refreshing an expired-but-valid token within the refresh window.
     payload = _decode_mobile(_bearer(authorization), verify_exp=False)
     if payload is None:
-        return _fail("Token tidak valid.", 401)
+        return _fail("Invalid token.", 401)
     doc = await _user_for_token(payload)
     if not doc:
-        return _fail("Sesi berakhir. Silakan masuk kembali.", 401)
+        return _fail("Session ended. Please sign in again.", 401)
     bound = doc.get("mobile_device") or {}
     try:
         bound_at = datetime.fromisoformat(bound.get("bound_at"))
     except Exception:
         bound_at = None
     if not bound_at or (datetime.now(timezone.utc) - bound_at) > timedelta(days=MOBILE_REFRESH_DAYS):
-        return _fail("Sesi berakhir. Silakan masuk kembali.", 401)
+        return _fail("Session ended. Please sign in again.", 401)
     token = _create_mobile_token(doc["id"], bound["jti"], bound.get("device_identifier") or "")
     return _ok({"token_type": "bearer", "expires_in": MOBILE_TOKEN_TTL, "access_token": token})
 
@@ -246,7 +246,7 @@ async def jwt_refresh(authorization: Optional[str] = Header(None)):
 async def jwt_logout(authorization: Optional[str] = Header(None)):
     payload = _decode_mobile(_bearer(authorization), verify_exp=False)
     if payload is None:
-        return _fail("Token tidak valid.", 401)
+        return _fail("Invalid token.", 401)
     doc = await db.users.find_one({"id": payload.get("sub"), "deleted_at": None})
     if doc:
         bound = doc.get("mobile_device") or {}
@@ -261,4 +261,4 @@ async def jwt_logout(authorization: Optional[str] = Header(None)):
                 summary=f"Mobile logout {doc.get('email')} (device unbound)",
                 method="POST", path="/api/jwt-logout", status_code=200, actor=doc.get("email"),
             )
-    return JSONResponse({"success": True, "message": "Berhasil keluar."}, status_code=200)
+    return JSONResponse({"success": True, "message": "Logged out successfully."}, status_code=200)
