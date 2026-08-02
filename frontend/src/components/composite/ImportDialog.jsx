@@ -214,11 +214,11 @@ export function ImportDialog({
               <div className="max-h-56 overflow-auto rounded-md border">
                 <ul className="divide-y text-sm">
                   {plan.rows.map((r) => (
-                    <li key={r.row} className="flex items-center gap-2 px-3 py-1.5" data-testid={`import-preview-row-${r.row}`}>
-                      <Badge variant={r.action === "create" ? "secondary" : "outline"} className="font-normal">
+                    <li key={r.row} className="flex min-w-0 items-center gap-2 px-3 py-1.5" data-testid={`import-preview-row-${r.row}`}>
+                      <Badge variant={r.action === "create" ? "secondary" : "outline"} className="shrink-0 font-normal">
                         {r.action === "create" ? "Create" : "Update"}
                       </Badge>
-                      <span className="truncate text-muted-foreground">{r.label}</span>
+                      <span className="min-w-0 truncate text-muted-foreground">{r.label}</span>
                     </li>
                   ))}
                 </ul>

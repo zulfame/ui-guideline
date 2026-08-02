@@ -22,6 +22,11 @@ Membangun template **UI Guidelines / Design System** generik sebagai fondasi apl
 - **R38**: Modifikasi primitive/composite harus jaga compact spacing (`px-6 py-4`), grid 4px, token monochrome (`border-border`), typography tepat. Verifikasi semua consumer via screenshot sebelum selesai.
 
 ## Sudah Diimplementasikan
+- (2026-08-02) **Perbaikan modal Import + revisi kolom tabel Users** [FIX/UI]:
+  - **Modal Import**: `DialogContent` (shared `ui/dialog.jsx`) sebelumnya tanpa batas tinggi → preview import (ratusan baris) melampaui viewport & konten meluber keluar kartu. Ditambah `max-h-[90vh] grid-rows-[auto_minmax(0,1fr)_auto]` + `DialogBody` `overflow-y-auto` (header/footer tetap terlihat, body scroll). `ImportDialog` baris preview diberi `min-w-0`/`shrink-0` agar label panjang ter-truncate (tak overflow horizontal).
+  - **Tabel Users** (`UsersPage.jsx`): kolom **User ID dihapus**; kolom **Password** kini menampilkan **sisa masa aktif** (mis. "90 hari"; "Expired" bila lewat; "—" bila tanpa expiry) dengan badge warna by status; kolom **Status** (Active/Inactive) ditambahkan; **user inactive kini tampil** (backend `list_users` memang hanya filter `deleted_at`, tak pernah menyaring is_active). Kolom Status & Password sortable.
+  - Diverifikasi via screenshot: modal import terkontrol; tabel menampilkan Status Active/Inactive + "90 hari"; design-guard exit 0.
+
 - (2026-08-02) **Relasi Office pada Users jadi OPSIONAL** [FEATURE]: sebelumnya `office_id` wajib. Kini opsional di seluruh alur:
   - Backend `routes_users.py`: `UserCreate.office_id` → `Optional[str] = None`; `create_user` pakai `data.get("office_id")`. `server.py`: `office_id` ditambah ke `NULLABLE_USER_FIELDS` (empty string → None). `_validate_role_office` sudah skip bila None (tetap tolak 400 untuk office_id tak valid). Import Excel (`routes_import.py`): kolom `office` tak lagi wajib — kosong = tanpa office.
   - Frontend `UserFormPage.jsx`: schema `office_id` optional; Select Office punya opsi **None** (sentinel `__none__`) + placeholder "Select office (optional)"; payload kirim `null` bila tak dipilih. `UsersPage.jsx`: instruksi import diperbarui (office opsional); kolom Office tampil "—" bila kosong.

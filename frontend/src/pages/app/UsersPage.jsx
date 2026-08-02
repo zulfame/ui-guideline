@@ -92,12 +92,6 @@ import { ImportDialog } from "@/components/composite/ImportDialog";
 import { DensityToggle } from "@/components/density-toggle";
 import { useAuth } from "@/context/AuthContext";
 
-const PW_BADGE = {
-  active: { variant: "secondary", label: "Active" },
-  expiring: { variant: "outline", label: "Expiring soon" },
-  expired: { variant: "destructive", label: "Expired" },
-};
-
 const changePwSchema = z
   .object({
     new_password: z.string().min(6, "Min 6 characters"),
@@ -324,16 +318,6 @@ export default function UsersPage() {
         enableSorting: false,
       }] : []),
       {
-        id: "user_id",
-        accessorFn: (r) => r.user_id ?? 0,
-        header: ({ column }) => <SortableHeader column={column}>User ID</SortableHeader>,
-        cell: ({ row }) => (
-          <span className="tabular-nums text-muted-foreground" data-testid={`user-userid-${row.original.id}`}>
-            {row.original.user_id ?? "—"}
-          </span>
-        ),
-      },
-      {
         accessorKey: "name",
         header: ({ column }) => <SortableHeader column={column}>Name</SortableHeader>,
         cell: ({ row }) => <span className="font-medium">{row.original.name}</span>,
@@ -358,13 +342,42 @@ export default function UsersPage() {
         cell: ({ row }) => row.original.office_name || "—",
       },
       {
-        accessorKey: "password_status",
+        id: "status",
+        accessorFn: (r) => (r.is_active === false ? 0 : 1),
+        header: ({ column }) => <SortableHeader column={column}>Status</SortableHeader>,
+        cell: ({ row }) => {
+          const active = row.original.is_active !== false;
+          return (
+            <Badge
+              variant={active ? "secondary" : "outline"}
+              className={active ? "font-normal" : "font-normal text-muted-foreground"}
+              data-testid={`user-status-${row.original.id}`}
+            >
+              {active ? "Active" : "Inactive"}
+            </Badge>
+          );
+        },
+      },
+      {
+        id: "password",
+        accessorFn: (r) =>
+          r.password_expires_at
+            ? Math.ceil((new Date(r.password_expires_at).getTime() - Date.now()) / 86400000)
+            : Number.MAX_SAFE_INTEGER,
         header: ({ column }) => <SortableHeader column={column}>Password</SortableHeader>,
         cell: ({ row }) => {
-          const meta = PW_BADGE[row.original.password_status] || PW_BADGE.active;
+          const exp = row.original.password_expires_at;
+          const status = row.original.password_status;
+          if (!exp) {
+            return <span className="text-muted-foreground" data-testid={`user-pw-${row.original.id}`}>—</span>;
+          }
+          const days = Math.ceil((new Date(exp).getTime() - Date.now()) / 86400000);
+          const label = days <= 0 ? "Expired" : `${days} hari`;
+          const variant =
+            status === "expired" ? "destructive" : status === "expiring" ? "outline" : "secondary";
           return (
-            <Badge variant={meta.variant} className="font-normal">
-              {meta.label}
+            <Badge variant={variant} className="font-normal" data-testid={`user-pw-${row.original.id}`}>
+              {label}
             </Badge>
           );
         },
