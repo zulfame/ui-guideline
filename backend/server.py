@@ -545,6 +545,27 @@ async def purge_audit_logs(payload: AuditPurgeRequest):
     return {"success": True, "deleted": result.deleted_count}
 
 
+class AuditBulkDeleteRequest(BaseModel):
+    ids: List[str] = Field(default_factory=list)
+
+
+@api_router.post("/audit-logs/bulk-delete", tags=["Audit"], summary="Delete selected audit log entries")
+async def bulk_delete_audit_logs(payload: AuditBulkDeleteRequest):
+    """Delete the given audit entries by id. Records a single bulk_delete entry."""
+    ids = [i for i in (payload.ids or []) if i]
+    if not ids:
+        raise HTTPException(status_code=400, detail="Provide at least one id to delete.")
+    result = await db.audit_logs.delete_many({"id": {"$in": ids}})
+    await log_audit(
+        "bulk_delete", "audit",
+        summary=f"Deleted {result.deleted_count} selected audit log entry(ies)",
+        method="POST", path="/api/audit-logs/bulk-delete", status_code=200,
+        request={"count": len(ids)}, response={"deleted": result.deleted_count},
+        metadata={"deleted": result.deleted_count},
+    )
+    return {"success": True, "deleted": result.deleted_count}
+
+
 # ---------------------------------------------------------------------------
 # Offices (CMS) — FastAPI + MongoDB CRUD
 # ---------------------------------------------------------------------------
@@ -3333,8 +3354,28 @@ async def unlock_login_attempt(payload: UnlockRequest, current=Depends(_require_
     return {"success": True, "deleted": res.deleted_count}
 
 
-# ---------------------------------------------------------------------------
-# Authorization middleware — require a Bearer token for /api (except a small
+@api_router.delete("/login-attempts/{key}", tags=["Security"], summary="Delete a login throttle record")
+async def delete_login_attempt(key: str, current=Depends(_require_admin)):
+    res = await db.login_attempts.delete_one({"_id": key})
+    if not res.deleted_count:
+        raise HTTPException(status_code=404, detail="Record not found.")
+    await log_audit(
+        "delete", "auth", entity_label=key,
+        summary=f"Deleted login throttle record {key}", method="DELETE",
+        path=f"/api/login-attempts/{key}", status_code=200, actor=current.get("email"),
+    )
+    return {"success": True}
+
+
+@api_router.post("/login-attempts/clear", tags=["Security"], summary="Clear all login throttle records")
+async def clear_login_attempts(current=Depends(_require_admin)):
+    res = await db.login_attempts.delete_many({})
+    await log_audit(
+        "bulk_delete", "auth",
+        summary=f"Cleared {res.deleted_count} login throttle record(s)", method="POST",
+        path="/api/login-attempts/clear", status_code=200, actor=current.get("email"),
+    )
+    return {"success": True, "deleted": res.deleted_count}
 # public whitelist); mutations require the admin role. Users may change their
 # OWN password without admin rights (supports the forced-change flow).
 # ---------------------------------------------------------------------------

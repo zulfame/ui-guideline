@@ -699,246 +699,6 @@ export const guidelineGroups = [
     ],
   },
 
-  {
-    id: "api",
-    title: "API & Integration",
-    icon: Plug,
-    summary:
-      "API design, versioning, request validation, response standardization, authentication, authorization, rate limiting, and integration management.",
-    topics: [
-      {
-        id: "api-design",
-        title: "API Design",
-        principle:
-          "APIs are consistent, predictable, and resource-oriented. A clear contract makes life easy for consumers.",
-        rules: [
-          "All backend routes are prefixed with `/api` (ingress rule).",
-          "Use plural-noun resources (`/api/offices`).",
-          "Map HTTP verbs correctly (GET/POST/PUT/PATCH/DELETE).",
-          "Status codes match meaning (201 create, 204 no-content, 4xx/5xx).",
-        ],
-        dos: [
-          "Design the contract before implementation.",
-          "Be consistent in naming & payload shape.",
-        ],
-        donts: [
-          "Verbs in the URL (`/getOffices`).",
-          "Backend routes without the `/api` prefix.",
-        ],
-        checklist: [
-          "All routes use `/api`.",
-          "Resource-oriented & consistent.",
-          "Correct verbs & status codes.",
-        ],
-        code: {
-          language: "python",
-          good: "@api_router.post(\"/offices\", status_code=201)\n@api_router.get(\"/offices\")\n@api_router.delete(\"/offices/{office_id}\")",
-          bad: "@app.get(\"/getAllOffices\")   # no /api, verb in URL",
-        },
-      },
-      {
-        id: "api-versioning",
-        title: "API Versioning",
-        principle:
-          "Breaking changes must not break consumers. Version APIs explicitly & manage deprecation.",
-        rules: [
-          "Use an explicit version for breaking changes (e.g. `/api/v1`).",
-          "Additive (non-breaking) changes need no version bump.",
-          "Support old versions during an announced deprecation window.",
-          "Document changes in an API changelog.",
-        ],
-        dos: [
-          "Plan a versioning strategy from the start.",
-          "Announce a deprecation timeline.",
-        ],
-        donts: [
-          "Silently changing the contract.",
-          "Removing fields without deprecation.",
-        ],
-        checklist: [
-          "Breaking change → new version.",
-          "Deprecation announced.",
-          "API changelog maintained.",
-        ],
-      },
-      {
-        id: "request-validation",
-        title: "Request Validation",
-        principle:
-          "Every request is validated against a schema before processing (see also Input Validation).",
-        rules: [
-          "Use Pydantic models for body/query/path.",
-          "Reject unknown fields per policy.",
-          "Return 422 with details of the offending field.",
-          "Validate type, bounds, and enums.",
-        ],
-        dos: [
-          "Define a request model per endpoint.",
-          "Centralize common validation rules.",
-        ],
-        donts: [
-          "Accepting a raw `dict` without a schema.",
-          "Validating ad-hoc by hand.",
-        ],
-        checklist: [
-          "A request model per endpoint.",
-          "Informative 422 errors.",
-          "Type & bound validation.",
-        ],
-      },
-      {
-        id: "response-standardization",
-        title: "Response Standardization",
-        principle:
-          "Response shape is consistent across the whole API — both success and error — so consumers can handle them easily.",
-        rules: [
-          "Use `response_model` to shape output.",
-          "Consistent error format (e.g. `{ detail: ... }`).",
-          "Don't leak internals (stack trace, queries) in responses.",
-          "Include pagination metadata when relevant.",
-        ],
-        dos: [
-          "Standardize success & error envelopes.",
-          "Serialize dates to ISO 8601.",
-        ],
-        donts: [
-          "Different response shapes across endpoints.",
-          "Returning ObjectId/`_id`.",
-        ],
-        checklist: [
-          "Responses have a consistent shape.",
-          "Errors are consistent & safe.",
-          "No ObjectId leaks.",
-        ],
-      },
-      {
-        id: "serialization-safety",
-        title: "Serialization Safety",
-        principle:
-          "Never return raw MongoDB documents. BSON types (ObjectId, datetime) are not JSON-serializable and either leak internals or crash endpoints.",
-        rules: [
-          "Convert ObjectId -> str and map `_id` -> `id` before returning (PyObjectId / from_mongo helpers).",
-          "Never spread a raw Mongo doc (`{**doc}`) into a response or into another document.",
-          "Exclude `_id` from any dict reused as a payload (e.g. audit `request`) — drivers mutate the dict on insert.",
-          "Defensive net for list endpoints: coerce with `json.loads(json.dumps(docs, default=str))`.",
-          "Persist nested datetimes as ISO 8601 (UTC) strings, not raw datetime.",
-        ],
-        dos: [
-          "Centralize (de)serialization in a base model / helper.",
-          "Project out `_id` when not needed (`{'_id': 0}`).",
-        ],
-        donts: [
-          "Returning `find()` results directly.",
-          "Passing a just-inserted dict (now carrying `_id`) into a log/audit record.",
-        ],
-        checklist: [
-          "No ObjectId reaches the client.",
-          "No raw Mongo doc is spread into responses/other docs.",
-          "A single legacy BSON value can't 500 a list endpoint.",
-        ],
-      },
-      {
-        id: "authentication",
-        title: "Authentication",
-        principle:
-          "Authentication proves 'who you are'. Use battle-tested mechanisms; don't roll your own.",
-        rules: [
-          "Use standard solutions (JWT/OAuth2/session) — no roll-your-own crypto.",
-          "Store password hashes with a strong algorithm (bcrypt/argon2), never plaintext.",
-          "Tokens have an expiry & a secure refresh mechanism.",
-          "Secrets/keys are stored in the environment, not in code.",
-        ],
-        dos: [
-          "Use an established authentication library.",
-          "Store tokens securely on the client.",
-        ],
-        donts: [
-          "Storing plaintext passwords.",
-          "Building your own token/crypto scheme.",
-        ],
-        checklist: [
-          "Passwords hashed strongly.",
-          "Tokens expire & can refresh.",
-          "Secrets from the environment.",
-        ],
-      },
-      {
-        id: "authorization",
-        title: "Authorization",
-        principle:
-          "Authorization proves 'what you may do'. Apply least-privilege and enforce on the server.",
-        rules: [
-          "Check permissions on the server for every protected action.",
-          "Apply least privilege (default deny).",
-          "Use a clear role/permission model (e.g. RBAC).",
-          "UI hides/disables actions but the server stays authoritative.",
-        ],
-        dos: [
-          "Centralize authorization checks.",
-          "Follow the design system Permission pattern (Hide/Disable/Read-only/Forbidden).",
-        ],
-        donts: [
-          "Relying on UI hiding as security.",
-          "Granting excess permissions 'for convenience'.",
-        ],
-        checklist: [
-          "Authorization checked on the server.",
-          "Least privilege applied.",
-          "Role/permission model is clear.",
-        ],
-      },
-      {
-        id: "rate-limiting",
-        title: "Rate Limiting",
-        principle:
-          "Throttle request rates to protect against abuse, brute-force, and load spikes.",
-        rules: [
-          "Apply rate limits to sensitive endpoints (login, reset, expensive search).",
-          "Return 429 with a `Retry-After` header.",
-          "Limit per identity (IP/user/API key).",
-          "Distinguish public vs authenticated limits.",
-        ],
-        dos: [
-          "Protect auth endpoints from brute-force.",
-          "Log & monitor limit violations.",
-        ],
-        donts: [
-          "Leaving expensive endpoints unbounded.",
-          "Rate limiting only on the frontend.",
-        ],
-        checklist: [
-          "Sensitive endpoints are limited.",
-          "429 + Retry-After.",
-          "Limits per identity.",
-        ],
-      },
-      {
-        id: "integration-management",
-        title: "Integration Management",
-        principle:
-          "Third-party integrations must be resilient to failure & isolated from the application core.",
-        rules: [
-          "Wrap external calls with timeout, retry (backoff), and a circuit breaker.",
-          "Store integration credentials in the environment.",
-          "Isolate the SDK/client in one module (don't let it spread).",
-          "Handle graceful degradation (fallback) when a service is down.",
-        ],
-        dos: [
-          "Timeout & retry for all network calls.",
-          "Correlation logs for integration debugging.",
-        ],
-        donts: [
-          "Calling external APIs without a timeout.",
-          "Spreading the SDK across many layers.",
-        ],
-        checklist: [
-          "Timeout & retry exist.",
-          "Credentials from the environment.",
-          "Client isolated & a fallback exists.",
-        ],
-      },
-    ],
-  },
 
   {
     id: "security",
@@ -1726,7 +1486,7 @@ export const guidelineGroups = [
   },
   {
     id: "api",
-    title: "API Engineering Standards",
+    title: "API Engineering",
     icon: Plug,
     summary:
       "Standards for building HTTP APIs — including client-facing/integration APIs: idempotency, validation, standardized responses & errors, authz, rate limiting, timeouts/retries, correlation IDs, logging, transactional consistency, payload integrity, monitoring, versioning, and backward compatibility.",
@@ -2097,10 +1857,94 @@ export const guidelineGroups = [
           "Old clients still pass contract tests.",
         ],
       },
+      {
+        id: "api-design",
+        title: "API Design",
+        principle:
+          "APIs are consistent, predictable, and resource-oriented. A clear contract makes life easy for consumers.",
+        rules: [
+          "All backend routes are prefixed with `/api` (ingress rule).",
+          "Use plural-noun resources (`/api/offices`).",
+          "Map HTTP verbs correctly (GET/POST/PUT/PATCH/DELETE).",
+          "Status codes match meaning (201 create, 204 no-content, 4xx/5xx).",
+        ],
+        dos: [
+          "Design the contract before implementation.",
+          "Be consistent in naming & payload shape.",
+        ],
+        donts: [
+          "Verbs in the URL (`/getOffices`).",
+          "Backend routes without the `/api` prefix.",
+        ],
+        checklist: [
+          "All routes use `/api`.",
+          "Resource-oriented & consistent.",
+          "Correct verbs & status codes.",
+        ],
+        code: {
+          language: "python",
+          good: "@api_router.post(\"/offices\", status_code=201)\n@api_router.get(\"/offices\")\n@api_router.delete(\"/offices/{office_id}\")",
+          bad: "@app.get(\"/getAllOffices\")   # no /api, verb in URL",
+        },
+      },
+      {
+        id: "serialization-safety",
+        title: "Serialization Safety",
+        principle:
+          "Never return raw MongoDB documents. BSON types (ObjectId, datetime) are not JSON-serializable and either leak internals or crash endpoints.",
+        rules: [
+          "Convert ObjectId -> str and map `_id` -> `id` before returning (PyObjectId / from_mongo helpers).",
+          "Never spread a raw Mongo doc (`{**doc}`) into a response or into another document.",
+          "Exclude `_id` from any dict reused as a payload (e.g. audit `request`) — drivers mutate the dict on insert.",
+          "Defensive net for list endpoints: coerce with `json.loads(json.dumps(docs, default=str))`.",
+          "Persist nested datetimes as ISO 8601 (UTC) strings, not raw datetime.",
+        ],
+        dos: [
+          "Centralize (de)serialization in a base model / helper.",
+          "Project out `_id` when not needed (`{'_id': 0}`).",
+        ],
+        donts: [
+          "Returning `find()` results directly.",
+          "Passing a just-inserted dict (now carrying `_id`) into a log/audit record.",
+        ],
+        checklist: [
+          "No ObjectId reaches the client.",
+          "No raw Mongo doc is spread into responses/other docs.",
+          "A single legacy BSON value can't 500 a list endpoint.",
+        ],
+      },
+      {
+        id: "integration-management",
+        title: "Integration Management",
+        principle:
+          "Third-party integrations must be resilient to failure & isolated from the application core.",
+        rules: [
+          "Wrap external calls with timeout, retry (backoff), and a circuit breaker.",
+          "Store integration credentials in the environment.",
+          "Isolate the SDK/client in one module (don't let it spread).",
+          "Handle graceful degradation (fallback) when a service is down.",
+        ],
+        dos: [
+          "Timeout & retry for all network calls.",
+          "Correlation logs for integration debugging.",
+        ],
+        donts: [
+          "Calling external APIs without a timeout.",
+          "Spreading the SDK across many layers.",
+        ],
+        checklist: [
+          "Timeout & retry exist.",
+          "Credentials from the environment.",
+          "Client isolated & a fallback exists.",
+        ],
+      },
     ],
   },
 
 ];
+
+// Dev Guidelines menu & overview are ordered alphabetically (A–Z) by title.
+guidelineGroups.sort((a, b) => a.title.localeCompare(b.title));
 
 /** id → group map for fast lookup in the renderer. */
 export const guidelineGroupById = Object.fromEntries(

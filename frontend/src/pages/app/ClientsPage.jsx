@@ -523,7 +523,7 @@ export default function ClientsPage() {
                     ))}
                   </SelectContent>
                 </Select>
-                <span>of {totalRows} rows</span>
+                <span>of {totalRows.toLocaleString()} rows</span>
               </div>
               <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
                 <span className="text-xs text-muted-foreground">

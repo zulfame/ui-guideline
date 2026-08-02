@@ -67,6 +67,16 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const humanize = (s) =>
   (s || "").replace(/_/g, " ").replace(/^\w/, (c) => c.toUpperCase());
@@ -103,10 +113,14 @@ export default function AuditLogPage() {
   const [dateTo, setDateTo] = useState("");
 
   const [page, setPage] = useState(0);
-  const [pageSize, setPageSize] = useState(20);
+  const [pageSize, setPageSize] = useState(10);
   const [sort, setSort] = useState({ key: "created_at", dir: "desc" });
   const toggleSort = (key) =>
     setSort((p) => (p.key === key ? { key, dir: p.dir === "asc" ? "desc" : "asc" } : { key, dir: "asc" }));
+
+  const [selected, setSelected] = useState({}); // id -> true
+  const [bulkOpen, setBulkOpen] = useState(false);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
 
   const [exporting, setExporting] = useState(false);
   const [purgeOpen, setPurgeOpen] = useState(false);
@@ -199,12 +213,64 @@ export default function AuditLogPage() {
     }
   };
 
+  const selectedIds = Object.keys(selected).filter((id) => selected[id]);
+  const selectedCount = selectedIds.length;
+  const pageIds = rows.map((r) => r.id);
+  const allPageSelected = pageIds.length > 0 && pageIds.every((id) => selected[id]);
+  const somePageSelected = pageIds.some((id) => selected[id]);
+
+  const toggleRow = (id, value) =>
+    setSelected((prev) => {
+      const next = { ...prev };
+      if (value) next[id] = true;
+      else delete next[id];
+      return next;
+    });
+
+  const togglePage = (value) =>
+    setSelected((prev) => {
+      const next = { ...prev };
+      pageIds.forEach((id) => {
+        if (value) next[id] = true;
+        else delete next[id];
+      });
+      return next;
+    });
+
+  const runBulkDelete = async () => {
+    setBulkDeleting(true);
+    try {
+      const { data } = await API.post("/audit-logs/bulk-delete", { ids: selectedIds });
+      toast.success(`Deleted ${data.deleted} audit entr${data.deleted === 1 ? "y" : "ies"}`);
+      setBulkOpen(false);
+      setSelected({});
+      if (page > 0 && rows.length === selectedCount) setPage((p) => Math.max(0, p - 1));
+      else fetchLogs();
+    } catch (err) {
+      const d = err?.response?.data?.detail;
+      toast.error(typeof d === "string" ? d : "Delete failed. Please try again.");
+    } finally {
+      setBulkDeleting(false);
+    }
+  };
+
   return (
     <div className="space-y-6" data-testid="audit-log-page">
       <Card>
         <CardHeader className="flex flex-col gap-3 space-y-0 sm:flex-row sm:items-center sm:justify-between">
           <CardTitle className="text-base">Activity List</CardTitle>
           <div className="flex flex-wrap items-center gap-2">
+            {selectedCount > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-destructive hover:text-destructive"
+                onClick={() => setBulkOpen(true)}
+                data-testid="audit-bulk-delete"
+              >
+                <Trash2 className="size-4" /> Delete ({selectedCount})
+              </Button>
+            )}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="sm" disabled={exporting} data-testid="audit-export">
@@ -325,6 +391,14 @@ export default function AuditLogPage() {
               <Table data-testid="audit-table" className="[&_td]:whitespace-nowrap [&_th]:whitespace-nowrap">
                 <TableHeader>
                   <TableRow className="bg-muted/50 hover:bg-muted/50">
+                    <TableHead className="w-10">
+                      <Checkbox
+                        checked={allPageSelected ? true : somePageSelected ? "indeterminate" : false}
+                        onCheckedChange={(v) => togglePage(!!v)}
+                        aria-label="Select all on this page"
+                        data-testid="audit-select-all"
+                      />
+                    </TableHead>
                     <TableHead>
                       <SortHead label="Time" sortKey="created_at" sort={sort} onToggle={toggleSort} />
                     </TableHead>
@@ -345,7 +419,15 @@ export default function AuditLogPage() {
                 </TableHeader>
                 <TableBody>
                   {rows.map((r) => (
-                    <TableRow key={r.id} data-testid={`audit-row-${r.id}`}>
+                    <TableRow key={r.id} data-state={selected[r.id] ? "selected" : undefined} data-testid={`audit-row-${r.id}`}>
+                      <TableCell className="w-10">
+                        <Checkbox
+                          checked={!!selected[r.id]}
+                          onCheckedChange={(v) => toggleRow(r.id, !!v)}
+                          aria-label="Select row"
+                          data-testid={`audit-select-${r.id}`}
+                        />
+                      </TableCell>
                       <TableCell className="text-muted-foreground">{formatTime(r.created_at)}</TableCell>
                       <TableCell>{r.actor}</TableCell>
                       <TableCell>
@@ -397,7 +479,7 @@ export default function AuditLogPage() {
                     ))}
                   </SelectContent>
                 </Select>
-                <span>of {total} entries</span>
+                <span>of {total.toLocaleString()} entries</span>
               </div>
               <div className="flex items-center justify-between gap-4 sm:justify-end">
                 <span className="text-xs text-muted-foreground" data-testid="audit-page-indicator">
@@ -571,6 +653,31 @@ export default function AuditLogPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      {/* Bulk delete confirm */}
+      <AlertDialog open={bulkOpen} onOpenChange={(v) => !bulkDeleting && setBulkOpen(v)}>
+        <AlertDialogContent data-testid="audit-bulk-delete-dialog">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete {selectedCount} audit entry(ies)?</AlertDialogTitle>
+          </AlertDialogHeader>
+          <div className="px-6 py-4 text-sm text-muted-foreground">
+            This permanently removes the selected audit log entries. This cannot be undone.
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-testid="audit-bulk-delete-cancel">Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                runBulkDelete();
+              }}
+              disabled={bulkDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              data-testid="audit-bulk-delete-confirm"
+            >
+              {bulkDeleting ? <Loader2 className="size-4 animate-spin" /> : <Trash2 className="size-4" />} Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

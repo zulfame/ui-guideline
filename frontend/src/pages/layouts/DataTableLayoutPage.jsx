@@ -638,7 +638,7 @@ export default function DataTableLayoutPage() {
                   ))}
                 </SelectContent>
               </Select>
-              <span data-testid="dt-showing">of {totalRows} rows</span>
+              <span data-testid="dt-showing">of {totalRows.toLocaleString()} rows</span>
             </div>
             <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
               <span className="text-xs text-muted-foreground">

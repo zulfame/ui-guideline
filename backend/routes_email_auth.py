@@ -442,6 +442,7 @@ async def list_password_reset_requests(
         comp_at = completed_at_by_user.get(uid)
         completed = bool(comp_at and req_at and comp_at >= req_at)
         rows.append({
+            "id": r.get("id"),
             "email": r.get("actor") or r.get("entity_label"),
             "requested_at": req_at,
             "account_found": md.get("account_found"),
@@ -452,3 +453,20 @@ async def list_password_reset_requests(
         })
     response.headers["X-Total-Count"] = str(len(rows))
     return rows
+
+
+
+@api_router.delete("/password-resets/{entry_id}", tags=["Auth"], summary="Delete a password reset request record")
+async def delete_password_reset(entry_id: str, current=Depends(_require_admin)):
+    res = await db.audit_logs.delete_one({"id": entry_id, "action": "password_reset_requested"})
+    if not res.deleted_count:
+        raise HTTPException(status_code=404, detail="Record not found.")
+    return {"success": True}
+
+
+@api_router.post("/password-resets/clear", tags=["Auth"], summary="Clear all password reset request records")
+async def clear_password_resets(current=Depends(_require_admin)):
+    res = await db.audit_logs.delete_many(
+        {"action": {"$in": ["password_reset_requested", "password_reset"]}}
+    )
+    return {"success": True, "deleted": res.deleted_count}
