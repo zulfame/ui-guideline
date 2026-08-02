@@ -505,7 +505,7 @@ export default function UsersPage() {
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="h-9 w-full sm:w-[140px]" data-testid="users-status-filter">
+                <SelectTrigger className="h-[var(--ctl-h-sm)] w-auto gap-1 px-3 text-xs" data-testid="users-status-filter">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
