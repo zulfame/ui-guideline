@@ -245,15 +245,18 @@ async def lifespan(_app: FastAPI):
     except Exception as exc:  # pragma: no cover - non-fatal
         logger.warning("Password-reset index create skipped: %s", exc)
     logger.info("Startup complete: indexes ensured.")
-    try:
-        await _seed_admin()
-    except Exception as exc:  # pragma: no cover - non-fatal, keep the app booting
-        logger.error("Admin seed failed (non-fatal): %s", exc)
+    # Auto-seed FIRST (empty DB) so the snapshot — including the Super Admin user —
+    # is inserted before _seed_admin runs; otherwise _seed_admin would create the
+    # admin, making the DB non-empty and skipping the rest of the seed.
     if AUTO_SEED:
         try:
             await _auto_seed_if_empty()
         except Exception as exc:  # pragma: no cover - non-fatal
             logger.error("Auto-seed failed (non-fatal): %s", exc)
+    try:
+        await _seed_admin()
+    except Exception as exc:  # pragma: no cover - non-fatal, keep the app booting
+        logger.error("Admin seed failed (non-fatal): %s", exc)
     try:
         await _backfill_user_ids()
     except Exception as exc:  # pragma: no cover - non-fatal
