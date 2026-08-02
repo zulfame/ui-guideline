@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
+  CardFooter,
   CardDescription,
   CardHeader,
   CardTitle,
@@ -289,24 +290,23 @@ export default function RoleFormPage() {
                     )}
                   />
                 </div>
-
-                <div className="flex justify-end gap-2 border-t pt-4">
-                  <Button type="button" variant="outline" onClick={() => navigate("/roles")} data-testid="role-form-cancel">
-                    Cancel
-                  </Button>
-                  <Button type="submit" disabled={submitting} data-testid="role-form-submit">
-                    {submitting ? (
-                      <>
-                        <Loader2 className="size-4 animate-spin" aria-hidden="true" /> Saving...
-                      </>
-                    ) : isEdit ? (
-                      "Save changes"
-                    ) : (
-                      "Save role"
-                    )}
-                  </Button>
-                </div>
               </CardContent>
+              <CardFooter className="justify-end gap-2 border-t">
+                <Button type="button" variant="outline" onClick={() => navigate("/roles")} data-testid="role-form-cancel">
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={submitting} data-testid="role-form-submit">
+                  {submitting ? (
+                    <>
+                      <Loader2 className="size-4 animate-spin" aria-hidden="true" /> Saving...
+                    </>
+                  ) : isEdit ? (
+                    "Save changes"
+                  ) : (
+                    "Save role"
+                  )}
+                </Button>
+              </CardFooter>
             </Card>
           </form>
         </Form>

@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
+  CardFooter,
   CardDescription,
   CardHeader,
   CardTitle,
@@ -214,24 +215,23 @@ export default function OfficeFormPage() {
                     />
                   ))}
                 </div>
-
-                <div className="flex justify-end gap-2 border-t pt-4">
-                  <Button type="button" variant="outline" onClick={() => navigate("/offices")} data-testid="office-form-cancel">
-                    Cancel
-                  </Button>
-                  <Button type="submit" disabled={submitting} data-testid="office-form-submit">
-                    {submitting ? (
-                      <>
-                        <Loader2 className="size-4 animate-spin" aria-hidden="true" /> Saving...
-                      </>
-                    ) : isEdit ? (
-                      "Save changes"
-                    ) : (
-                      "Save office"
-                    )}
-                  </Button>
-                </div>
               </CardContent>
+              <CardFooter className="justify-end gap-2 border-t">
+                <Button type="button" variant="outline" onClick={() => navigate("/offices")} data-testid="office-form-cancel">
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={submitting} data-testid="office-form-submit">
+                  {submitting ? (
+                    <>
+                      <Loader2 className="size-4 animate-spin" aria-hidden="true" /> Saving...
+                    </>
+                  ) : isEdit ? (
+                    "Save changes"
+                  ) : (
+                    "Save office"
+                  )}
+                </Button>
+              </CardFooter>
             </Card>
           </form>
         </Form>
