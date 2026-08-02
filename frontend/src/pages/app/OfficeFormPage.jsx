@@ -4,7 +4,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { ArrowLeft, Loader2, Save } from "lucide-react";
 
 import API from "@/lib/api";
 import { Button } from "@/components/ui/button";
@@ -216,20 +216,17 @@ export default function OfficeFormPage() {
                   ))}
                 </div>
               </CardContent>
-              <CardFooter className="justify-end gap-2 border-t">
-                <Button type="button" variant="outline" onClick={() => navigate("/offices")} data-testid="office-form-cancel">
-                  Cancel
-                </Button>
+              <CardFooter className="justify-start gap-2 border-t">
                 <Button type="submit" disabled={submitting} data-testid="office-form-submit">
                   {submitting ? (
-                    <>
-                      <Loader2 className="size-4 animate-spin" aria-hidden="true" /> Saving...
-                    </>
-                  ) : isEdit ? (
-                    "Save changes"
+                    <Loader2 className="size-4 animate-spin" aria-hidden="true" />
                   ) : (
-                    "Save office"
+                    <Save className="size-4" aria-hidden="true" />
                   )}
+                  {submitting ? "Saving..." : isEdit ? "Save changes" : "Save office"}
+                </Button>
+                <Button type="button" variant="outline" onClick={() => navigate("/offices")} data-testid="office-form-cancel">
+                  <ArrowLeft className="size-4" aria-hidden="true" /> Back
                 </Button>
               </CardFooter>
             </Card>

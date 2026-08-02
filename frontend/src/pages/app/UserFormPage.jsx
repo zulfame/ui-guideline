@@ -4,7 +4,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { ArrowLeft, Loader2, Save } from "lucide-react";
 
 import API from "@/lib/api";
 import { Button } from "@/components/ui/button";
@@ -231,11 +231,7 @@ export default function UserFormPage() {
         <Form {...form}>
           <form onSubmit={form.handleSubmit(submit)} noValidate>
             <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Account details</CardTitle>
-                <CardDescription>Name, contact, role, office and status.</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-5">
+              <CardContent className="space-y-5 pt-6">
                 <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2 lg:grid-cols-4">
                   <FormField
                     control={form.control}
@@ -362,26 +358,22 @@ export default function UserFormPage() {
                   />
                 </div>
               </CardContent>
-              <CardFooter className="justify-end gap-2 border-t">
+              <CardFooter className="justify-start gap-2 border-t">
+                <Button type="submit" disabled={submitting} data-testid="user-form-submit">
+                  {submitting ? (
+                    <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+                  ) : (
+                    <Save className="size-4" aria-hidden="true" />
+                  )}
+                  {submitting ? "Saving..." : isEdit ? "Save changes" : "Save user"}
+                </Button>
                 <Button
                   type="button"
                   variant="outline"
                   onClick={() => navigate("/users")}
                   data-testid="user-form-cancel"
                 >
-                  Cancel
-                </Button>
-                <Button type="submit" disabled={submitting} data-testid="user-form-submit">
-                  {submitting ? (
-                    <>
-                      <Loader2 className="size-4 animate-spin" aria-hidden="true" />
-                      Saving...
-                    </>
-                  ) : isEdit ? (
-                    "Save changes"
-                  ) : (
-                    "Save user"
-                  )}
+                  <ArrowLeft className="size-4" aria-hidden="true" /> Back
                 </Button>
               </CardFooter>
             </Card>
