@@ -479,30 +479,34 @@ export default function AuditLogPage() {
                     ))}
                   </SelectContent>
                 </Select>
-                <span>of {total.toLocaleString()} entries</span>
+                <span>of {total.toLocaleString()} rows</span>
               </div>
-              <div className="flex items-center justify-between gap-4 sm:justify-end">
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
                 <span className="text-xs text-muted-foreground" data-testid="audit-page-indicator">
                   Page {page + 1} of {pageCount}
                 </span>
-                <div className="flex items-center gap-2">
+                <div className="flex gap-2">
                   <Button
                     variant="outline"
-                    size="sm"
+                    size="icon"
+                    className="size-8"
                     onClick={() => setPage((p) => Math.max(0, p - 1))}
                     disabled={page === 0}
+                    aria-label="Previous page"
                     data-testid="audit-prev"
                   >
-                    <ChevronLeft className="size-4" /> Prev
+                    <ChevronLeft className="size-4" />
                   </Button>
                   <Button
                     variant="outline"
-                    size="sm"
+                    size="icon"
+                    className="size-8"
                     onClick={() => setPage((p) => Math.min(pageCount - 1, p + 1))}
                     disabled={page >= pageCount - 1}
+                    aria-label="Next page"
                     data-testid="audit-next"
                   >
-                    Next <ChevronRight className="size-4" />
+                    <ChevronRight className="size-4" />
                   </Button>
                 </div>
               </div>

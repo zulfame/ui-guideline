@@ -10,6 +10,7 @@ import {
   Card,
   CardContent,
   CardDescription,
+  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -296,59 +297,58 @@ export default function EmailTemplatesPage() {
               </p>
             </TabsContent>
           </Tabs>
-
-          <div className="mt-6 flex flex-col gap-3 border-t pt-4 sm:flex-row sm:items-end sm:justify-between">
-            <div className="flex items-center gap-2">
-              <Button onClick={save} disabled={saving} data-testid="email-template-save">
-                {saving ? (
-                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-                ) : (
-                  <Save className="h-4 w-4" aria-hidden="true" />
-                )}
-                Save changes
-              </Button>
-              <Button
-                variant="outline"
-                onClick={resetToActive}
-                disabled={saving}
-                data-testid="email-template-reset"
-              >
-                <RotateCcw className="h-4 w-4" aria-hidden="true" />
-                Revert
-              </Button>
-            </div>
-
-            <div className="flex items-end gap-2">
-              <div className="space-y-1.5">
-                <Label htmlFor="tpl-test" className="text-xs text-muted-foreground">
-                  Send a test to
-                </Label>
-                <Input
-                  id="tpl-test"
-                  type="email"
-                  value={testEmail}
-                  onChange={(e) => setTestEmail(e.target.value)}
-                  placeholder="you@example.com"
-                  className="w-full sm:w-56"
-                  data-testid="email-template-test-input"
-                />
-              </div>
-              <Button
-                variant="secondary"
-                onClick={sendTest}
-                disabled={sendingTest}
-                data-testid="email-template-send-test"
-              >
-                {sendingTest ? (
-                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-                ) : (
-                  <Send className="h-4 w-4" aria-hidden="true" />
-                )}
-                Send test
-              </Button>
-            </div>
-          </div>
         </CardContent>
+        <CardFooter className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div className="flex items-center gap-2">
+            <Button onClick={save} disabled={saving} data-testid="email-template-save">
+              {saving ? (
+                <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+              ) : (
+                <Save className="h-4 w-4" aria-hidden="true" />
+              )}
+              Save changes
+            </Button>
+            <Button
+              variant="outline"
+              onClick={resetToActive}
+              disabled={saving}
+              data-testid="email-template-reset"
+            >
+              <RotateCcw className="h-4 w-4" aria-hidden="true" />
+              Revert
+            </Button>
+          </div>
+
+          <div className="flex items-end gap-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="tpl-test" className="text-xs text-muted-foreground">
+                Send a test to
+              </Label>
+              <Input
+                id="tpl-test"
+                type="email"
+                value={testEmail}
+                onChange={(e) => setTestEmail(e.target.value)}
+                placeholder="you@example.com"
+                className="w-full sm:w-56"
+                data-testid="email-template-test-input"
+              />
+            </div>
+            <Button
+              variant="secondary"
+              onClick={sendTest}
+              disabled={sendingTest}
+              data-testid="email-template-send-test"
+            >
+              {sendingTest ? (
+                <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+              ) : (
+                <Send className="h-4 w-4" aria-hidden="true" />
+              )}
+              Send test
+            </Button>
+          </div>
+        </CardFooter>
       </Card>
     </div>
   );
