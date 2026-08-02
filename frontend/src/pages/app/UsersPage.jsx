@@ -638,7 +638,7 @@ export default function UsersPage() {
         title="Import Users"
         resource="users"
         templateFilename="users_import_template.xlsx"
-        instructions="Upload an .xlsx file. Required columns: name, email, role, office (role & office by name). New users get the system default password and must change it on first login. Existing users (matched by email) are updated. All rows are validated first — if any row fails, nothing is imported."
+        instructions="Upload an .xlsx file. Required columns: name, email, role (by name). Office is optional (by name; leave blank for none). New users get the system default password and must change it on first login. Existing users (matched by email) are updated. All rows are validated first — if any row fails, nothing is imported."
         onImported={fetchUsers}
       />
 

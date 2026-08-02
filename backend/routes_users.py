@@ -23,7 +23,7 @@ class UserCreate(BaseModel):
     name: str = Field(..., min_length=1)
     email: str = Field(..., pattern=EMAIL_RE)
     role_id: str = Field(..., min_length=1)
-    office_id: str = Field(..., min_length=1)
+    office_id: Optional[str] = None
     user_id: Optional[int] = Field(None, ge=1)
     username: Optional[str] = None
     phone: Optional[str] = None
@@ -70,7 +70,7 @@ async def create_user(payload: UserCreate):
     if data.get("user_id") is None:
         data["user_id"] = await _next_user_id()
     await _assert_user_unique(data)
-    await _validate_role_office(data["role_id"], data["office_id"])
+    await _validate_role_office(data["role_id"], data.get("office_id"))
     now = datetime.now(timezone.utc)
     now_iso = now.isoformat()
     pw_hash = _hash_password(DEFAULT_USER_PASSWORD)

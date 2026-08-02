@@ -424,6 +424,7 @@ EMAIL_RE = r"^[^@\s]+@[^@\s]+\.[^@\s]+$"
 UNIQUE_USER_FIELDS = ["user_id", "username", "phone", "email", "alias", "mso_code", "collector_code"]
 # Optional fields normalized "" -> None so blanks never collide on uniqueness.
 NULLABLE_USER_FIELDS = [
+    "office_id",
     "username", "phone", "alias", "mso_code", "collector_code",
     "device_identifier", "device_name", "device_os", "fcm_token",
 ]

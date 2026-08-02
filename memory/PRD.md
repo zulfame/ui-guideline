@@ -22,6 +22,11 @@ Membangun template **UI Guidelines / Design System** generik sebagai fondasi apl
 - **R38**: Modifikasi primitive/composite harus jaga compact spacing (`px-6 py-4`), grid 4px, token monochrome (`border-border`), typography tepat. Verifikasi semua consumer via screenshot sebelum selesai.
 
 ## Sudah Diimplementasikan
+- (2026-08-02) **Relasi Office pada Users jadi OPSIONAL** [FEATURE]: sebelumnya `office_id` wajib. Kini opsional di seluruh alur:
+  - Backend `routes_users.py`: `UserCreate.office_id` → `Optional[str] = None`; `create_user` pakai `data.get("office_id")`. `server.py`: `office_id` ditambah ke `NULLABLE_USER_FIELDS` (empty string → None). `_validate_role_office` sudah skip bila None (tetap tolak 400 untuk office_id tak valid). Import Excel (`routes_import.py`): kolom `office` tak lagi wajib — kosong = tanpa office.
+  - Frontend `UserFormPage.jsx`: schema `office_id` optional; Select Office punya opsi **None** (sentinel `__none__`) + placeholder "Select office (optional)"; payload kirim `null` bila tak dipilih. `UsersPage.jsx`: instruksi import diperbarui (office opsional); kolom Office tampil "—" bila kosong.
+  - Diverifikasi via curl: create tanpa office (office_id null), set office (office_name terisi), clear office (""→null), office invalid ditolak 400; screenshot form menampilkan opsi None; design-guard exit 0.
+
 - (2026-06-02) **Uji fresh-deploy + fix urutan lifespan seed** [BUGFIX/TEST]:
   - **Bug ditemukan & diperbaiki**: di `lifespan` (`server.py`), `_seed_admin()` berjalan SEBELUM `_auto_seed_if_empty()`. Pada DB kosong, admin dibuat lebih dulu → koleksi users jadi tidak kosong → auto-seed ter-SKIP (roles/offices/levels/branding tak tersemai). Urutan ditukar: **auto-seed dulu, baru seed_admin** (seed_admin lalu menyinkronkan Super Admin dari snapshot tanpa duplikat).
   - **Uji fresh-deploy**: DB (`test_database`) di-drop total → restart → log `Auto-seed from snapshot (empty DB): {levels:6, roles:45, offices:7, users:1, broadcast_configs:5, email_templates:2, branding:1, branding_assets:2}`. Verifikasi: login sa@/SA@4dm1n 200; users=1 (user_id=1, tanpa admin ganda); roles/offices/levels sesuai; branding "Authty" + favicon (200 png 20194b) & og_image (200 webp 61280b) tersaji otomatis. **PASS.**

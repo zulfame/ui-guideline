@@ -37,6 +37,7 @@ import {
 import { EmptyState } from "@/components/composite/EmptyState";
 
 const UNIQUE_FIELDS = ["user_id", "email", "username", "phone", "alias", "mso_code", "collector_code"];
+const NONE_OFFICE = "__none__";
 const OPTIONAL_TEXT = [
   "username", "phone", "alias", "mso_code", "collector_code",
   "device_identifier", "device_name", "device_os", "fcm_token",
@@ -46,7 +47,7 @@ const userSchema = z.object({
   name: z.string().min(1, "Name is required"),
   email: z.string().min(1, "Email is required").email("Invalid email"),
   role_id: z.string().min(1, "Role is required"),
-  office_id: z.string().min(1, "Office is required"),
+  office_id: z.string().optional(),
   user_id: z.string().optional().refine((v) => !v || /^\d+$/.test(v.trim()), "Must be a positive number"),
   is_active: z.boolean(),
   username: z.string().optional(),
@@ -85,9 +86,9 @@ function buildUserPayload(data, isEdit) {
     name: data.name.trim(),
     email: data.email.trim(),
     role_id: data.role_id,
-    office_id: data.office_id,
     is_active: data.is_active,
   };
+  payload.office_id = data.office_id && data.office_id !== NONE_OFFICE ? data.office_id : null;
   OPTIONAL_TEXT.forEach((k) => {
     const v = data[k] ? data[k].trim() : "";
     if (v) payload[k] = v;
@@ -286,13 +287,14 @@ export default function UserFormPage() {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Office</FormLabel>
-                        <Select value={field.value} onValueChange={field.onChange}>
+                        <Select value={field.value || undefined} onValueChange={field.onChange}>
                           <FormControl>
                             <SelectTrigger data-testid="user-field-office">
-                              <SelectValue placeholder="Select office" />
+                              <SelectValue placeholder="Select office (optional)" />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
+                            <SelectItem value={NONE_OFFICE} data-testid="user-field-office-none">None</SelectItem>
                             {offices.map((o) => (
                               <SelectItem key={o.id} value={o.id}>{o.name}</SelectItem>
                             ))}

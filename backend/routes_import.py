@@ -514,12 +514,11 @@ async def _prepare_users(rows: list):
             errs.append(f"role '{role_name}' not found")
         else:
             role_id = role_id_by_name[role_name.lower()]
-        if not office_name:
-            errs.append("office is required")
-        elif office_name.lower() not in office_id_by_name:
-            errs.append(f"office '{office_name}' not found")
-        else:
-            office_id = office_id_by_name[office_name.lower()]
+        if office_name:
+            if office_name.lower() not in office_id_by_name:
+                errs.append(f"office '{office_name}' not found")
+            else:
+                office_id = office_id_by_name[office_name.lower()]
         rec = {"row": rn, "name": name, "email": email, "role_id": role_id, "office_id": office_id}
         uid_raw = _s(row.get("user_id"))
         user_id_val = None
