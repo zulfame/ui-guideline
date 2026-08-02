@@ -22,6 +22,13 @@ Membangun template **UI Guidelines / Design System** generik sebagai fondasi apl
 - **R38**: Modifikasi primitive/composite harus jaga compact spacing (`px-6 py-4`), grid 4px, token monochrome (`border-border`), typography tepat. Verifikasi semua consumer via screenshot sebelum selesai.
 
 ## Sudah Diimplementasikan
+- (2026-06-02) **Dev Guidelines merge + A-Z, delete data Security, Audit page-size/checkbox, format ribuan** [FIX/FEATURE]:
+  - Dev Guidelines: dua menu duplikat (id "api" sama) digabung jadi satu "API Engineering" (3 topik unik dipindahkan), semua grup diurutkan A-Z di config/developmentGuidelines.js.
+  - Login Security & Password Reset Requests kini bisa dihapus: DELETE/clear login-attempts & password-resets; LoginSecurityPage jadi DataTable standar + Clear all + Delete per baris.
+  - Audit Log: default page size 10 + checkbox seleksi + bulk delete (POST /api/audit-logs/bulk-delete).
+  - Format angka: pemisah ribuan (toLocaleString) di footer semua DataTable.
+  - Verifikasi: design-guard PASS, backend startup bersih, endpoint delete/clear teruji, screenshot OK. CATATAN: pytest TIDAK dijalankan atas permintaan user.
+
 - (2026-06-02) **Revisi API Clients (patuh R40) + hapus Scopes + modularisasi Clients** [FIX/REFACTOR]:
   - **Hapus Scopes total** — Backend `server.py`: `ClientCreate`/`ClientUpdate`/`_client_public` tanpa `scopes`; endpoint `GET /clients/scopes`, `AVAILABLE_SCOPES`, `_sanitize_scopes` dihapus; `_apikey_authorize` disederhanakan (blokir hanya prefix clients/auth/database/login-attempts, selain itu key aktif diizinkan — fungsi API belum didefinisikan). Frontend: kolom & bagian Scopes dihapus dari tabel dan dialog.
   - **`ClientsPage.jsx` ditulis ulang mengikuti pola kanonik R40 (`OfficesPage`)** — TanStack **DataTable** dengan header **sortable**, toolbar **search + Reset + DensityToggle**, **EmptyState** standar (first-time/error/filtered), footer **pagination**; row-actions dipindah ke **DropdownMenu** (View usage, Edit, Regenerate, Revoke, Delete destruktif); dialog form pakai **DialogBody** + grid R41.
