@@ -19,3 +19,23 @@ API.interceptors.request.use((config) => {
 });
 
 export default API;
+
+/**
+ * Fetch ALL rows from a paginated list endpoint by following X-Total-Count.
+ * Prevents silently truncating data at the backend page-size cap (500).
+ */
+export async function fetchAll(path, params = {}, pageSize = 500) {
+  let skip = 0;
+  let total = Infinity;
+  let all = [];
+  while (all.length < total) {
+    const res = await API.get(path, { params: { ...params, skip, limit: pageSize } });
+    const batch = res.data || [];
+    const hdr = parseInt(res.headers["x-total-count"], 10);
+    total = Number.isNaN(hdr) ? batch.length : hdr;
+    all = all.concat(batch);
+    if (batch.length < pageSize) break;
+    skip += pageSize;
+  }
+  return all;
+}

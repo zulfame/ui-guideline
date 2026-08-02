@@ -30,7 +30,7 @@ import {
   Upload,
 } from "lucide-react";
 
-import API from "@/lib/api";
+import API, { fetchAll } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -235,26 +235,14 @@ export default function UsersPage() {
   const fetchUsers = useCallback(async () => {
     setStatus("loading");
     try {
-      const pageSize = 500;
-      let skip = 0;
-      let total = Infinity;
-      let allUsers = [];
-      while (allUsers.length < total) {
-        const res = await API.get("/users", { params: { skip, limit: pageSize } });
-        const batch = res.data || [];
-        const hdr = parseInt(res.headers["x-total-count"], 10);
-        total = Number.isNaN(hdr) ? batch.length : hdr;
-        allUsers = allUsers.concat(batch);
-        if (batch.length < pageSize) break;
-        skip += pageSize;
-      }
-      const [rRes, oRes] = await Promise.all([
-        API.get("/roles", { params: { limit: 500 } }),
-        API.get("/offices", { params: { limit: 500 } }),
+      const [allUsers, allRoles, allOffices] = await Promise.all([
+        fetchAll("/users"),
+        fetchAll("/roles"),
+        fetchAll("/offices"),
       ]);
       setUsers(allUsers);
-      setRoles(rRes.data);
-      setOffices(oRes.data);
+      setRoles(allRoles);
+      setOffices(allOffices);
       setStatus("ready");
     } catch {
       setStatus("error");

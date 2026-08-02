@@ -36,7 +36,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
-import API from "@/lib/api";
+import API, { fetchAll } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import {
   Card,
@@ -718,8 +718,7 @@ export default function RolesPage() {
 
   const loadLevels = async () => {
     try {
-      const { data } = await API.get("/levels", { params: { limit: 500 } });
-      setLevels(data);
+      setLevels(await fetchAll("/levels"));
     } catch {
       /* levels are optional; ignore */
     }
@@ -728,11 +727,11 @@ export default function RolesPage() {
   const load = async () => {
     setStatus("loading");
     try {
-      const [rolesRes] = await Promise.all([
-        API.get("/roles", { params: { limit: 500 } }),
+      const [allRoles] = await Promise.all([
+        fetchAll("/roles"),
         loadLevels(),
       ]);
-      setRoles(rolesRes.data);
+      setRoles(allRoles);
       setStatus("ready");
     } catch {
       setStatus("error");

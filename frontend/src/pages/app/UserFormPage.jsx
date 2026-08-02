@@ -6,7 +6,7 @@ import { z } from "zod";
 import { toast } from "sonner";
 import { ArrowLeft, Loader2, Save } from "lucide-react";
 
-import API from "@/lib/api";
+import API, { fetchAll } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -135,14 +135,11 @@ export default function UserFormPage() {
   const load = useCallback(async () => {
     setStatus("loading");
     try {
-      const reqs = [
-        API.get("/roles", { params: { limit: 500 } }),
-        API.get("/offices", { params: { limit: 500 } }),
-      ];
+      const reqs = [fetchAll("/roles"), fetchAll("/offices")];
       if (isEdit) reqs.push(API.get(`/users/${id}`));
-      const [rRes, oRes, uRes] = await Promise.all(reqs);
-      setRoles(rRes.data);
-      setOffices(oRes.data);
+      const [allRoles, allOffices, uRes] = await Promise.all(reqs);
+      setRoles(allRoles);
+      setOffices(allOffices);
       if (isEdit) form.reset(toUserForm(uRes.data));
       setStatus("ready");
     } catch {

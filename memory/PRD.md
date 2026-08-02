@@ -22,6 +22,8 @@ Membangun template **UI Guidelines / Design System** generik sebagai fondasi apl
 - **R38**: Modifikasi primitive/composite harus jaga compact spacing (`px-6 py-4`), grid 4px, token monochrome (`border-border`), typography tepat. Verifikasi semua consumer via screenshot sebelum selesai.
 
 ## Sudah Diimplementasikan
+- (2026-08-02) **Audit & fix menyeluruh: bug laten `limit=500` di semua datatable/selector** [FIX]: helper bersama **`fetchAll(path, params)`** ditambah di `lib/api.js` (loop `skip`/`limit=500` mengikuti header `X-Total-Count` → muat SEMUA baris). Diterapkan ke: **UsersPage** (list + enrich roles/offices), **OfficesPage** (list), **RolesPage** (roles + levels, dibutuhkan untuk tree), **UserFormPage** & **RoleFormPage** (dropdown selector roles/offices/levels). Sebelumnya semua fetch sekali `limit=500` (cap backend `MAX_PAGE_SIZE`) → data > 500 diam-diam terpotong. Faktanya hanya Users yang sudah terpotong (545 > 500); Offices/Roles/Levels masih < 500. `AuditLogPage` sudah benar (paginasi server-side); `AccountPage` login-activity sengaja dibatasi 100 (feed terbaru personal). Diverifikasi: Roles "of 46 rows", Offices "of 7 rows", Users "of 545 rows"; design-guard exit 0; compiled successfully.
+
 - (2026-08-02) **Fix: tabel Users hanya tampil 500 dari 544+ user** [FIX]: `UsersPage.fetchUsers` sebelumnya sekali `GET /users?limit=500` (backend cap `MAX_PAGE_SIZE=500`) sehingga hanya 500 user termuat & footer menulis "of 500 rows" meski data 544+. Kini fetch **paginasi bertahap** (loop `skip`/`limit=500` sampai `X-Total-Count` terpenuhi) → semua user termuat. Diverifikasi: X-Total-Count=545, footer "of 545 rows".
 
 - (2026-08-02) **Perbaikan modal Import + revisi kolom tabel Users** [FIX/UI]:

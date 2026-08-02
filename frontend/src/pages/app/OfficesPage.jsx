@@ -28,7 +28,7 @@ import {
   Upload,
 } from "lucide-react";
 
-import API from "@/lib/api";
+import API, { fetchAll } from "@/lib/api";
 import {
   Card,
   CardContent,
@@ -398,8 +398,7 @@ export default function OfficesPage() {
   const fetchOffices = useCallback(async () => {
     setStatus("loading");
     try {
-      const { data } = await API.get("/offices", { params: { limit: 500 } });
-      setOffices(data);
+      setOffices(await fetchAll("/offices"));
       setStatus("ready");
     } catch {
       setStatus("error");

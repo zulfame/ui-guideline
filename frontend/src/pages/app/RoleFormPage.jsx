@@ -6,7 +6,7 @@ import { z } from "zod";
 import { toast } from "sonner";
 import { ArrowLeft, Loader2, Save } from "lucide-react";
 
-import API from "@/lib/api";
+import API, { fetchAll } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -73,14 +73,14 @@ export default function RoleFormPage() {
   const load = useCallback(async () => {
     setStatus("loading");
     try {
-      const [rRes, lRes] = await Promise.all([
-        API.get("/roles", { params: { limit: 500 } }),
-        API.get("/levels", { params: { limit: 500 } }),
+      const [allRoles, allLevels] = await Promise.all([
+        fetchAll("/roles"),
+        fetchAll("/levels"),
       ]);
-      setRoles(rRes.data);
-      setLevels(lRes.data);
+      setRoles(allRoles);
+      setLevels(allLevels);
       if (isEdit) {
-        const current = rRes.data.find((r) => r.id === id);
+        const current = allRoles.find((r) => r.id === id);
         if (!current) {
           setStatus("error");
           return;
