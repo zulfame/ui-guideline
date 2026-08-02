@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { Loader2, Send, TriangleAlert, Users } from "lucide-react";
+import { Link } from "react-router-dom";
+import { History, Loader2, Send, TriangleAlert, Users } from "lucide-react";
 import { toast } from "sonner";
 
 import API from "@/lib/api";
@@ -74,13 +75,20 @@ export default function PushNotificationsPage() {
               Broadcast a message to every active user that has the mobile app installed.
             </CardDescription>
           </div>
-          <Badge
-            variant={configured ? "secondary" : "outline"}
-            className="gap-1"
-            data-testid="push-recipient-count"
-          >
-            <Users className="size-3" /> {count} recipient{count === 1 ? "" : "s"}
-          </Badge>
+          <div className="flex items-center gap-2">
+            <Badge
+              variant={configured ? "secondary" : "outline"}
+              className="gap-1"
+              data-testid="push-recipient-count"
+            >
+              <Users className="size-3" /> {count} recipient{count === 1 ? "" : "s"}
+            </Badge>
+            <Button asChild variant="outline" size="sm" data-testid="push-history-link">
+              <Link to="/audit-log">
+                <History className="size-4" /> History
+              </Link>
+            </Button>
+          </div>
         </CardHeader>
         <CardContent className="space-y-[var(--field-gap)]">
           {cfg && !configured && (

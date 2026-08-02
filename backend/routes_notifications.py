@@ -73,7 +73,44 @@ async def _recipients():
         "is_active": {"$ne": False},
         "fcm_token": {"$nin": [None, ""]},
     }
-    return await db.users.find(q, {"_id": 0, "id": 1, "fcm_token": 1}).to_list(None)
+    return await db.users.find(q, {"_id": 0, "id": 1, "name": 1, "fcm_token": 1}).to_list(None)
+
+
+async def _send_to_tokens(app, token_to_user: Dict[str, str], title: str, body: str, data: dict):
+    """Send a notification to many tokens; clean up invalid ones. Returns stats."""
+    tokens = list(token_to_user.keys())
+    sent = failed = 0
+    invalid_tokens = []
+    for i in range(0, len(tokens), _FCM_BATCH):
+        chunk = tokens[i:i + _FCM_BATCH]
+        message = messaging.MulticastMessage(
+            tokens=chunk,
+            notification=messaging.Notification(title=title, body=body),
+            data=data or None,
+        )
+        resp = messaging.send_each_for_multicast(message, app=app)
+        for idx, res in enumerate(resp.responses):
+            if res.success:
+                sent += 1
+            else:
+                failed += 1
+                if isinstance(res.exception, (messaging.UnregisteredError, fb_exceptions.InvalidArgumentError)):
+                    invalid_tokens.append(chunk[idx])
+
+    invalid_removed = 0
+    if invalid_tokens:
+        now = datetime.now(timezone.utc).isoformat()
+        for tok in invalid_tokens:
+            uid = token_to_user.get(tok)
+            if not uid:
+                continue
+            result = await db.users.update_one(
+                {"id": uid, "fcm_token": tok},
+                {"$set": {"fcm_token": None, "mobile_device.fcm_token": None, "updated_at": now}},
+            )
+            invalid_removed += result.modified_count
+
+    return {"total": len(tokens), "sent": sent, "failed": failed, "invalid_removed": invalid_removed}
 
 
 @api_router.get("/notifications/config", tags=["Notifications"], summary="Push config + recipient count")
@@ -96,55 +133,50 @@ async def broadcast_notification(payload: BroadcastRequest):
         return {"success": True, "total": 0, "sent": 0, "failed": 0, "invalid_removed": 0}
 
     token_to_user = {r["fcm_token"]: r["id"] for r in recipients if r.get("fcm_token")}
-    tokens = list(token_to_user.keys())
-
-    sent = 0
-    failed = 0
-    invalid_tokens = []
     data = {k: str(v) for k, v in (payload.data or {}).items()}
-
-    for i in range(0, len(tokens), _FCM_BATCH):
-        chunk = tokens[i:i + _FCM_BATCH]
-        message = messaging.MulticastMessage(
-            tokens=chunk,
-            notification=messaging.Notification(title=payload.title, body=payload.body),
-            data=data or None,
-        )
-        resp = messaging.send_each_for_multicast(message, app=app)
-        for idx, res in enumerate(resp.responses):
-            if res.success:
-                sent += 1
-            else:
-                failed += 1
-                exc = res.exception
-                if isinstance(exc, (messaging.UnregisteredError, fb_exceptions.InvalidArgumentError)):
-                    invalid_tokens.append(chunk[idx])
-
-    invalid_removed = 0
-    if invalid_tokens:
-        now = datetime.now(timezone.utc).isoformat()
-        for tok in invalid_tokens:
-            uid = token_to_user.get(tok)
-            if not uid:
-                continue
-            result = await db.users.update_one(
-                {"id": uid, "fcm_token": tok},
-                {"$set": {"fcm_token": None, "mobile_device.fcm_token": None, "updated_at": now}},
-            )
-            invalid_removed += result.modified_count
+    stats = await _send_to_tokens(app, token_to_user, payload.title, payload.body, data)
 
     await log_audit(
         "broadcast", "notification",
-        summary=f"Push broadcast '{payload.title}' -> sent {sent}, failed {failed}, cleaned {invalid_removed}",
+        summary=f"Push broadcast '{payload.title}' -> sent {stats['sent']}, failed {stats['failed']}, cleaned {stats['invalid_removed']}",
         method="POST", path="/api/notifications/broadcast", status_code=200,
         request={"title": payload.title},
-        response={"sent": sent, "failed": failed},
-        metadata={"total": len(tokens), "invalid_removed": invalid_removed},
+        response={"sent": stats["sent"], "failed": stats["failed"]},
+        metadata={"total": stats["total"], "invalid_removed": stats["invalid_removed"]},
     )
-    return {
-        "success": True,
-        "total": len(tokens),
-        "sent": sent,
-        "failed": failed,
-        "invalid_removed": invalid_removed,
-    }
+    return {"success": True, **stats}
+
+
+@api_router.post("/notifications/user/{user_id}", tags=["Notifications"], summary="Push to a single user")
+async def push_to_user(user_id: str, payload: BroadcastRequest):
+    app = _get_app()
+    if app is None:
+        raise HTTPException(
+            status_code=400,
+            detail="Firebase Cloud Messaging is not configured. Set FIREBASE_SERVICE_ACCOUNT_JSON in backend/.env.",
+        )
+    doc = await db.users.find_one(
+        {"id": user_id, "deleted_at": None}, {"_id": 0, "id": 1, "name": 1, "email": 1, "fcm_token": 1}
+    )
+    if not doc:
+        raise HTTPException(status_code=404, detail="User not found")
+    token = doc.get("fcm_token")
+    if not token:
+        raise HTTPException(status_code=409, detail="This user has no registered mobile device")
+
+    data = {k: str(v) for k, v in (payload.data or {}).items()}
+    stats = await _send_to_tokens(app, {token: doc["id"]}, payload.title, payload.body, data)
+
+    await log_audit(
+        "push", "notification", entity_id=doc["id"],
+        entity_label=f"{doc.get('name')} <{doc.get('email')}>",
+        summary=f"Push '{payload.title}' to {doc.get('name')} <{doc.get('email')}> -> sent {stats['sent']}, failed {stats['failed']}",
+        method="POST", path=f"/api/notifications/user/{user_id}", status_code=200,
+        request={"title": payload.title},
+        response={"sent": stats["sent"], "failed": stats["failed"]},
+        metadata={"total": stats["total"], "invalid_removed": stats["invalid_removed"]},
+    )
+    if stats["sent"] == 0:
+        raise HTTPException(status_code=502, detail="Delivery failed. The device token may be invalid.")
+    return {"success": True, **stats}
+

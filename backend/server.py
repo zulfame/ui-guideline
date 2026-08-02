@@ -488,6 +488,7 @@ def _user_public(doc: dict, roles: dict = None, offices: dict = None) -> dict:
         "device_os": doc.get("device_os"),
         "fcm_token": doc.get("fcm_token"),
         "device_bound": bool(doc.get("mobile_device")),
+        "has_push": bool(doc.get("fcm_token")),
         "password_changed_at": doc.get("password_changed_at"),
         "password_expires_at": doc.get("password_expires_at"),
         "password_status": status,

@@ -21,6 +21,7 @@ import {
   FilterX,
   KeyRound,
   MoreHorizontal,
+  Bell,
   Pencil,
   Plus,
   Power,
@@ -36,6 +37,8 @@ import API, { fetchAll } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -196,6 +199,88 @@ function ChangePasswordDialog({ open, onOpenChange, user, onSaved }) {
   );
 }
 
+function SendNotificationDialog({ open, onOpenChange, user }) {
+  const [title, setTitle] = useState("");
+  const [body, setBody] = useState("");
+  const [sending, setSending] = useState(false);
+
+  useEffect(() => {
+    if (open) {
+      setTitle("");
+      setBody("");
+    }
+  }, [open]);
+
+  const submit = async () => {
+    if (!title.trim() || !body.trim()) {
+      toast.error("Title and message are required");
+      return;
+    }
+    setSending(true);
+    try {
+      const { data } = await API.post(`/notifications/user/${user.id}`, {
+        title: title.trim(),
+        body: body.trim(),
+      });
+      toast.success("Notification sent", { description: `${user.name} · sent ${data.sent}/${data.total}` });
+      onOpenChange(false);
+    } catch (err) {
+      toast.error(err?.response?.data?.detail || "Failed to send notification");
+    } finally {
+      setSending(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md" data-testid="user-push-dialog">
+        <DialogHeader>
+          <DialogTitle>Send notification</DialogTitle>
+          <DialogDescription>Send a push notification to {user?.name}'s mobile device.</DialogDescription>
+        </DialogHeader>
+        <DialogBody>
+          <div className="grid gap-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="user-push-title">Title</Label>
+              <Input
+                id="user-push-title"
+                value={title}
+                maxLength={120}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="e.g. Reminder"
+                data-testid="user-push-title"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="user-push-body">Message</Label>
+              <Textarea
+                id="user-push-body"
+                rows={4}
+                value={body}
+                maxLength={500}
+                onChange={(e) => setBody(e.target.value)}
+                placeholder="Write the notification..."
+                data-testid="user-push-body"
+              />
+            </div>
+          </div>
+        </DialogBody>
+        <DialogFooter>
+          <DialogClose asChild>
+            <Button type="button" variant="outline" data-testid="user-push-cancel">
+              Cancel
+            </Button>
+          </DialogClose>
+          <Button type="button" onClick={submit} disabled={sending} data-testid="user-push-submit">
+            {sending ? "Sending..." : "Send"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+
 function SortableHeader({ column, children, align = "left" }) {
   const sorted = column.getIsSorted();
   return (
@@ -233,6 +318,7 @@ export default function UsersPage() {
   const [resetTarget, setResetTarget] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [unbindTarget, setUnbindTarget] = useState(null);
+  const [pushTarget, setPushTarget] = useState(null);
   const [bulkOpen, setBulkOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
 
@@ -451,6 +537,14 @@ export default function UsersPage() {
                   <Power className="size-4" />
                   {row.original.is_active === false ? "Activate" : "Deactivate"}
                 </DropdownMenuItem>
+                {row.original.has_push && (
+                  <DropdownMenuItem
+                    onClick={() => setPushTarget(row.original)}
+                    data-testid={`users-push-${row.original.id}`}
+                  >
+                    <Bell className="size-4" /> Send notification
+                  </DropdownMenuItem>
+                )}
                 {row.original.device_bound && (
                   <DropdownMenuItem
                     onClick={() => setUnbindTarget(row.original)}
@@ -724,6 +818,12 @@ export default function UsersPage() {
         onOpenChange={(v) => !v && setPwTarget(null)}
         user={pwTarget}
         onSaved={fetchUsers}
+      />
+
+      <SendNotificationDialog
+        open={!!pushTarget}
+        onOpenChange={(v) => !v && setPushTarget(null)}
+        user={pushTarget}
       />
 
       <AlertDialog open={!!resetTarget} onOpenChange={(v) => !v && setResetTarget(null)}>
