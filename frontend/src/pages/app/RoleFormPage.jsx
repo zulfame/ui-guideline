@@ -287,7 +287,10 @@ export default function RoleFormPage() {
                   />
                 </div>
               </CardContent>
-              <CardFooter className="justify-start gap-2 border-t">
+              <CardFooter className="justify-between gap-2 border-t">
+                <Button type="button" variant="outline" onClick={() => navigate("/roles")} data-testid="role-form-cancel">
+                  <ArrowLeft className="size-4" aria-hidden="true" /> Back
+                </Button>
                 <Button type="submit" disabled={submitting} data-testid="role-form-submit">
                   {submitting ? (
                     <Loader2 className="size-4 animate-spin" aria-hidden="true" />
@@ -295,9 +298,6 @@ export default function RoleFormPage() {
                     <Save className="size-4" aria-hidden="true" />
                   )}
                   {submitting ? "Saving..." : isEdit ? "Save changes" : "Save role"}
-                </Button>
-                <Button type="button" variant="outline" onClick={() => navigate("/roles")} data-testid="role-form-cancel">
-                  <ArrowLeft className="size-4" aria-hidden="true" /> Back
                 </Button>
               </CardFooter>
             </Card>

@@ -216,7 +216,10 @@ export default function OfficeFormPage() {
                   ))}
                 </div>
               </CardContent>
-              <CardFooter className="justify-start gap-2 border-t">
+              <CardFooter className="justify-between gap-2 border-t">
+                <Button type="button" variant="outline" onClick={() => navigate("/offices")} data-testid="office-form-cancel">
+                  <ArrowLeft className="size-4" aria-hidden="true" /> Back
+                </Button>
                 <Button type="submit" disabled={submitting} data-testid="office-form-submit">
                   {submitting ? (
                     <Loader2 className="size-4 animate-spin" aria-hidden="true" />
@@ -224,9 +227,6 @@ export default function OfficeFormPage() {
                     <Save className="size-4" aria-hidden="true" />
                   )}
                   {submitting ? "Saving..." : isEdit ? "Save changes" : "Save office"}
-                </Button>
-                <Button type="button" variant="outline" onClick={() => navigate("/offices")} data-testid="office-form-cancel">
-                  <ArrowLeft className="size-4" aria-hidden="true" /> Back
                 </Button>
               </CardFooter>
             </Card>

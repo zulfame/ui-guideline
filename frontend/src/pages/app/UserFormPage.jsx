@@ -358,15 +358,7 @@ export default function UserFormPage() {
                   />
                 </div>
               </CardContent>
-              <CardFooter className="justify-start gap-2 border-t">
-                <Button type="submit" disabled={submitting} data-testid="user-form-submit">
-                  {submitting ? (
-                    <Loader2 className="size-4 animate-spin" aria-hidden="true" />
-                  ) : (
-                    <Save className="size-4" aria-hidden="true" />
-                  )}
-                  {submitting ? "Saving..." : isEdit ? "Save changes" : "Save user"}
-                </Button>
+              <CardFooter className="justify-between gap-2 border-t">
                 <Button
                   type="button"
                   variant="outline"
@@ -374,6 +366,14 @@ export default function UserFormPage() {
                   data-testid="user-form-cancel"
                 >
                   <ArrowLeft className="size-4" aria-hidden="true" /> Back
+                </Button>
+                <Button type="submit" disabled={submitting} data-testid="user-form-submit">
+                  {submitting ? (
+                    <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+                  ) : (
+                    <Save className="size-4" aria-hidden="true" />
+                  )}
+                  {submitting ? "Saving..." : isEdit ? "Save changes" : "Save user"}
                 </Button>
               </CardFooter>
             </Card>
