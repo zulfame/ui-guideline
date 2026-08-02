@@ -223,6 +223,7 @@ export default function UsersPage() {
   const [offices, setOffices] = useState([]);
   const [status, setStatus] = useState("loading");
   const [globalFilter, setGlobalFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
   const [sorting, setSorting] = useState([]);
   const [rowSelection, setRowSelection] = useState({});
 
@@ -435,8 +436,15 @@ export default function UsersPage() {
     [isAdmin],
   );
 
+  const displayUsers = useMemo(() => {
+    if (statusFilter === "all") return users;
+    return users.filter((u) =>
+      statusFilter === "active" ? u.is_active !== false : u.is_active === false,
+    );
+  }, [users, statusFilter]);
+
   const table = useReactTable({
-    data: users,
+    data: displayUsers,
     columns,
     state: { sorting, globalFilter, rowSelection },
     getRowId: (row) => row.id,
@@ -454,6 +462,11 @@ export default function UsersPage() {
   const { pageIndex, pageSize } = table.getState().pagination;
   const totalRows = table.getFilteredRowModel().rows.length;
   const hasSearch = globalFilter.trim().length > 0;
+  const hasFilters = hasSearch || statusFilter !== "all";
+  const resetFilters = () => {
+    setGlobalFilter("");
+    setStatusFilter("all");
+  };
 
   return (
     <div className="space-y-6" data-testid="users-page">
@@ -491,6 +504,16 @@ export default function UsersPage() {
               />
             </div>
             <div className="flex flex-wrap items-center gap-2">
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="h-9 w-full sm:w-[140px]" data-testid="users-status-filter">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all" data-testid="users-status-all">All status</SelectItem>
+                  <SelectItem value="active" data-testid="users-status-active">Active</SelectItem>
+                  <SelectItem value="inactive" data-testid="users-status-inactive">Inactive</SelectItem>
+                </SelectContent>
+              </Select>
               {selectedCount > 0 && (
                 <Button
                   variant="outline"
@@ -502,11 +525,11 @@ export default function UsersPage() {
                   <Trash2 className="size-4" /> Delete ({selectedCount})
                 </Button>
               )}
-              {hasSearch && (
+              {hasFilters && (
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setGlobalFilter("")}
+                  onClick={resetFilters}
                   data-testid="users-reset-search"
                 >
                   <FilterX className="size-4" /> Reset
