@@ -1896,6 +1896,7 @@ import routes_levels  # noqa: E402,F401  (side-effect: route registration)
 import routes_roles  # noqa: E402,F401  (side-effect: route registration)
 import routes_users  # noqa: E402,F401  (side-effect: route registration)
 import routes_import  # noqa: E402,F401  (side-effect: route registration)
+import routes_mobile_auth  # noqa: E402,F401  (side-effect: mobile JWT route registration)
 # ---------------------------------------------------------------------------
 # Login security — inspect throttle records (suspicious activity) & unlock.
 # ---------------------------------------------------------------------------
@@ -1969,6 +1970,7 @@ _PUBLIC_API_PATHS = {
     "/api/auth/login", "/api/auth/logout", "/api/auth/me",
     "/api/auth/forgot-password", "/api/auth/reset-password",
     "/api/robots.txt", "/api/sitemap.xml", "/api/branding",
+    "/api/jwt-auth", "/api/jwt-me", "/api/jwt-refresh", "/api/jwt-logout",
 }
 _PUBLIC_GET_PREFIXES = ("/api/branding/assets/",)
 _CHANGE_PW_RE = re.compile(r"^/api/users/([^/]+)/change-password$")
