@@ -112,7 +112,7 @@ async def _profile_payload(doc: dict) -> dict:
             "longitude": office_doc.get("longitude"),
             "latitude": office_doc.get("latitude"),
             "radius": office_doc.get("radius"),
-            "coa": office_doc.get("coa"),
+            "coa": office_doc.get("note"),
         }
     return {
         "user": {
