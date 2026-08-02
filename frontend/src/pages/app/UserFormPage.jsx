@@ -187,29 +187,6 @@ export default function UserFormPage() {
 
   return (
     <div className="space-y-6" data-testid="user-form-page">
-      <div className="flex items-center gap-3">
-        <Button
-          variant="ghost"
-          size="icon"
-          className="size-8"
-          onClick={() => navigate("/users")}
-          aria-label="Back to users"
-          data-testid="user-form-back"
-        >
-          <ArrowLeft className="size-4" />
-        </Button>
-        <div>
-          <h1 className="text-base font-semibold tracking-tight">
-            {isEdit ? "Edit User" : "Add User"}
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            {isEdit
-              ? "Update the user details below."
-              : "A system default password is assigned and must be changed on first login."}
-          </p>
-        </div>
-      </div>
-
       {status === "error" ? (
         <EmptyState
           variant="error"
@@ -231,7 +208,15 @@ export default function UserFormPage() {
         <Form {...form}>
           <form onSubmit={form.handleSubmit(submit)} noValidate>
             <Card>
-              <CardContent className="space-y-5 pt-6">
+              <CardHeader>
+                <CardTitle className="text-base">{isEdit ? "Edit User" : "Add User"}</CardTitle>
+                <CardDescription>
+                  {isEdit
+                    ? "Update the user details below."
+                    : "A system default password is assigned and must be changed on first login."}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-5">
                 <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2 lg:grid-cols-4">
                   <FormField
                     control={form.control}
