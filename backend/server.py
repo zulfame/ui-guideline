@@ -115,7 +115,7 @@ async def _auto_seed_if_empty():
     if any(counts):
         logger.info("Auto-seed skipped: existing data present.")
         return
-    from seed_data import load_seed_snapshot, SEED_COLLECTIONS  # local import
+    from seed_data import load_seed_snapshot, load_branding_assets, SEED_COLLECTIONS  # local import
 
     snap = load_seed_snapshot()
     summary = {}
@@ -124,6 +124,22 @@ async def _auto_seed_if_empty():
         if docs:
             await db[coll].insert_many([dict(d) for d in docs])
         summary[coll] = len(docs)
+
+    # Recreate branding GridFS assets with their original ids so branding refs resolve.
+    import base64
+    assets = load_branding_assets()
+    if assets:
+        bucket = _branding_bucket()
+        for a in assets:
+            data = base64.b64decode(a["data_b64"])
+            grid_in = bucket.open_upload_stream_with_id(
+                ObjectId(a["file_id"]),
+                a.get("filename") or a.get("kind"),
+                metadata={"kind": a.get("kind"), "content_type": a.get("content_type")},
+            )
+            await grid_in.write(data)
+            await grid_in.close()
+    summary["branding_assets"] = len(assets)
     logger.info("Auto-seed from snapshot (empty DB): %s", summary)
 
 

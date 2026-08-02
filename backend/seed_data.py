@@ -15,8 +15,9 @@ Notes:
 - SECURITY: the snapshot includes Broadcast channel `config` (e.g. Telegram bot
   token, SMTP password). Treat `seed_snapshot.json` as sensitive — do NOT publish
   it to a public repository.
-- Branding logo/favicon are binary (GridFS) and are NOT part of the snapshot;
-  re-upload them from the Branding page on a fresh deployment.
+- Branding logo/favicon/og-image are stored as base64 in the snapshot
+  (`branding_assets`) and recreated in GridFS with their original ids on seed, so
+  a fresh deployment is branded without any manual re-upload.
 """
 import os
 import json
@@ -45,8 +46,20 @@ def load_seed_snapshot() -> dict:
     return {name: list(data.get(name, [])) for name in SEED_COLLECTIONS}
 
 
+def load_branding_assets() -> list:
+    """Return [{kind, file_id, filename, content_type, length, data_b64}, ...]."""
+    if not SNAPSHOT_PATH.exists():
+        return []
+    with open(SNAPSHOT_PATH, encoding="utf-8") as f:
+        return list(json.load(f).get("branding_assets", []))
+
+
 def _cli_seed():
     """Standalone CLI: reset the seeded collections then insert the snapshot."""
+    import base64
+    import io
+    from bson import ObjectId
+    from gridfs import GridFSBucket
     from pymongo import MongoClient
 
     client = MongoClient(os.environ["MONGO_URL"])
@@ -59,6 +72,21 @@ def _cli_seed():
         if docs:
             db[coll].insert_many([dict(d) for d in docs])
         summary[coll] = len(docs)
+
+    # Recreate branding GridFS assets with their original ids (so branding refs resolve).
+    assets = load_branding_assets()
+    db["branding_assets.files"].delete_many({})
+    db["branding_assets.chunks"].delete_many({})
+    bucket = GridFSBucket(db, bucket_name="branding_assets")
+    for a in assets:
+        data = base64.b64decode(a["data_b64"])
+        bucket.upload_from_stream_with_id(
+            ObjectId(a["file_id"]),
+            a.get("filename") or a.get("kind"),
+            io.BytesIO(data),
+            metadata={"kind": a.get("kind"), "content_type": a.get("content_type")},
+        )
+    summary["branding_assets"] = len(assets)
     print("Seeded from snapshot:", summary)
     client.close()
 
