@@ -235,12 +235,24 @@ export default function UsersPage() {
   const fetchUsers = useCallback(async () => {
     setStatus("loading");
     try {
-      const [uRes, rRes, oRes] = await Promise.all([
-        API.get("/users", { params: { limit: 500 } }),
+      const pageSize = 500;
+      let skip = 0;
+      let total = Infinity;
+      let allUsers = [];
+      while (allUsers.length < total) {
+        const res = await API.get("/users", { params: { skip, limit: pageSize } });
+        const batch = res.data || [];
+        const hdr = parseInt(res.headers["x-total-count"], 10);
+        total = Number.isNaN(hdr) ? batch.length : hdr;
+        allUsers = allUsers.concat(batch);
+        if (batch.length < pageSize) break;
+        skip += pageSize;
+      }
+      const [rRes, oRes] = await Promise.all([
         API.get("/roles", { params: { limit: 500 } }),
         API.get("/offices", { params: { limit: 500 } }),
       ]);
-      setUsers(uRes.data);
+      setUsers(allUsers);
       setRoles(rRes.data);
       setOffices(oRes.data);
       setStatus("ready");

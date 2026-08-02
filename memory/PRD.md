@@ -22,6 +22,8 @@ Membangun template **UI Guidelines / Design System** generik sebagai fondasi apl
 - **R38**: Modifikasi primitive/composite harus jaga compact spacing (`px-6 py-4`), grid 4px, token monochrome (`border-border`), typography tepat. Verifikasi semua consumer via screenshot sebelum selesai.
 
 ## Sudah Diimplementasikan
+- (2026-08-02) **Fix: tabel Users hanya tampil 500 dari 544+ user** [FIX]: `UsersPage.fetchUsers` sebelumnya sekali `GET /users?limit=500` (backend cap `MAX_PAGE_SIZE=500`) sehingga hanya 500 user termuat & footer menulis "of 500 rows" meski data 544+. Kini fetch **paginasi bertahap** (loop `skip`/`limit=500` sampai `X-Total-Count` terpenuhi) → semua user termuat. Diverifikasi: X-Total-Count=545, footer "of 545 rows".
+
 - (2026-08-02) **Perbaikan modal Import + revisi kolom tabel Users** [FIX/UI]:
   - **Modal Import**: `DialogContent` (shared `ui/dialog.jsx`) sebelumnya tanpa batas tinggi → preview import (ratusan baris) melampaui viewport & konten meluber keluar kartu. Ditambah `max-h-[90vh] grid-rows-[auto_minmax(0,1fr)_auto]` + `DialogBody` `overflow-y-auto` (header/footer tetap terlihat, body scroll). `ImportDialog` baris preview diberi `min-w-0`/`shrink-0` agar label panjang ter-truncate (tak overflow horizontal).
   - **Tabel Users** (`UsersPage.jsx`): kolom **User ID dihapus**; kolom **Password** kini menampilkan **sisa masa aktif** (mis. "90 hari"; "Expired" bila lewat; "—" bila tanpa expiry) dengan badge warna by status; kolom **Status** (Active/Inactive) ditambahkan; **user inactive kini tampil** (backend `list_users` memang hanya filter `deleted_at`, tak pernah menyaring is_active). Kolom Status & Password sortable.
