@@ -22,6 +22,7 @@ import RoleFormPage from "@/pages/app/RoleFormPage";
 import AuditLogPage from "@/pages/app/AuditLogPage";
 import DatabasePage from "@/pages/app/DatabasePage";
 import BroadcastPage from "@/pages/app/BroadcastPage";
+import PushNotificationsPage from "@/pages/app/PushNotificationsPage";
 import EmailTemplatesPage from "@/pages/app/EmailTemplatesPage";
 import BrandingPage from "@/pages/app/BrandingPage";
 import ClientsPage from "@/pages/app/ClientsPage";
@@ -111,6 +112,7 @@ function App() {
           <Route path="/clients" element={<AdminRoute><ClientsPage /></AdminRoute>} />
           <Route path="/branding" element={<AdminRoute><BrandingPage /></AdminRoute>} />
           <Route path="/broadcast" element={<AdminRoute><BroadcastPage /></AdminRoute>} />
+          <Route path="/push-notifications" element={<AdminRoute><PushNotificationsPage /></AdminRoute>} />
           <Route path="/email-templates" element={<AdminRoute><EmailTemplatesPage /></AdminRoute>} />
           <Route path="/database" element={<AdminRoute><DatabasePage /></AdminRoute>} />
           <Route path="/login-security" element={<AdminRoute><LoginSecurityPage /></AdminRoute>} />

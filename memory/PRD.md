@@ -22,6 +22,14 @@ Membangun template **UI Guidelines / Design System** generik sebagai fondasi apl
 - **R38**: Modifikasi primitive/composite harus jaga compact spacing (`px-6 py-4`), grid 4px, token monochrome (`border-border`), typography tepat. Verifikasi semua consumer via screenshot sebelum selesai.
 
 ## Sudah Diimplementasikan
+- (2026-08-02) **Push Notification broadcast via Firebase Cloud Messaging (HTTP v1 / Admin SDK)** [FEATURE/INTEGRATION]:
+  - Backend modul baru `routes_notifications.py` (register di server.py). Kredensial dari env `FIREBASE_SERVICE_ACCOUNT_JSON` (raw JSON) atau `FIREBASE_SERVICE_ACCOUNT_FILE` (path) — init lazy + thread-safe; **fail gracefully** bila belum diisi. Dep baru: `firebase_admin==7.5.0` (di requirements.txt).
+    - `GET /api/notifications/config` → `{configured: bool, recipient_count}` (recipient = user aktif, non-deleted, punya `fcm_token`).
+    - `POST /api/notifications/broadcast` `{title, body, data?}` → kirim ke semua recipient via `messaging.send_each_for_multicast` (batch 500); token invalid (`UnregisteredError`/`InvalidArgumentError`) otomatis dibersihkan (`fcm_token=null`); audit `broadcast`. Bila belum dikonfigurasi → **400** "Firebase Cloud Messaging is not configured...".
+  - Frontend: halaman baru `PushNotificationsPage.jsx` di `/push-notifications` (nav **System > Push**, AdminRoute) — compose title+message, badge jumlah recipient, alert "Firebase not configured", tombol "Send broadcast" (disabled saat belum configured). testid: `push-page`, `push-title`, `push-body`, `push-send`, `push-recipient-count`, `push-not-configured`.
+  - Diverifikasi curl: config `{configured:false,...}`; broadcast unconfigured → 400 pesan jelas; recipient_count naik saat ada fcm_token. Screenshot halaman OK; design-guard exit 0.
+  - ⚠️ **STATUS: UNCONFIGURED (bukan mocked)** — pengiriman push nyata baru aktif setelah user mengisi `FIREBASE_SERVICE_ACCOUNT_JSON` di `backend/.env`. Saat ini tombol Send sengaja dinonaktifkan & endpoint menolak dengan 400 (tidak memalsukan sukses).
+
 - (2026-08-02) **Semua respons API diseragamkan ke Bahasa Inggris** [FIX]: pesan pada `routes_mobile_auth.py` yang sebelumnya Indonesia (mengikuti screenshot kontrak) diubah ke Inggris (mis. "The credentials you entered are incorrect", "This account is already linked to another device", "Session ended. Please sign in again.", "Logged out successfully.").
 - (2026-08-02) **Admin Unbind Device + Toggle Aktif/Nonaktif cepat di baris Users** [FEATURE]:
   - Backend: `POST /api/users/{id}/unbind-device` (admin) → `$unset mobile_device` + audit `unbind_device`; 404 bila user tak ada, 409 bila tak ada perangkat terikat. `_user_public` kini menyertakan `device_bound: bool`. Toggle aktif memakai `PUT /api/users/{id}` `{is_active}` (sudah ada).

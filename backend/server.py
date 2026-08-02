@@ -1898,6 +1898,7 @@ import routes_roles  # noqa: E402,F401  (side-effect: route registration)
 import routes_users  # noqa: E402,F401  (side-effect: route registration)
 import routes_import  # noqa: E402,F401  (side-effect: route registration)
 import routes_mobile_auth  # noqa: E402,F401  (side-effect: mobile JWT route registration)
+import routes_notifications  # noqa: E402,F401  (side-effect: push notification route registration)
 # ---------------------------------------------------------------------------
 # Login security — inspect throttle records (suspicious activity) & unlock.
 # ---------------------------------------------------------------------------
