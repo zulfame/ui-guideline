@@ -2322,6 +2322,87 @@ async def logout():
     return {"success": True}
 
 
+@api_router.get("/account/login-activity", tags=["Auth"], summary="Current user's own login history")
+async def account_login_activity(
+    response: Response,
+    limit: int = Query(50, ge=1, le=200),
+    current=Depends(_get_current_user),
+):
+    """Self-service: the signed-in user's own login history (success + failed),
+    sourced from the durable audit log. Read-only, current user only."""
+    idents = {
+        (current.get("email") or "").lower(),
+        current.get("email") or "",
+        current.get("username") or "",
+        current.get("phone") or "",
+    }
+    idents = [i for i in idents if i]
+    docs = (
+        await db.audit_logs.find(
+            {"action": {"$in": ["login", "login_failed", "login_locked"]},
+             "actor": {"$in": idents}},
+            {"_id": 0},
+        ).sort("created_at", -1).limit(limit).to_list(limit)
+    )
+    rows = []
+    for d in docs:
+        summ = d.get("summary") or ""
+        m = re.search(r" from (\S+)", summ)
+        rows.append({
+            "id": d.get("id"),
+            "created_at": d.get("created_at"),
+            "action": d.get("action"),
+            "ip": m.group(1) if m else "",
+            "status_code": d.get("status_code"),
+            "summary": summ,
+        })
+    response.headers["X-Total-Count"] = str(len(rows))
+    return rows
+
+
+@api_router.get("/account/password-resets", tags=["Auth"], summary="Current user's own password reset requests")
+async def account_password_resets(
+    response: Response,
+    limit: int = Query(50, ge=1, le=200),
+    current=Depends(_get_current_user),
+):
+    """Self-service: the signed-in user's own password-reset requests, sourced
+    from the durable audit log. Read-only, current user only."""
+    email = current.get("email") or ""
+    uid = current.get("id")
+    requests = (
+        await db.audit_logs.find(
+            {"action": "password_reset_requested",
+             "$or": [{"entity_id": uid}, {"actor": email}, {"entity_label": email}]},
+            {"_id": 0},
+        ).sort("created_at", -1).limit(limit).to_list(limit)
+    )
+    completions = (
+        await db.audit_logs.find(
+            {"action": "password_reset", "entity_id": uid},
+            {"_id": 0, "created_at": 1},
+        ).sort("created_at", -1).limit(max(limit * 2, 50)).to_list(max(limit * 2, 50))
+    )
+    comp_at = completions[0].get("created_at") if completions else None
+    rows = []
+    for r in requests:
+        md = r.get("metadata") or {}
+        req_at = r.get("created_at")
+        completed = bool(comp_at and req_at and comp_at >= req_at)
+        rows.append({
+            "id": r.get("id"),
+            "email": r.get("actor") or r.get("entity_label"),
+            "requested_at": req_at,
+            "account_found": md.get("account_found"),
+            "email_sent": md.get("email_sent"),
+            "smtp_configured": md.get("smtp_configured"),
+            "completed": completed,
+            "completed_at": comp_at if completed else None,
+        })
+    response.headers["X-Total-Count"] = str(len(rows))
+    return rows
+
+
 async def _require_admin(authorization: Optional[str] = Header(None)):
     """Dependency: resolve the Bearer user and require the admin role."""
     user = await _get_current_user(authorization)

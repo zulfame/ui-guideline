@@ -10,6 +10,7 @@ import ForgotPasswordPage from "@/pages/ForgotPasswordPage";
 import ResetPasswordPage from "@/pages/ResetPasswordPage";
 import ChangePasswordPage from "@/pages/ChangePasswordPage";
 import AccountPage from "@/pages/AccountPage";
+import SettingsPage from "@/pages/SettingsPage";
 import DashboardPage from "@/pages/DashboardPage";
 import PlaceholderPage from "@/pages/PlaceholderPage";
 import OfficesPage from "@/pages/app/OfficesPage";
@@ -115,7 +116,7 @@ function App() {
           <Route path="/login-security" element={<AdminRoute><LoginSecurityPage /></AdminRoute>} />
           <Route path="/audit-log" element={<AuditLogPage />} />
           <Route path="/account" element={<AccountPage />} />
-          <Route path="/settings" element={<PlaceholderPage />} />
+          <Route path="/settings" element={<SettingsPage />} />
           <Route path="/dev-guidelines" element={<DevelopmentOverviewPage />} />
           <Route
             path="/dev-guidelines/:groupId"

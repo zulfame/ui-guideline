@@ -1,12 +1,7 @@
-import { useState } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import { AlertCircle, KeyRound, Loader2 } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { LogIn } from "lucide-react";
 
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -15,47 +10,24 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { PasswordInput } from "@/components/composite/PasswordInput";
+  DataTableCard,
+  SortableHeader,
+  fmtDate,
+} from "@/components/composite/DataTableCard";
 import { toast } from "@/components/ui/sonner";
 import API from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
-
-const schema = z
-  .object({
-    newPassword: z
-      .string()
-      .min(6, { message: "Password must be at least 6 characters." })
-      .max(128, { message: "Password is too long." }),
-    confirmPassword: z.string().min(1, { message: "Please confirm your password." }),
-  })
-  .refine((v) => v.newPassword === v.confirmPassword, {
-    message: "Passwords do not match.",
-    path: ["confirmPassword"],
-  });
-
-function formatApiErrorDetail(detail) {
-  if (detail == null) return "";
-  if (typeof detail === "string") return detail;
-  if (Array.isArray(detail))
-    return detail
-      .map((e) => (e && typeof e.msg === "string" ? e.msg : JSON.stringify(e)))
-      .filter(Boolean)
-      .join(" ");
-  if (detail && typeof detail.msg === "string") return detail.msg;
-  return String(detail);
-}
 
 const PW_STATUS = {
   active: { label: "Active", variant: "secondary" },
   expiring: { label: "Expiring soon", variant: "outline" },
   expired: { label: "Expired", variant: "destructive" },
+};
+
+const ACTION_META = {
+  login: { label: "Login", variant: "secondary" },
+  login_failed: { label: "Failed", variant: "destructive" },
+  login_locked: { label: "Locked", variant: "destructive" },
 };
 
 function Field({ label, value, testId }) {
@@ -71,46 +43,79 @@ function Field({ label, value, testId }) {
 
 /**
  * AccountPage
- * Any authenticated user can view their profile and change their own password
- * at any time (self-service; complements the forced-change flow).
+ * Any authenticated user can view their profile and their own login history
+ * (success + failed) sourced from the durable audit log.
  */
 export default function AccountPage() {
-  const { user, refresh } = useAuth();
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [formError, setFormError] = useState("");
+  const { user } = useAuth();
+  const [activity, setActivity] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const form = useForm({
-    resolver: zodResolver(schema),
-    defaultValues: { newPassword: "", confirmPassword: "" },
-    mode: "onSubmit",
-  });
-
-  const onSubmit = async (values) => {
-    setFormError("");
-    setIsSubmitting(true);
+  const loadActivity = useCallback(async () => {
+    setLoading(true);
     try {
-      await API.post(`/users/${user.id}/change-password`, {
-        new_password: values.newPassword,
-      });
-      await refresh();
-      form.reset({ newPassword: "", confirmPassword: "" });
-      toast.success("Password updated", {
-        description: "Your password has been changed successfully.",
-      });
-    } catch (e) {
-      setFormError(
-        formatApiErrorDetail(e?.response?.data?.detail) ||
-          "Unable to update password. Please try again.",
-      );
+      const { data } = await API.get("/account/login-activity", { params: { limit: 100 } });
+      setActivity(data);
+    } catch {
+      toast.error("Failed to load login activity");
     } finally {
-      setIsSubmitting(false);
+      setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    loadActivity();
+  }, [loadActivity]);
 
   const pwMeta = PW_STATUS[user?.password_status] || PW_STATUS.active;
   const expires = user?.password_expires_at
     ? new Date(user.password_expires_at).toLocaleDateString()
     : "—";
+
+  const columns = useMemo(
+    () => [
+      {
+        accessorKey: "created_at",
+        header: ({ column }) => <SortableHeader column={column}>Time</SortableHeader>,
+        cell: ({ row }) => <span className="text-muted-foreground">{fmtDate(row.original.created_at)}</span>,
+      },
+      {
+        accessorKey: "action",
+        header: ({ column }) => <SortableHeader column={column}>Action</SortableHeader>,
+        cell: ({ row }) => {
+          const meta = ACTION_META[row.original.action] || { label: row.original.action, variant: "outline" };
+          return (
+            <Badge variant={meta.variant} className="font-normal" data-testid={`account-activity-action-${row.original.id}`}>
+              {meta.label}
+            </Badge>
+          );
+        },
+      },
+      {
+        accessorKey: "ip",
+        header: ({ column }) => <SortableHeader column={column}>IP address</SortableHeader>,
+        cell: ({ row }) => (
+          <code className="rounded bg-muted px-1.5 py-0.5 text-xs">{row.original.ip || "—"}</code>
+        ),
+      },
+      {
+        accessorKey: "status_code",
+        header: ({ column }) => <SortableHeader column={column} align="right">Status</SortableHeader>,
+        cell: ({ row }) => {
+          const code = row.original.status_code;
+          const ok = code && code >= 200 && code < 300;
+          return (
+            <div className="text-right">
+              <Badge variant={ok ? "secondary" : "destructive"} className="font-normal tabular-nums">
+                {code ?? "—"}
+              </Badge>
+            </div>
+          );
+        },
+      },
+    ],
+    [],
+  );
 
   return (
     <div className="space-y-6" data-testid="account-page">
@@ -140,87 +145,20 @@ export default function AccountPage() {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <KeyRound className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
-            <CardTitle className="text-base">Change password</CardTitle>
-          </div>
-          <CardDescription>
-            Set a new password. It must differ from your last few passwords.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Form {...form}>
-            <form
-              onSubmit={form.handleSubmit(onSubmit)}
-              className="max-w-md space-y-5"
-              noValidate
-            >
-              {formError ? (
-                <Alert variant="destructive" data-testid="account-pw-error-alert">
-                  <AlertCircle className="h-4 w-4" aria-hidden="true" />
-                  <AlertTitle>Could not update password</AlertTitle>
-                  <AlertDescription>{formError}</AlertDescription>
-                </Alert>
-              ) : null}
-
-              <FormField
-                control={form.control}
-                name="newPassword"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>New password</FormLabel>
-                    <FormControl>
-                      <PasswordInput
-                        autoComplete="new-password"
-                        placeholder="Enter a new password"
-                        data-testid="account-pw-new-input"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="confirmPassword"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Confirm new password</FormLabel>
-                    <FormControl>
-                      <PasswordInput
-                        autoComplete="new-password"
-                        placeholder="Re-enter the new password"
-                        data-testid="account-pw-confirm-input"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <Button
-                type="submit"
-                disabled={isSubmitting}
-                data-testid="account-pw-submit-button"
-              >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-                    Updating...
-                  </>
-                ) : (
-                  "Update password"
-                )}
-              </Button>
-            </form>
-          </Form>
-        </CardContent>
-      </Card>
+      <DataTableCard
+        title="Login Security"
+        description="Your recent login history (successful and failed sign-ins) with IP and status."
+        onRefresh={loadActivity}
+        refreshTestId="account-activity-refresh"
+        columns={columns}
+        data={activity}
+        loading={loading}
+        searchPlaceholder="Search action or IP..."
+        testid="account-activity"
+        emptyIcon={LogIn}
+        emptyTitle="No login history yet"
+        emptyDescription="Your successful and failed sign-ins will appear here."
+      />
     </div>
   );
 }
