@@ -22,6 +22,8 @@ Membangun template **UI Guidelines / Design System** generik sebagai fondasi apl
 - **R38**: Modifikasi primitive/composite harus jaga compact spacing (`px-6 py-4`), grid 4px, token monochrome (`border-border`), typography tepat. Verifikasi semua consumer via screenshot sebelum selesai.
 
 ## Sudah Diimplementasikan
+- (2026-06-02) **Restrukturisasi menu sidebar** [FEATURE]: grup "General"→**"Main Menu"**, item "Dashboard"→**"Analytic"**. **Manage** & **System** kini dropdown collapsible (children). Manage: Users/Roles/Offices/Clients. System: Audit Log/Branding/Broadcast/Database/Security/Templates. `AppSidebar` memfilter children `adminOnly` (sembunyikan parent bila semua child tersembunyi) & menampilkan **ikon submenu**. `getBreadcrumb` tidak lagi menyertakan label "Main Menu". File: `config/navigation.js`, `components/layout/AppSidebar.jsx`.
+
 - (2026-06-02) **Kolom user_id (auto-increment, unik, editable) pada Users** [FEATURE]:
   - Backend `server.py`: field `user_id` (int) di `UserCreate`/`UserUpdate`, ditambahkan ke `UNIQUE_USER_FIELDS` & `_user_public`. Helper `_next_user_id()` (koleksi `counters` via `find_one_and_update $inc`, guard terhadap id manual yang lebih tinggi) + `_backfill_user_ids()` (dipanggil di lifespan startup, mengisi user lama berurutan by created_at). Create: auto-assign bila kosong; Update: bisa diubah, tidak bisa dikosongkan; Import: auto-assign. Nilai duplikat ditolak 409.
   - Frontend: kolom **User ID** (sortable, paling depan) di `UsersPage`; field **User ID** editable (placeholder "Auto", hint) di `UserFormPage`.

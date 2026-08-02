@@ -95,7 +95,7 @@ export const AppSidebar = (props) => {
     end ? location.pathname === to : location.pathname.startsWith(to);
 
   const hasActiveChild = (item) =>
-    item.children?.some((child) => location.pathname === child.to);
+    item.children?.some((child) => isActive(child.to, child.end));
 
   return (
     <Sidebar collapsible="icon" {...props}>
@@ -175,6 +175,10 @@ export const AppSidebar = (props) => {
                 const Icon = item.icon;
 
                 if (item.children) {
+                  const visibleChildren = item.children.filter(
+                    (child) => !child.adminOnly || isAdmin,
+                  );
+                  if (visibleChildren.length === 0) return null;
                   return (
                     <Collapsible
                       key={item.title}
@@ -195,18 +199,22 @@ export const AppSidebar = (props) => {
                         </CollapsibleTrigger>
                         <CollapsibleContent>
                           <SidebarMenuSub>
-                            {item.children.map((child) => (
-                              <SidebarMenuSubItem key={child.to}>
-                                <SidebarMenuSubButton
-                                  asChild
-                                  isActive={location.pathname === child.to}
-                                >
-                                  <Link to={child.to}>
-                                    <span>{child.title}</span>
-                                  </Link>
-                                </SidebarMenuSubButton>
-                              </SidebarMenuSubItem>
-                            ))}
+                            {visibleChildren.map((child) => {
+                              const ChildIcon = child.icon;
+                              return (
+                                <SidebarMenuSubItem key={child.to}>
+                                  <SidebarMenuSubButton
+                                    asChild
+                                    isActive={isActive(child.to, child.end)}
+                                  >
+                                    <Link to={child.to}>
+                                      {ChildIcon ? <ChildIcon aria-hidden="true" /> : null}
+                                      <span>{child.title}</span>
+                                    </Link>
+                                  </SidebarMenuSubButton>
+                                </SidebarMenuSubItem>
+                              );
+                            })}
                           </SidebarMenuSub>
                         </CollapsibleContent>
                       </SidebarMenuItem>

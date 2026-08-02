@@ -18,6 +18,8 @@ import {
   ScrollText,
   ShieldAlert,
   Mail,
+  FolderCog,
+  Settings2,
 } from "lucide-react";
 
 import { guidelineGroups } from "./developmentGuidelines";
@@ -36,29 +38,31 @@ export const navAreas = [
     icon: LayoutGrid,
     sections: [
       {
-        label: "General",
+        label: "Main Menu",
         items: [
-          { title: "Dashboard", to: "/", icon: LayoutDashboard, end: true },
-        ],
-      },
-      {
-        label: "Manage",
-        items: [
-          { title: "Users", to: "/users", icon: Users },
-          { title: "Roles", to: "/roles", icon: ShieldCheck },
-          { title: "Offices", to: "/offices", icon: Building2 },
-          { title: "Clients", to: "/clients", icon: KeyRound, adminOnly: true },
-        ],
-      },
-      {
-        label: "System",
-        items: [
-          { title: "Audit Log", to: "/audit-log", icon: ScrollText },
-          { title: "Branding", to: "/branding", icon: Paintbrush, adminOnly: true },
-          { title: "Broadcast", to: "/broadcast", icon: Radio, adminOnly: true },
-          { title: "Database", to: "/database", icon: Database, adminOnly: true },
-          { title: "Security", to: "/login-security", icon: ShieldAlert, adminOnly: true },
-          { title: "Templates", to: "/email-templates", icon: Mail, adminOnly: true },
+          { title: "Analytic", to: "/", icon: LayoutDashboard, end: true },
+          {
+            title: "Manage",
+            icon: FolderCog,
+            children: [
+              { title: "Users", to: "/users", icon: Users },
+              { title: "Roles", to: "/roles", icon: ShieldCheck },
+              { title: "Offices", to: "/offices", icon: Building2 },
+              { title: "Clients", to: "/clients", icon: KeyRound, adminOnly: true },
+            ],
+          },
+          {
+            title: "System",
+            icon: Settings2,
+            children: [
+              { title: "Audit Log", to: "/audit-log", icon: ScrollText },
+              { title: "Branding", to: "/branding", icon: Paintbrush, adminOnly: true },
+              { title: "Broadcast", to: "/broadcast", icon: Radio, adminOnly: true },
+              { title: "Database", to: "/database", icon: Database, adminOnly: true },
+              { title: "Security", to: "/login-security", icon: ShieldAlert, adminOnly: true },
+              { title: "Templates", to: "/email-templates", icon: Mail, adminOnly: true },
+            ],
+          },
         ],
       },
     ],
@@ -177,19 +181,20 @@ export const getAreaDefaultPath = (id) => {
 export const getBreadcrumb = (pathname) => {
   for (const area of navAreas) {
     for (const section of area.sections) {
+      // "Main Menu" is a structural group; keep it out of the breadcrumb trail.
+      const prefix = section.label === "Main Menu" ? [] : [section.label];
       for (const item of section.items) {
         if (item.children) {
           for (const child of item.children) {
             if (pathname === child.to) {
               return {
                 title: child.title,
-                trail: [section.label, item.title, child.title],
+                trail: [...prefix, item.title, child.title],
               };
             }
           }
         } else if (item.to === pathname) {
-          const trail =
-            item.to === "/" ? [item.title] : [section.label, item.title];
+          const trail = item.to === "/" ? [item.title] : [...prefix, item.title];
           return { title: item.title, trail };
         }
       }
