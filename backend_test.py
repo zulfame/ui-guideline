@@ -16,7 +16,7 @@ import sys
 from typing import List, Dict, Any, Optional
 
 # Backend URL from frontend/.env
-BASE_URL = "https://ui-rules.preview.emergentagent.com/api"
+BASE_URL = "https://design-system-nexus-1.preview.emergentagent.com/api"
 
 # Test data tracking for cleanup
 created_offices: List[str] = []
