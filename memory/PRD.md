@@ -22,6 +22,8 @@ Membangun template **UI Guidelines / Design System** generik sebagai fondasi apl
 - **R38**: Modifikasi primitive/composite harus jaga compact spacing (`px-6 py-4`), grid 4px, token monochrome (`border-border`), typography tepat. Verifikasi semua consumer via screenshot sebelum selesai.
 
 ## Sudah Diimplementasikan
+- (2026-06-02) **Samakan layout form Add/Edit Roles & Offices dengan Users** [UI]: `RoleFormPage.jsx` & `OfficeFormPage.jsx` — blok header eksternal (tombol back ikon + h1 + deskripsi) DIHAPUS; judul/deskripsi kini di `CardHeader` DALAM card ("Add/Edit Role", "Add/Edit Office"), `CardFooter` menampung tombol Back (kiri) + Save (kanan) — identik pola `UserFormPage`. Diverifikasi: frontend compile bersih + design-guard exit 0. (Screenshot ter-login tidak tersedia karena keterbatasan tool di preview.)
+
 - (2026-06-02) **Restrukturisasi menu sidebar** [FEATURE]: grup "General"→**"Main Menu"**, item "Dashboard"→**"Analytic"**. **Manage** & **System** kini dropdown collapsible (children). Manage: Users/Roles/Offices/Clients. System: Audit Log/Branding/Broadcast/Database/Security/Templates. `AppSidebar` memfilter children `adminOnly` (sembunyikan parent bila semua child tersembunyi) & menampilkan **ikon submenu**. `getBreadcrumb` tidak lagi menyertakan label "Main Menu". File: `config/navigation.js`, `components/layout/AppSidebar.jsx`.
 
 - (2026-06-02) **Kolom user_id (auto-increment, unik, editable) pada Users** [FEATURE]:

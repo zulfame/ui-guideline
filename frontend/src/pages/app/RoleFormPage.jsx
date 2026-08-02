@@ -158,27 +158,6 @@ export default function RoleFormPage() {
 
   return (
     <div className="space-y-6" data-testid="role-form-page">
-      <div className="flex items-center gap-3">
-        <Button
-          variant="ghost"
-          size="icon"
-          className="size-8"
-          onClick={() => navigate("/roles")}
-          aria-label="Back to roles"
-          data-testid="role-form-back"
-        >
-          <ArrowLeft className="size-4" />
-        </Button>
-        <div>
-          <h1 className="text-base font-semibold tracking-tight">
-            {isEdit ? "Edit Role" : "Add Role"}
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            A role represents a position (jabatan). Configure its superior, level and order.
-          </p>
-        </div>
-      </div>
-
       {status === "error" ? (
         <EmptyState
           variant="error"
@@ -200,7 +179,13 @@ export default function RoleFormPage() {
         <Form {...form}>
           <form onSubmit={form.handleSubmit(submit)} noValidate>
             <Card>
-              <CardContent className="space-y-5 pt-6">
+              <CardHeader>
+                <CardTitle className="text-base">{isEdit ? "Edit Role" : "Add Role"}</CardTitle>
+                <CardDescription>
+                  A role represents a position (jabatan). Configure its superior, level and order.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-5">
                 <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2 lg:grid-cols-4">
                   <FormField
                     control={form.control}

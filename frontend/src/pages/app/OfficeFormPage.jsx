@@ -144,27 +144,6 @@ export default function OfficeFormPage() {
 
   return (
     <div className="space-y-6" data-testid="office-form-page">
-      <div className="flex items-center gap-3">
-        <Button
-          variant="ghost"
-          size="icon"
-          className="size-8"
-          onClick={() => navigate("/offices")}
-          aria-label="Back to offices"
-          data-testid="office-form-back"
-        >
-          <ArrowLeft className="size-4" />
-        </Button>
-        <div>
-          <h1 className="text-base font-semibold tracking-tight">
-            {isEdit ? "Edit Office" : "Add Office"}
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            {isEdit ? "Update the office details below." : "Create a new office. Code and name are required."}
-          </p>
-        </div>
-      </div>
-
       {status === "error" ? (
         <EmptyState
           variant="error"
@@ -187,8 +166,10 @@ export default function OfficeFormPage() {
           <form onSubmit={form.handleSubmit(submit)} noValidate>
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">Office details</CardTitle>
-                <CardDescription>Code, name, contact and geofence.</CardDescription>
+                <CardTitle className="text-base">{isEdit ? "Edit Office" : "Add Office"}</CardTitle>
+                <CardDescription>
+                  {isEdit ? "Update the office details below." : "Create a new office. Code and name are required."}
+                </CardDescription>
               </CardHeader>
               <CardContent className="space-y-5">
                 <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2 lg:grid-cols-4">
