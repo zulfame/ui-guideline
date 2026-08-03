@@ -1977,6 +1977,20 @@ _PUBLIC_API_PATHS = {
 }
 _PUBLIC_GET_PREFIXES = ("/api/branding/assets/",)
 _CHANGE_PW_RE = re.compile(r"^/api/users/([^/]+)/change-password$")
+# External/API-client-facing endpoints use the unified {success, message|data}
+# envelope, so their middleware errors must match (not the internal {detail} shape).
+_UNIFIED_ENVELOPE_PATHS = {
+    "/api/user-auth",
+    "/api/jwt-auth", "/api/jwt-me", "/api/jwt-refresh", "/api/jwt-logout",
+}
+
+
+def _envelope_error(request, status: int, message: str, extra_headers: Optional[dict] = None):
+    """Error body in the unified mobile/API-client envelope: {success:false, message}."""
+    headers = {"X-Request-ID": _request_id(request)}
+    if extra_headers:
+        headers.update(extra_headers)
+    return JSONResponse({"success": False, "message": message}, status_code=status, headers=headers)
 
 
 async def _user_from_token(token: Optional[str]):
@@ -2024,10 +2038,10 @@ async def _authz_middleware(request, call_next):
     if api_key:
         client = await _client_from_api_key(api_key)
         if not client:
-            return JSONResponse(_error_body(request, 401, "Invalid or inactive API key"), status_code=401)
+            return _envelope_error(request, 401, "Invalid or inactive API key")
         ok, reason = _apikey_authorize(client, path, method)
         if not ok:
-            return JSONResponse(_error_body(request, 403, reason), status_code=403)
+            return _envelope_error(request, 403, reason)
         request.state.auth_scope = f"apikey:{client['id']}"
         # Fixed-window per-key rate limiting + usage counters (per-key override).
         now = datetime.now(timezone.utc)
@@ -2044,13 +2058,10 @@ async def _authz_middleware(request, call_next):
         new_count = 1 if reset else int(client.get("rate_count", 0)) + 1
         if new_count > eff_limit:
             retry = max(1, int(eff_window - (now - new_start).total_seconds()) + 1)
-            return JSONResponse(
-                _error_body(
-                    request, 429,
-                    f"Rate limit exceeded ({eff_limit} requests / {eff_window}s). Retry in {retry}s.",
-                ),
-                status_code=429,
-                headers={"Retry-After": str(retry)},
+            return _envelope_error(
+                request, 429,
+                f"Rate limit exceeded ({eff_limit} requests / {eff_window}s). Retry in {retry}s.",
+                extra_headers={"Retry-After": str(retry)},
             )
         await db.api_clients.update_one(
             {"id": client["id"]},
@@ -2073,6 +2084,8 @@ async def _authz_middleware(request, call_next):
     token = auth[7:].strip() if auth and auth.startswith("Bearer ") else None
     user = await _user_from_token(token)
     if not user:
+        if path in _UNIFIED_ENVELOPE_PATHS:
+            return _envelope_error(request, 401, "Not authenticated")
         return JSONResponse(_error_body(request, 401, "Not authenticated"), status_code=401)
     request.state.auth_scope = f"user:{user.get('id')}"
     # Mutations require admin, except a user changing their OWN password.

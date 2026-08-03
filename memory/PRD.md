@@ -22,6 +22,8 @@ Membangun template **UI Guidelines / Design System** generik sebagai fondasi apl
 - **R38**: Modifikasi primitive/composite harus jaga compact spacing (`px-6 py-4`), grid 4px, token monochrome (`border-border`), typography tepat. Verifikasi semua consumer via screenshot sebelum selesai.
 
 ## Sudah Diimplementasikan
+- (2026-08-03) **Konsistensi envelope respons untuk endpoint API-client/eksternal** [FIX]: error middleware pada jalur API-key & endpoint auth eksternal kini memakai envelope `{"success": false, "message": "..."}` (bukan `{detail, code, request_id}`), agar konsisten dengan body sukses `{"success": true, "data"|...}`. Ditambah helper `_envelope_error()` + set `_UNIFIED_ENVELOPE_PATHS` (`/api/user-auth`, `/api/jwt-*`) di server.py. Cakupan: (a) API key invalid/permission/rate-limit → envelope; (b) "Not authenticated" untuk path unified → envelope. **Panel internal tetap `{detail,...}`** (frontend admin tak berubah). Diverifikasi curl: user-auth no key/invalid key → `{success:false,message}`; `/api/users` tanpa token tetap `{detail}`.
+
 - (2026-08-03) **Endpoint `POST /api/user-auth` — verifikasi kredensial via API client** [FEATURE/AUTH]: dibuat di `routes_mobile_auth.py`. Tujuan: hanya memastikan kebenaran kredensial user (bukan login/sesi).
   - **Wajib `X-API-Key`** (API client aktif; divalidasi + rate-limit oleh middleware). Endpoint menolak (401) bila dipanggil tanpa scope `apikey:` (mis. tanpa key, atau via sesi user).
   - **Tanpa device binding**: cek `email/username/phone` + password saja; field device diabaikan.
