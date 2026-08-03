@@ -2072,6 +2072,7 @@ _CHANGE_PW_RE = re.compile(r"^/api/users/([^/]+)/change-password$")
 # envelope, so their middleware errors must match (not the internal {detail} shape).
 _UNIFIED_ENVELOPE_PATHS = {
     "/api/user-auth", "/api/user-password",
+    "/api/user-create", "/api/user-update", "/api/user-deactivate",
     "/api/jwt-auth", "/api/jwt-me", "/api/jwt-refresh", "/api/jwt-logout",
 }
 

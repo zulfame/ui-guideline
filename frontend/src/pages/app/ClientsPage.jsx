@@ -260,6 +260,78 @@ const ENDPOINT_DOCS = [
   "message": "Password confirmation does not match"
 }`,
   },
+  {
+    id: "user-create",
+    method: "POST",
+    path: "/api/user-create",
+    title: "Create user",
+    auth: "apikey",
+    note: "Requires X-API-Key. Creates a user. If password is omitted the system default is used and the user must change it on first login. role_id is required.",
+    curl: `curl -X POST "${API_BASE}/api/user-create" \\
+  -H "Content-Type: application/json" \\
+  -H "X-API-Key: YOUR_API_KEY" \\
+  -d '{
+    "name": "Budi Santoso",
+    "email": "budi@example.com",
+    "role_id": "ROLE_UUID",
+    "office_id": "OFFICE_UUID",
+    "username": "budi",
+    "phone": "08123456789",
+    "password": "bpr2026"
+  }'`,
+    success: PROFILE_JSON,
+    successLabel: "201 Created",
+    errorStatus: 409,
+    error: `{
+  "success": false,
+  "message": "User email already exists"
+}`,
+  },
+  {
+    id: "user-update",
+    method: "POST",
+    path: "/api/user-update",
+    title: "Update user",
+    auth: "apikey",
+    note: "Requires X-API-Key. Locate the user by `username` (email, username, or phone) and send only the fields to change. Use `new_username` to change the username and `is_active` to toggle status.",
+    curl: `curl -X POST "${API_BASE}/api/user-update" \\
+  -H "Content-Type: application/json" \\
+  -H "X-API-Key: YOUR_API_KEY" \\
+  -d '{
+    "username": "budi@example.com",
+    "name": "Budi S.",
+    "phone": "08100000000",
+    "role_id": "ROLE_UUID",
+    "is_active": true
+  }'`,
+    success: PROFILE_JSON,
+    errorStatus: 404,
+    error: `{
+  "success": false,
+  "message": "User not found"
+}`,
+  },
+  {
+    id: "user-deactivate",
+    method: "POST",
+    path: "/api/user-deactivate",
+    title: "Deactivate / reactivate user",
+    auth: "apikey",
+    note: "Requires X-API-Key. Set active=false (default) to deactivate — the user can no longer log in and existing tokens are rejected. Set active=true to reactivate.",
+    curl: `curl -X POST "${API_BASE}/api/user-deactivate" \\
+  -H "Content-Type: application/json" \\
+  -H "X-API-Key: YOUR_API_KEY" \\
+  -d '{
+    "username": "budi@example.com",
+    "active": false
+  }'`,
+    success: PROFILE_JSON,
+    errorStatus: 404,
+    error: `{
+  "success": false,
+  "message": "User not found"
+}`,
+  },
 ];
 
 function authBadge(auth) {
@@ -301,7 +373,7 @@ function CurlBlock({ doc }) {
         <div className="space-y-2" data-testid={`api-doc-success-${doc.id}`}>
           <div className="flex items-center gap-2">
             <span className="text-xs font-medium text-muted-foreground">Success response</span>
-            <Badge variant="secondary" className="font-normal tabular-nums">200 OK</Badge>
+            <Badge variant="secondary" className="font-normal tabular-nums">{doc.successLabel || "200 OK"}</Badge>
           </div>
           <pre className="overflow-x-auto rounded-md border border-primary/15 bg-primary/5 p-3 text-xs leading-relaxed">
             <code>{doc.success}</code>

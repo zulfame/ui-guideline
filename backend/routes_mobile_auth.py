@@ -11,12 +11,13 @@ Credential (`username`) may be an email, username, or phone.
 Routes register on the shared `api_router` at import time.
 """
 import os
+import re
 import uuid
 from datetime import datetime, timezone, timedelta
 from typing import Optional
 
 import jwt
-from fastapi import Header, Request
+from fastapi import Header, Request, HTTPException
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
@@ -24,6 +25,8 @@ from server import (
     api_router, db, JWT_SECRET, JWT_ALGORITHM, _verify_password, _hash_password, log_audit,
     _client_ip, _login_locked_until, _record_login_failure, _clear_login_attempts,
     _record_session, _revoke_token, _is_token_revoked,
+    _normalize_optionals, _next_user_id, _assert_user_unique, _validate_role_office,
+    EMAIL_RE, DEFAULT_USER_PASSWORD,
     PASSWORD_EXPIRY_DAYS, PASSWORD_HISTORY_LIMIT,
 )
 
@@ -398,5 +401,172 @@ async def user_password(payload: UserPasswordRequest, request: Request):
         summary=f"User-password changed for {doc.get('email')} ({scope})",
         method="POST", path="/api/user-password", status_code=200,
         request={"password": "«redacted»"}, response={"success": True}, actor=doc.get("email"),
+    )
+    return _ok(await _profile_payload(doc))
+
+
+
+# ---------------------------------------------------------------------------
+# User management for API clients (X-API-Key). Create / update / deactivate a
+# user with the same unified envelope as /api/user-auth. Reuses the internal
+# validation helpers so behavior matches the admin panel exactly.
+# ---------------------------------------------------------------------------
+class UserCreateExt(BaseModel):
+    name: str = ""
+    email: str = ""
+    role_id: str = ""
+    office_id: Optional[str] = None
+    username: Optional[str] = None
+    phone: Optional[str] = None
+    alias: Optional[str] = None
+    mso_code: Optional[str] = None
+    collector_code: Optional[str] = None
+    password: Optional[str] = None  # optional initial password (min 6); defaults to system default
+
+
+class UserUpdateExt(BaseModel):
+    username: str = ""  # identifier to locate the user (email, username, or phone)
+    name: Optional[str] = None
+    email: Optional[str] = None
+    role_id: Optional[str] = None
+    office_id: Optional[str] = None
+    phone: Optional[str] = None
+    alias: Optional[str] = None
+    mso_code: Optional[str] = None
+    collector_code: Optional[str] = None
+    new_username: Optional[str] = None  # set to change the user's username field
+    is_active: Optional[bool] = None
+
+
+class UserDeactivateExt(BaseModel):
+    username: str = ""  # identifier (email, username, or phone)
+    active: bool = False  # False = deactivate (default); True = reactivate
+
+
+def _require_apikey(request: Request):
+    scope = getattr(request.state, "auth_scope", "") or ""
+    return scope if scope.startswith("apikey:") else None
+
+
+async def _find_user_by_ident(ident: str):
+    ident = (ident or "").strip()
+    if not ident:
+        return None
+    ident_lower = ident.lower()
+    return await db.users.find_one({
+        "deleted_at": None,
+        "$or": [
+            {"email": ident_lower}, {"email": ident},
+            {"username": ident}, {"phone": ident},
+        ],
+    })
+
+
+@api_router.post("/user-create", tags=["User Management"], summary="Create a user (API-client only)")
+async def user_create(payload: UserCreateExt, request: Request):
+    scope = _require_apikey(request)
+    if not scope:
+        return _fail("A valid API key (X-API-Key header) is required.", 401)
+    name = (payload.name or "").strip()
+    email = (payload.email or "").strip().lower()
+    if not name:
+        return _fail("Name is required", 400)
+    if not email or not re.match(EMAIL_RE, email):
+        return _fail("A valid email is required", 400)
+    if not (payload.role_id or "").strip():
+        return _fail("role_id is required", 400)
+    raw_pw = (payload.password or "").strip() or DEFAULT_USER_PASSWORD
+    if len(raw_pw) < 6:
+        return _fail("Password must be at least 6 characters", 400)
+    data = _normalize_optionals({
+        "name": name, "email": email, "role_id": payload.role_id.strip(),
+        "office_id": payload.office_id, "username": payload.username, "phone": payload.phone,
+        "alias": payload.alias, "mso_code": payload.mso_code, "collector_code": payload.collector_code,
+        "is_active": True,
+    })
+    data["user_id"] = await _next_user_id()
+    try:
+        await _assert_user_unique(data)
+        await _validate_role_office(data["role_id"], data.get("office_id"))
+    except HTTPException as e:
+        return _fail(e.detail if isinstance(e.detail, str) else "Validation failed", e.status_code)
+    now = datetime.now(timezone.utc)
+    now_iso = now.isoformat()
+    pw_hash = _hash_password(raw_pw)
+    doc = {
+        "id": str(uuid.uuid4()), **data,
+        "password": pw_hash, "password_history": [pw_hash],
+        "password_changed_at": now_iso,
+        "password_expires_at": (now + timedelta(days=PASSWORD_EXPIRY_DAYS)).isoformat(),
+        "must_change_password": True, "deleted_at": None,
+        "created_at": now_iso, "updated_at": now_iso,
+    }
+    await db.users.insert_one(doc)
+    await log_audit(
+        "create", "user", entity_id=doc["id"], entity_label=f"{doc['name']} <{doc['email']}>",
+        summary=f"Created user {doc['email']} via API ({scope})", method="POST",
+        path="/api/user-create", status_code=201,
+        request={k: v for k, v in data.items()}, response={"id": doc["id"]}, actor=scope,
+    )
+    return _ok(await _profile_payload(doc), status=201)
+
+
+@api_router.post("/user-update", tags=["User Management"], summary="Update a user (API-client only)")
+async def user_update(payload: UserUpdateExt, request: Request):
+    scope = _require_apikey(request)
+    if not scope:
+        return _fail("A valid API key (X-API-Key header) is required.", 401)
+    doc = await _find_user_by_ident(payload.username)
+    if not doc:
+        return _fail("User not found", 404)
+    raw = {
+        "name": payload.name, "email": (payload.email or None), "role_id": payload.role_id,
+        "office_id": payload.office_id, "phone": payload.phone, "alias": payload.alias,
+        "mso_code": payload.mso_code, "collector_code": payload.collector_code,
+        "username": payload.new_username, "is_active": payload.is_active,
+    }
+    updates = _normalize_optionals({k: v for k, v in raw.items() if v is not None})
+    if "email" in updates:
+        updates["email"] = updates["email"].strip().lower()
+        if not re.match(EMAIL_RE, updates["email"]):
+            return _fail("A valid email is required", 400)
+    if not updates:
+        return _fail("No fields to update", 400)
+    try:
+        await _assert_user_unique({**doc, **updates}, exclude_id=doc["id"])
+        await _validate_role_office(updates.get("role_id"), updates.get("office_id"))
+    except HTTPException as e:
+        return _fail(e.detail if isinstance(e.detail, str) else "Validation failed", e.status_code)
+    updates["updated_at"] = datetime.now(timezone.utc).isoformat()
+    await db.users.update_one({"id": doc["id"]}, {"$set": updates})
+    doc.update(updates)
+    await log_audit(
+        "update", "user", entity_id=doc["id"], entity_label=f"{doc.get('name')} <{doc.get('email')}>",
+        summary=f"Updated user {doc.get('email')} via API ({scope})", method="POST",
+        path="/api/user-update", status_code=200,
+        request={k: v for k, v in updates.items() if k != "updated_at"}, actor=scope,
+    )
+    return _ok(await _profile_payload(doc))
+
+
+@api_router.post("/user-deactivate", tags=["User Management"], summary="Deactivate or reactivate a user (API-client only)")
+async def user_deactivate(payload: UserDeactivateExt, request: Request):
+    scope = _require_apikey(request)
+    if not scope:
+        return _fail("A valid API key (X-API-Key header) is required.", 401)
+    doc = await _find_user_by_ident(payload.username)
+    if not doc:
+        return _fail("User not found", 404)
+    now_iso = datetime.now(timezone.utc).isoformat()
+    await db.users.update_one(
+        {"id": doc["id"]}, {"$set": {"is_active": payload.active, "updated_at": now_iso}},
+    )
+    doc["is_active"] = payload.active
+    action = "activate" if payload.active else "deactivate"
+    await log_audit(
+        action, "user", entity_id=doc["id"], entity_label=f"{doc.get('name')} <{doc.get('email')}>",
+        summary=f"{'Activated' if payload.active else 'Deactivated'} user {doc.get('email')} via API ({scope})",
+        method="POST", path="/api/user-deactivate", status_code=200,
+        request={"active": payload.active}, actor=scope,
     )
     return _ok(await _profile_payload(doc))
