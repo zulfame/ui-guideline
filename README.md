@@ -128,7 +128,7 @@ inside the app on **System → … → Clients → API Documentation**.
 | `POST /api/jwt-auth` | Public | Mobile login. Verifies credentials and **binds the account to a single device**. Returns `{token_type, expires_in, access_token}`. `username` may be email, username, or phone. |
 | `GET /api/jwt-me` | Bearer token | Returns the current user's `{user, office, device}` profile. |
 | `POST /api/jwt-refresh` | Bearer token | Issues a fresh access token (accepts an expired-but-valid token within `MOBILE_JWT_REFRESH_DAYS`). |
-| `POST /api/jwt-logout` | Bearer token | Ends the session and **unbinds the device**. |
+| `POST /api/jwt-logout` | Bearer token | Ends the session, **unbinds the device**, and **revokes the token server-side**. |
 | `POST /api/user-auth` | `X-API-Key` | Verifies a credential is correct (no device binding). Returns the same profile as `/api/jwt-me`. |
 | `POST /api/user-password` | `X-API-Key` | Changes a user password (`current_password` + `password` + `confirmed_password`); enforces the no-reuse history policy. |
 
@@ -139,6 +139,36 @@ Admins can also manage the single-device binding and send push notifications:
   a registered `fcm_token`. Requires a Firebase service account (see env vars);
   until configured, sending is disabled and the endpoint returns `400`.
   Per-user push is available from the Users row actions (`POST /api/notifications/user/{id}`).
+
+## Auth Security
+
+The web and mobile logins share the same hardening:
+
+- **Fail-fast secrets** — `JWT_SECRET` and `ADMIN_PASSWORD` are required; the backend
+  refuses to start if either is missing (no guessable defaults).
+- **Inactive accounts** — a user with `is_active=false` cannot log in (403), and any
+  existing token (web or mobile) is rejected on every request as soon as the account
+  is deactivated.
+- **Server-side revocation** — every issued token carries a `jti` and is tracked in the
+  `sessions` collection. Logging out revokes that token immediately; a stolen token is
+  useless after logout instead of remaining valid until expiry.
+- **Brute-force throttling** — repeated failed logins lock an `IP+identifier` pair
+  (`LOGIN_MAX_ATTEMPTS` / `LOGIN_LOCKOUT_MINUTES`).
+- **Forgot-password rate limit** — capped per IP and per email
+  (`FORGOT_PASSWORD_MAX` / `FORGOT_PASSWORD_WINDOW_MINUTES`) to prevent reset-email flooding.
+
+### Active Sessions (admin: System → Sessions)
+
+View every signed-in device (web + mobile) across all users and revoke them remotely.
+
+| Method & Path | Auth | Purpose |
+| --- | --- | --- |
+| `GET /api/sessions` | Admin | List sessions (active by default; `include_revoked=true` shows revoked/expired). `X-Total-Count` header. |
+| `POST /api/sessions/{jti}/revoke` | Admin | Revoke one session — the device must sign in again on its next request. |
+| `POST /api/sessions/revoke-user/{user_id}` | Admin | Force-logout: revoke all of a user's active sessions at once. |
+
+Revoking a mobile session also blocks its `POST /api/jwt-refresh`, so it cannot silently
+reissue a token.
 
 ## Running Locally
 
