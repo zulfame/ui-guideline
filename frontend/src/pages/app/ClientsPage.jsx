@@ -25,6 +25,7 @@ import {
   RefreshCw,
   Search,
   ShieldCheck,
+  Terminal,
   Trash2,
 } from "lucide-react";
 import { Bar, BarChart, CartesianGrid, XAxis } from "recharts";
@@ -87,6 +88,104 @@ import { DensityToggle } from "@/components/density-toggle";
 import { toast } from "@/components/ui/sonner";
 
 const usageChartConfig = { count: { label: "Requests", color: "hsl(var(--chart-1))" } };
+
+const API_BASE = process.env.REACT_APP_BACKEND_URL;
+
+const ENDPOINT_DOCS = [
+  {
+    id: "jwt-auth",
+    method: "POST",
+    path: "/api/jwt-auth",
+    title: "Mobile login",
+    auth: "public",
+    note: "Public (no API key). Verifies credentials and binds the account to a single device. Username can be email, username, or phone.",
+    curl: `curl -X POST "${API_BASE}/api/jwt-auth" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "username": "309011221",
+    "password": "secret",
+    "device_identifier": "DEVICE-UUID",
+    "device_name": "Pixel 9",
+    "device_os": "Android 16",
+    "fmc_token": "fcm-token"
+  }'`,
+  },
+  {
+    id: "user-auth",
+    method: "POST",
+    path: "/api/user-auth",
+    title: "Verify credentials",
+    auth: "apikey",
+    note: "Requires X-API-Key. Only verifies the credential is correct (no device binding). Returns the user profile on success.",
+    curl: `curl -X POST "${API_BASE}/api/user-auth" \\
+  -H "Content-Type: application/json" \\
+  -H "X-API-Key: YOUR_API_KEY" \\
+  -d '{
+    "username": "309011221",
+    "password": "secret"
+  }'`,
+  },
+  {
+    id: "user-password",
+    method: "POST",
+    path: "/api/user-password",
+    title: "Change password",
+    auth: "apikey",
+    note: "Requires X-API-Key. Verifies current_password, then sets the new password (password must equal confirmed_password).",
+    curl: `curl -X POST "${API_BASE}/api/user-password" \\
+  -H "Content-Type: application/json" \\
+  -H "X-API-Key: YOUR_API_KEY" \\
+  -d '{
+    "username": "309011221",
+    "current_password": "bpr2026",
+    "password": "newpass",
+    "confirmed_password": "newpass"
+  }'`,
+  },
+];
+
+function CurlBlock({ doc }) {
+  const [copied, setCopied] = useState(false);
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(doc.curl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      toast.error("Could not copy — please copy manually");
+    }
+  };
+  return (
+    <div className="space-y-2 rounded-md border p-4" data-testid={`api-doc-${doc.id}`}>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge variant="secondary" className="font-mono text-xs">{doc.method}</Badge>
+          <code className="text-sm font-medium">{doc.path}</code>
+          <span className="text-xs text-muted-foreground">— {doc.title}</span>
+          <Badge
+            variant={doc.auth === "apikey" ? "outline" : "secondary"}
+            className="font-normal"
+          >
+            {doc.auth === "apikey" ? "Requires X-API-Key" : "Public"}
+          </Badge>
+        </div>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={copy}
+          data-testid={`api-doc-copy-${doc.id}`}
+        >
+          {copied ? <Check className="size-4 text-primary" /> : <Copy className="size-4" />}
+          {copied ? "Copied" : "Copy"}
+        </Button>
+      </div>
+      <p className="text-xs text-muted-foreground">{doc.note}</p>
+      <pre className="overflow-x-auto rounded-md bg-muted/60 p-3 text-xs leading-relaxed">
+        <code>{doc.curl}</code>
+      </pre>
+    </div>
+  );
+}
 
 const fmtDate = (iso) => {
   if (!iso) return "—";
@@ -554,6 +653,25 @@ export default function ClientsPage() {
               </div>
             </div>
           )}
+        </CardContent>
+      </Card>
+
+      {/* API documentation */}
+      <Card data-testid="api-docs-card">
+        <CardHeader className="flex flex-col gap-1 space-y-0">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Terminal className="size-4" /> API Documentation
+          </CardTitle>
+          <p className="text-xs text-muted-foreground">
+            Example requests for authenticating and managing user credentials with an API key.
+            Replace <code className="rounded bg-muted px-1 py-0.5">YOUR_API_KEY</code> with a key
+            created above.
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {ENDPOINT_DOCS.map((doc) => (
+            <CurlBlock key={doc.id} doc={doc} />
+          ))}
         </CardContent>
       </Card>
 
