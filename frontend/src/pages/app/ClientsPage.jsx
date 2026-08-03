@@ -97,6 +97,49 @@ const usageChartConfig = { count: { label: "Requests", color: "hsl(var(--chart-1
 
 const API_BASE = process.env.REACT_APP_BACKEND_URL;
 
+const TOKEN_JSON = `{
+  "success": true,
+  "data": {
+    "token_type": "bearer",
+    "expires_in": 3600,
+    "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+  }
+}`;
+
+const PROFILE_JSON = `{
+  "success": true,
+  "data": {
+    "user": {
+      "id": 42,
+      "name": "Budi Santoso",
+      "username": "309011221",
+      "email": "budi@example.com",
+      "role": "Collector",
+      "office": "KC Bangunarta",
+      "alias": "Budi",
+      "mso_code": "MSO01",
+      "collector_code": "COL07",
+      "is_active": true
+    },
+    "office": {
+      "code": "001",
+      "name": "KC Bangunarta",
+      "address": "Jl. Merdeka No. 10",
+      "telephone": "0281-000000",
+      "longitude": 109.2409,
+      "latitude": -7.4256,
+      "radius": 100,
+      "coa": null
+    },
+    "device": {
+      "device_identifier": "DEVICE-UUID",
+      "device_name": "Pixel 9",
+      "device_os": "Android 16",
+      "fmc_token": "fcm-token"
+    }
+  }
+}`;
+
 const ENDPOINT_DOCS = [
   {
     id: "jwt-auth",
@@ -115,6 +158,12 @@ const ENDPOINT_DOCS = [
     "device_os": "Android 16",
     "fmc_token": "fcm-token"
   }'`,
+    success: TOKEN_JSON,
+    errorStatus: 401,
+    error: `{
+  "success": false,
+  "message": "The credentials you entered are incorrect"
+}`,
   },
   {
     id: "jwt-me",
@@ -125,6 +174,12 @@ const ENDPOINT_DOCS = [
     note: "Requires the Bearer access_token from /api/jwt-auth. Returns the current user's profile, office, and bound device.",
     curl: `curl -X GET "${API_BASE}/api/jwt-me" \\
   -H "Authorization: Bearer ACCESS_TOKEN"`,
+    success: PROFILE_JSON,
+    errorStatus: 401,
+    error: `{
+  "success": false,
+  "message": "Session ended. Please sign in again."
+}`,
   },
   {
     id: "jwt-refresh",
@@ -135,6 +190,12 @@ const ENDPOINT_DOCS = [
     note: "Issues a fresh access_token. Accepts an expired-but-valid token within the refresh window while the device is still bound.",
     curl: `curl -X POST "${API_BASE}/api/jwt-refresh" \\
   -H "Authorization: Bearer ACCESS_TOKEN"`,
+    success: TOKEN_JSON,
+    errorStatus: 401,
+    error: `{
+  "success": false,
+  "message": "Session ended. Please sign in again."
+}`,
   },
   {
     id: "jwt-logout",
@@ -142,9 +203,18 @@ const ENDPOINT_DOCS = [
     path: "/api/jwt-logout",
     title: "Logout",
     auth: "bearer",
-    note: "Ends the mobile session and unbinds the device so the account can sign in on a new device.",
+    note: "Ends the mobile session, unbinds the device, and revokes the token server-side so it can no longer be used.",
     curl: `curl -X POST "${API_BASE}/api/jwt-logout" \\
   -H "Authorization: Bearer ACCESS_TOKEN"`,
+    success: `{
+  "success": true,
+  "message": "Logged out successfully."
+}`,
+    errorStatus: 401,
+    error: `{
+  "success": false,
+  "message": "Invalid token."
+}`,
   },
   {
     id: "user-auth",
@@ -160,6 +230,12 @@ const ENDPOINT_DOCS = [
     "username": "309011221",
     "password": "secret"
   }'`,
+    success: PROFILE_JSON,
+    errorStatus: 401,
+    error: `{
+  "success": false,
+  "message": "The credentials you entered are incorrect"
+}`,
   },
   {
     id: "user-password",
@@ -177,6 +253,12 @@ const ENDPOINT_DOCS = [
     "password": "newpass",
     "confirmed_password": "newpass"
   }'`,
+    success: PROFILE_JSON,
+    errorStatus: 400,
+    error: `{
+  "success": false,
+  "message": "Password confirmation does not match"
+}`,
   },
 ];
 
@@ -198,17 +280,43 @@ function CurlBlock({ doc }) {
     }
   };
   return (
-    <div className="space-y-2" data-testid={`api-doc-${doc.id}`}>
-      <div className="flex items-center justify-between gap-2">
-        <p className="text-xs text-muted-foreground">{doc.note}</p>
-        <Button size="sm" variant="outline" onClick={copy} data-testid={`api-doc-copy-${doc.id}`}>
-          {copied ? <Check className="size-4 text-primary" /> : <Copy className="size-4" />}
-          {copied ? "Copied" : "Copy"}
-        </Button>
+    <div className="space-y-4" data-testid={`api-doc-${doc.id}`}>
+      <div className="space-y-2">
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-xs text-muted-foreground">{doc.note}</p>
+          <Button size="sm" variant="outline" onClick={copy} data-testid={`api-doc-copy-${doc.id}`}>
+            {copied ? <Check className="size-4 text-primary" /> : <Copy className="size-4" />}
+            {copied ? "Copied" : "Copy"}
+          </Button>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-medium text-muted-foreground">Request</span>
+        </div>
+        <pre className="overflow-x-auto rounded-md bg-muted/60 p-3 text-xs leading-relaxed">
+          <code>{doc.curl}</code>
+        </pre>
       </div>
-      <pre className="overflow-x-auto rounded-md bg-muted/60 p-3 text-xs leading-relaxed">
-        <code>{doc.curl}</code>
-      </pre>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <div className="space-y-2" data-testid={`api-doc-success-${doc.id}`}>
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-medium text-muted-foreground">Success response</span>
+            <Badge variant="secondary" className="font-normal tabular-nums">200 OK</Badge>
+          </div>
+          <pre className="overflow-x-auto rounded-md border border-primary/15 bg-primary/5 p-3 text-xs leading-relaxed">
+            <code>{doc.success}</code>
+          </pre>
+        </div>
+        <div className="space-y-2" data-testid={`api-doc-error-${doc.id}`}>
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-medium text-muted-foreground">Error response</span>
+            <Badge variant="destructive" className="font-normal tabular-nums">{doc.errorStatus}</Badge>
+          </div>
+          <pre className="overflow-x-auto rounded-md border border-destructive/20 bg-destructive/5 p-3 text-xs leading-relaxed">
+            <code>{doc.error}</code>
+          </pre>
+        </div>
+      </div>
     </div>
   );
 }
