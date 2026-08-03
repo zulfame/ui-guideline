@@ -2,7 +2,9 @@
 
 Full-stack enterprise CMS template — **React** (frontend) + **FastAPI** (backend) + **MongoDB**.
 Modules: Users, Roles, Offices, Levels, Audit Log, Database Backup/Restore (GridFS),
-Broadcast channels, Branding, dynamic Sitemap/Robots, plus an in-app Design System & Dev Guidelines.
+Broadcast channels, Branding, dynamic Sitemap/Robots, API Clients (API keys),
+Mobile/External Auth API (JWT + credential verification), Push Notifications (Firebase FCM),
+plus an in-app Design System & Dev Guidelines.
 
 ## Project Structure
 
@@ -46,6 +48,10 @@ Broadcast channels, Branding, dynamic Sitemap/Robots, plus an in-app Design Syst
 | `PASSWORD_HISTORY_LIMIT` | Optional | `3` | Number of previous passwords a user cannot reuse. |
 | `DEFAULT_USER_PASSWORD` | Optional | `bpr2026` | Default password assigned to newly created / imported users. |
 | `PASSWORD_RESET_TOKEN_MINUTES` | Optional | `30` | Lifetime (minutes) of a self-service password-reset link. |
+| `MOBILE_JWT_EXPIRY_SECONDS` | Optional | `3600` | Access-token lifetime (seconds) for the mobile `/api/jwt-auth` flow. |
+| `MOBILE_JWT_REFRESH_DAYS` | Optional | `30` | How long a mobile session can be refreshed before requiring a fresh login. |
+| `FIREBASE_SERVICE_ACCOUNT_JSON` | Optional | - | Firebase service-account **JSON string** for FCM push. Leave blank to disable push (endpoints report `configured:false`). |
+| `FIREBASE_SERVICE_ACCOUNT_FILE` | Optional | - | Alternative to the above: filesystem **path** to the service-account JSON file. |
 | `EMERGENT_LLM_KEY` | Optional | - | Reserved for optional future LLM features (currently unused). |
 
 ### Frontend (`frontend/.env`)
@@ -90,6 +96,14 @@ MAX_REQUEST_BYTES=2097152
 
 # --- Storage ---
 LOCAL_STORAGE_DIR=/app/data
+
+# --- Mobile / External API ---
+MOBILE_JWT_EXPIRY_SECONDS=3600
+MOBILE_JWT_REFRESH_DAYS=30
+
+# --- Push notifications (Firebase FCM) — leave blank to disable ---
+FIREBASE_SERVICE_ACCOUNT_JSON=
+FIREBASE_SERVICE_ACCOUNT_FILE=
 ```
 
 > **Note:** `ADMIN_EMAIL`/`ADMIN_PASSWORD` must match your intended admin
@@ -98,6 +112,31 @@ LOCAL_STORAGE_DIR=/app/data
 > fresh admin with default credentials. Set `AUTO_SEED=false` if you deploy onto
 > an empty DB and immediately restore from a backup (so sample data is not seeded
 > before your restore).
+
+## External / Mobile API
+
+Endpoints for mobile apps and third-party integrators. Errors use the unified
+envelope `{"success": false, "message": "..."}`; successes use
+`{"success": true, "data": {...}}`. The internal admin panel keeps its own
+`{"detail": ...}` format. All example requests are also shown (with copy buttons)
+inside the app on **System → … → Clients → API Documentation**.
+
+| Method & Path | Auth | Purpose |
+| --- | --- | --- |
+| `POST /api/jwt-auth` | Public | Mobile login. Verifies credentials and **binds the account to a single device**. Returns `{token_type, expires_in, access_token}`. `username` may be email, username, or phone. |
+| `GET /api/jwt-me` | Bearer token | Returns the current user's `{user, office, device}` profile. |
+| `POST /api/jwt-refresh` | Bearer token | Issues a fresh access token (accepts an expired-but-valid token within `MOBILE_JWT_REFRESH_DAYS`). |
+| `POST /api/jwt-logout` | Bearer token | Ends the session and **unbinds the device**. |
+| `POST /api/user-auth` | `X-API-Key` | Verifies a credential is correct (no device binding). Returns the same profile as `/api/jwt-me`. |
+| `POST /api/user-password` | `X-API-Key` | Changes a user password (`current_password` + `password` + `confirmed_password`); enforces the no-reuse history policy. |
+
+Admins can also manage the single-device binding and send push notifications:
+
+- **Unbind device** and **Activate/Deactivate** are row actions on the Users page.
+- **Push Notifications** (System → Notification): broadcast to all active users with
+  a registered `fcm_token`. Requires a Firebase service account (see env vars);
+  until configured, sending is disabled and the endpoint returns `400`.
+  Per-user push is available from the Users row actions (`POST /api/notifications/user/{id}`).
 
 ## Running Locally
 
