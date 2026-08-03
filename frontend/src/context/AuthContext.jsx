@@ -40,6 +40,8 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const logout = useCallback(() => {
+    // Revoke the token server-side (best-effort) before discarding it locally.
+    API.post("/auth/logout").catch(() => {});
     window.localStorage.removeItem(TOKEN_KEY);
     setUser(null);
   }, []);

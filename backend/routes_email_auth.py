@@ -30,6 +30,7 @@ from server import (
     _hash_password,
     _verify_password,
     _diff_changes,
+    _client_ip,
     PASSWORD_HISTORY_LIMIT,
     PASSWORD_EXPIRY_DAYS,
 )
@@ -42,6 +43,38 @@ from server import (
 # saved in the Broadcast "email" channel.
 # ---------------------------------------------------------------------------
 PASSWORD_RESET_TOKEN_MINUTES = int(os.environ.get("PASSWORD_RESET_TOKEN_MINUTES") or "30")
+
+# Rate-limit forgot-password to prevent reset-email flooding of a victim's inbox
+# and abuse from a single source. Fixed window per IP and per email.
+FORGOT_PW_MAX = int(os.environ.get("FORGOT_PASSWORD_MAX") or "5")
+FORGOT_PW_WINDOW_MINUTES = int(os.environ.get("FORGOT_PASSWORD_WINDOW_MINUTES") or "60")
+
+
+async def _forgot_pw_rate_limited(ip: str, email: str) -> bool:
+    """Return True if either the IP or the email exceeded FORGOT_PW_MAX requests
+    within the current window. Counters reset when the window rolls over."""
+    now = datetime.now(timezone.utc)
+    window_floor = now - timedelta(minutes=FORGOT_PW_WINDOW_MINUTES)
+    limited = False
+    for key in (f"ip:{ip}", f"email:{email}"):
+        doc = await db.forgot_pw_attempts.find_one({"_id": key})
+        ws = doc.get("window_start") if doc else None
+        if isinstance(ws, str):
+            try:
+                ws = datetime.fromisoformat(ws)
+            except Exception:
+                ws = None
+        if ws is not None and ws.tzinfo is None:
+            ws = ws.replace(tzinfo=timezone.utc)
+        if doc and ws and ws > window_floor:
+            if doc.get("count", 0) >= FORGOT_PW_MAX:
+                limited = True
+            await db.forgot_pw_attempts.update_one({"_id": key}, {"$inc": {"count": 1}})
+        else:
+            await db.forgot_pw_attempts.update_one(
+                {"_id": key}, {"$set": {"window_start": now, "count": 1}}, upsert=True
+            )
+    return limited
 
 _PW_RESET_BODY = (
     "<div style=\"font-family:Arial,Helvetica,sans-serif;max-width:520px;margin:0 auto;"
@@ -293,6 +326,10 @@ async def forgot_password(payload: ForgotPasswordRequest, request: Request):
     }
     email = (payload.email or "").strip().lower()
     if not email:
+        return generic
+    ip = _client_ip(request)
+    if await _forgot_pw_rate_limited(ip, email):
+        logger.warning("forgot-password rate limited (ip=%s email=%s)", ip, email)
         return generic
     user = await db.users.find_one({"email": email, "deleted_at": None})
     if not user:

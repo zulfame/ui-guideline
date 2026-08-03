@@ -32,7 +32,7 @@ plus an in-app Design System & Dev Guidelines.
 | `MONGO_URL` | Required | - | MongoDB connection string (e.g. `mongodb://localhost:27017`). |
 | `DB_NAME` | Required | - | MongoDB database name. |
 | `CORS_ORIGINS` | Optional | `*` | Comma-separated list of allowed CORS origins. `*` disables credentials. |
-| `JWT_SECRET` | Optional | `dev-insecure-jwt-secret-change-me` | Secret used to sign JWT tokens. **Set a strong value in production.** |
+| `JWT_SECRET` | **Required** | - | Secret used to sign JWT tokens. **No default — the app fails to start if unset.** Use a strong 64-char random hex value. |
 | `JWT_EXPIRY_HOURS` | Optional | `12` | Access-token lifetime in hours. |
 | `LOGIN_MAX_ATTEMPTS` | Optional | `5` | Failed login attempts (per IP+identifier) before a temporary lockout. |
 | `LOGIN_LOCKOUT_MINUTES` | Optional | `15` | Lockout duration (minutes) after too many failed logins. |
@@ -41,13 +41,15 @@ plus an in-app Design System & Dev Guidelines.
 | `MAX_REQUEST_BYTES` | Optional | `2097152` | Max JSON request body size in bytes (2 MB); larger JSON bodies get `413`. Multipart uploads are exempt (guarded per-endpoint). |
 | `IDEMPOTENCY_TTL_SECONDS` | Optional | `86400` | Replay window (seconds) for stored `Idempotency-Key` responses before they expire (24 h). |
 | `ADMIN_EMAIL` | Optional | `admin@example.com` | Email of the admin account seeded on startup (idempotent). |
-| `ADMIN_PASSWORD` | Optional | `admin123` | Password for the seeded admin account (stored bcrypt-hashed). |
+| `ADMIN_PASSWORD` | **Required** | - | Password for the seeded admin account (stored bcrypt-hashed). **No default — the app fails to start if unset.** |
 | `LOCAL_STORAGE_DIR` | Optional | `/app/data` | Directory for any files that must persist to disk (created on startup). |
 | `AUTO_SEED` | Optional | `true` | Seed sample Offices/Roles/Levels/Users when the DB is empty. |
 | `PASSWORD_EXPIRY_DAYS` | Optional | `90` | Days before a user password expires. |
 | `PASSWORD_HISTORY_LIMIT` | Optional | `3` | Number of previous passwords a user cannot reuse. |
 | `DEFAULT_USER_PASSWORD` | Optional | `bpr2026` | Default password assigned to newly created / imported users. |
 | `PASSWORD_RESET_TOKEN_MINUTES` | Optional | `30` | Lifetime (minutes) of a self-service password-reset link. |
+| `FORGOT_PASSWORD_MAX` | Optional | `5` | Max forgot-password requests per IP and per email within the window (extra requests are silently ignored to prevent reset-email flooding). |
+| `FORGOT_PASSWORD_WINDOW_MINUTES` | Optional | `60` | Length (minutes) of the forgot-password rate-limit window. |
 | `MOBILE_JWT_EXPIRY_SECONDS` | Optional | `3600` | Access-token lifetime (seconds) for the mobile `/api/jwt-auth` flow. |
 | `MOBILE_JWT_REFRESH_DAYS` | Optional | `30` | How long a mobile session can be refreshed before requiring a fresh login. |
 | `FIREBASE_SERVICE_ACCOUNT_JSON` | Optional | - | Firebase service-account **JSON string** for FCM push. Leave blank to disable push (endpoints report `configured:false`). |

@@ -56,11 +56,16 @@ DEFAULT_PAGE_SIZE = 100
 # on a fresh/empty database so new deployments come pre-filled with examples.
 AUTO_SEED = os.environ.get('AUTO_SEED', 'true').strip().lower() in ('1', 'true', 'yes', 'on')
 
-# Deployment config (Guideline: Configuration Management) — standard env names
-# with safe defaults so a missing/empty value never crashes startup.
-JWT_SECRET = os.environ.get('JWT_SECRET') or 'dev-insecure-jwt-secret-change-me'
+# Deployment config (Guideline: Configuration Management) — standard env names.
+# JWT_SECRET and ADMIN_PASSWORD are security-critical: FAIL FAST if missing
+# (never fall back to a guessable default that would let anyone forge tokens).
+JWT_SECRET = os.environ.get('JWT_SECRET')
+if not JWT_SECRET:
+    raise RuntimeError("JWT_SECRET environment variable is required (no insecure default allowed).")
 ADMIN_EMAIL = os.environ.get('ADMIN_EMAIL') or 'admin@example.com'
-ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD') or 'admin123'
+ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD')
+if not ADMIN_PASSWORD:
+    raise RuntimeError("ADMIN_PASSWORD environment variable is required (no insecure default allowed).")
 EMERGENT_LLM_KEY = os.environ.get('EMERGENT_LLM_KEY', '')
 LOCAL_STORAGE_DIR = os.environ.get('LOCAL_STORAGE_DIR') or '/app/data'
 try:
@@ -244,6 +249,10 @@ async def lifespan(_app: FastAPI):
         await db.password_resets.create_index("expires_at", expireAfterSeconds=0)
     except Exception as exc:  # pragma: no cover - non-fatal
         logger.warning("Password-reset index create skipped: %s", exc)
+    try:
+        await db.revoked_tokens.create_index("expires_at", expireAfterSeconds=0)
+    except Exception as exc:  # pragma: no cover - non-fatal
+        logger.warning("Revoked-tokens index create skipped: %s", exc)
     logger.info("Startup complete: indexes ensured.")
     # Auto-seed FIRST (empty DB) so the snapshot — including the Super Admin user —
     # is inserted before _seed_admin runs; otherwise _seed_admin would create the
@@ -1625,10 +1634,37 @@ def _create_access_token(user_id: str) -> str:
     payload = {
         "sub": user_id,
         "type": "access",
+        "jti": uuid.uuid4().hex,
         "iat": datetime.now(timezone.utc),
         "exp": datetime.now(timezone.utc) + timedelta(hours=JWT_EXPIRY_HOURS),
     }
     return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
+
+
+async def _is_token_revoked(payload: dict) -> bool:
+    """True if this token's jti was revoked (e.g. via logout). Tokens without a
+    jti (older/mobile tokens) are never in the revocation list."""
+    jti = payload.get("jti")
+    if not jti:
+        return False
+    return bool(await db.revoked_tokens.find_one({"_id": jti}))
+
+
+async def _revoke_token(payload: dict):
+    """Add a token's jti to the revocation list, auto-expiring at token expiry."""
+    jti = payload.get("jti")
+    if not jti:
+        return
+    exp = payload.get("exp")
+    expires_at = (
+        datetime.fromtimestamp(exp, tz=timezone.utc)
+        if exp else datetime.now(timezone.utc) + timedelta(hours=JWT_EXPIRY_HOURS)
+    )
+    await db.revoked_tokens.update_one(
+        {"_id": jti},
+        {"$set": {"expires_at": expires_at, "revoked_at": datetime.now(timezone.utc)}},
+        upsert=True,
+    )
 
 
 async def _get_current_user(authorization: Optional[str] = Header(None)):
@@ -1644,6 +1680,8 @@ async def _get_current_user(authorization: Optional[str] = Header(None)):
         raise HTTPException(status_code=401, detail="Token expired")
     except jwt.InvalidTokenError:
         raise HTTPException(status_code=401, detail="Invalid token")
+    if await _is_token_revoked(payload):
+        raise HTTPException(status_code=401, detail="Token has been revoked")
     doc = await db.users.find_one({"id": payload.get("sub"), "deleted_at": None})
     if not doc:
         raise HTTPException(status_code=401, detail="User not found")
@@ -1797,9 +1835,18 @@ async def auth_me(current=Depends(_get_current_user)):
     return _user_public(current, roles, offices)
 
 
-@api_router.post("/auth/logout", tags=["Auth"], summary="Logout (client discards its token)")
-async def logout():
-    """Stateless JWT logout — the client simply discards the token."""
+@api_router.post("/auth/logout", tags=["Auth"], summary="Logout (revokes the current token server-side)")
+async def logout(authorization: Optional[str] = Header(None)):
+    """Revoke the presented Bearer token server-side so it can no longer be used
+    (defends against token theft after logout). The jti is stored until the token
+    would have expired, then auto-cleaned via TTL."""
+    token = authorization[7:].strip() if authorization and authorization.startswith("Bearer ") else None
+    if token:
+        try:
+            payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+            await _revoke_token(payload)
+        except jwt.InvalidTokenError:
+            pass
     return {"success": True}
 
 
@@ -2007,6 +2054,8 @@ async def _user_from_token(token: Optional[str]):
     try:
         payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
     except jwt.InvalidTokenError:
+        return None
+    if await _is_token_revoked(payload):
         return None
     return await db.users.find_one({"id": payload.get("sub"), "deleted_at": None})
 
