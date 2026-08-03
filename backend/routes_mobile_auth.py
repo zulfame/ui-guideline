@@ -38,6 +38,15 @@ class MobileLoginRequest(BaseModel):
     fmc_token: Optional[str] = None  # legacy typo for fcm_token, kept for parity
 
 
+class UserAuthRequest(BaseModel):
+    username: str = ""
+    password: str = ""
+    device_identifier: Optional[str] = None
+    device_name: Optional[str] = None
+    device_os: Optional[str] = None
+    fmc_token: Optional[str] = None
+
+
 def _ok(data: dict, status: int = 200):
     return JSONResponse({"success": True, "data": data}, status_code=status)
 
@@ -262,3 +271,46 @@ async def jwt_logout(authorization: Optional[str] = Header(None)):
                 method="POST", path="/api/jwt-logout", status_code=200, actor=doc.get("email"),
             )
     return JSONResponse({"success": True, "message": "Logged out successfully."}, status_code=200)
+
+
+
+@api_router.post("/user-auth", tags=["User Auth"], summary="Verify user credentials (API-client only, no device binding)")
+async def user_auth(payload: UserAuthRequest, request: Request):
+    """Credential-verification endpoint for API clients.
+
+    Requires a valid `X-API-Key` (API client). It only checks that the
+    email/username/phone + password are correct — no device binding, no session.
+    """
+    scope = getattr(request.state, "auth_scope", "") or ""
+    if not scope.startswith("apikey:"):
+        return _fail("A valid API key (X-API-Key header) is required.", 401)
+
+    ident = (payload.username or "").strip()
+    if not ident or not payload.password:
+        return _fail("The credentials you entered are incorrect", 401)
+
+    ident_lower = ident.lower()
+    doc = await db.users.find_one({
+        "deleted_at": None,
+        "$or": [
+            {"email": ident_lower}, {"email": ident},
+            {"username": ident}, {"phone": ident},
+        ],
+    })
+    if not doc or not _verify_password(payload.password, doc.get("password") or ""):
+        await log_audit(
+            "login_failed", "auth", entity_label=ident,
+            summary=f"Failed user-auth for {ident} ({scope})",
+            method="POST", path="/api/user-auth", status_code=401, actor=ident,
+        )
+        return _fail("The credentials you entered are incorrect", 401)
+
+    if doc.get("is_active") is False:
+        return _fail("Your account is inactive.", 401)
+
+    await log_audit(
+        "login", "auth", entity_id=doc["id"], entity_label=doc.get("email"),
+        summary=f"User-auth credential verified for {doc.get('email')} ({scope})",
+        method="POST", path="/api/user-auth", status_code=200, actor=doc.get("email"),
+    )
+    return JSONResponse({"success": True}, status_code=200)

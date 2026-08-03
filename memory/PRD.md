@@ -22,6 +22,13 @@ Membangun template **UI Guidelines / Design System** generik sebagai fondasi apl
 - **R38**: Modifikasi primitive/composite harus jaga compact spacing (`px-6 py-4`), grid 4px, token monochrome (`border-border`), typography tepat. Verifikasi semua consumer via screenshot sebelum selesai.
 
 ## Sudah Diimplementasikan
+- (2026-08-03) **Endpoint `POST /api/user-auth` — verifikasi kredensial via API client** [FEATURE/AUTH]: dibuat di `routes_mobile_auth.py`. Tujuan: hanya memastikan kebenaran kredensial user (bukan login/sesi).
+  - **Wajib `X-API-Key`** (API client aktif; divalidasi + rate-limit oleh middleware). Endpoint menolak (401) bila dipanggil tanpa scope `apikey:` (mis. tanpa key, atau via sesi user).
+  - **Tanpa device binding**: cek `email/username/phone` + password saja; field device diabaikan.
+  - Response: sukses → `{"success": true}` (tanpa token bermakna). Gagal → envelope sama seperti jwt-auth: kredensial salah 401 "The credentials you entered are incorrect"; akun nonaktif 401 "Your account is inactive.".
+  - Tercatat di Audit Log (`login`/`login_failed`, entity `auth`, path `/api/user-auth`).
+  - Diverifikasi curl: no key→401; key valid+benar→200 `{success:true}`; key valid+salah→401; key invalid→401. `/api/clients` yang sudah ada dipakai untuk membuat key.
+
 - (2026-08-02) **Push Notification broadcast via Firebase Cloud Messaging (HTTP v1 / Admin SDK)** [FEATURE/INTEGRATION]:
   - Backend modul baru `routes_notifications.py` (register di server.py). Kredensial dari env `FIREBASE_SERVICE_ACCOUNT_JSON` (raw JSON) atau `FIREBASE_SERVICE_ACCOUNT_FILE` (path) — init lazy + thread-safe; **fail gracefully** bila belum diisi. Dep baru: `firebase_admin==7.5.0` (di requirements.txt).
     - `GET /api/notifications/config` → `{configured: bool, recipient_count}` (recipient = user aktif, non-deleted, punya `fcm_token`).
