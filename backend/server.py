@@ -253,6 +253,12 @@ async def lifespan(_app: FastAPI):
         await db.revoked_tokens.create_index("expires_at", expireAfterSeconds=0)
     except Exception as exc:  # pragma: no cover - non-fatal
         logger.warning("Revoked-tokens index create skipped: %s", exc)
+    try:
+        await db.sessions.create_index("expires_at", expireAfterSeconds=0)
+        await db.sessions.create_index("user_id")
+        await db.sessions.create_index("revoked")
+    except Exception as exc:  # pragma: no cover - non-fatal
+        logger.warning("Sessions index create skipped: %s", exc)
     logger.info("Startup complete: indexes ensured.")
     # Auto-seed FIRST (empty DB) so the snapshot — including the Super Admin user —
     # is inserted before _seed_admin runs; otherwise _seed_admin would create the
@@ -1630,28 +1636,55 @@ JWT_ALGORITHM = "HS256"
 JWT_EXPIRY_HOURS = int(os.environ.get("JWT_EXPIRY_HOURS") or "12")
 
 
-def _create_access_token(user_id: str) -> str:
+def _create_access_token(user_id: str, jti: Optional[str] = None) -> str:
     payload = {
         "sub": user_id,
         "type": "access",
-        "jti": uuid.uuid4().hex,
+        "jti": jti or uuid.uuid4().hex,
         "iat": datetime.now(timezone.utc),
         "exp": datetime.now(timezone.utc) + timedelta(hours=JWT_EXPIRY_HOURS),
     }
     return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
 
 
+async def _record_session(jti: str, user_id: str, request: Optional[Request] = None,
+                          *, token_type: str = "web", label: Optional[str] = None,
+                          ttl_seconds: Optional[int] = None):
+    """Persist an issued token as an active session — for admin visibility and
+    remote revocation. `_id` is the token jti; `expires_at` drives TTL cleanup."""
+    now = datetime.now(timezone.utc)
+    ip = _client_ip(request) if request else None
+    ua = request.headers.get("user-agent") if request else None
+    ttl = ttl_seconds if ttl_seconds is not None else JWT_EXPIRY_HOURS * 3600
+    await db.sessions.update_one(
+        {"_id": jti},
+        {"$set": {
+            "user_id": user_id,
+            "token_type": token_type,
+            "label": label,
+            "ip": ip,
+            "user_agent": ua,
+            "created_at": now,
+            "expires_at": now + timedelta(seconds=ttl),
+            "revoked": False,
+            "revoked_at": None,
+        }},
+        upsert=True,
+    )
+
+
 async def _is_token_revoked(payload: dict) -> bool:
-    """True if this token's jti was revoked (e.g. via logout). Tokens without a
-    jti (older/mobile tokens) are never in the revocation list."""
+    """True if this token's session was revoked (logout or admin force-logout).
+    Tokens without a session record (older/mobile tokens) are never blocked here."""
     jti = payload.get("jti")
     if not jti:
         return False
-    return bool(await db.revoked_tokens.find_one({"_id": jti}))
+    doc = await db.sessions.find_one({"_id": jti}, {"revoked": 1})
+    return bool(doc and doc.get("revoked"))
 
 
 async def _revoke_token(payload: dict):
-    """Add a token's jti to the revocation list, auto-expiring at token expiry."""
+    """Mark a token's session revoked so it is rejected on the next request."""
     jti = payload.get("jti")
     if not jti:
         return
@@ -1660,9 +1693,9 @@ async def _revoke_token(payload: dict):
         datetime.fromtimestamp(exp, tz=timezone.utc)
         if exp else datetime.now(timezone.utc) + timedelta(hours=JWT_EXPIRY_HOURS)
     )
-    await db.revoked_tokens.update_one(
+    await db.sessions.update_one(
         {"_id": jti},
-        {"$set": {"expires_at": expires_at, "revoked_at": datetime.now(timezone.utc)}},
+        {"$set": {"revoked": True, "revoked_at": datetime.now(timezone.utc), "expires_at": expires_at}},
         upsert=True,
     )
 
@@ -1810,7 +1843,9 @@ async def login(payload: LoginRequest, request: Request):
         )
 
     await _clear_login_attempts(key)
-    token = _create_access_token(doc["id"])
+    jti = uuid.uuid4().hex
+    token = _create_access_token(doc["id"], jti=jti)
+    await _record_session(jti, doc["id"], request)
     roles, offices = await _enrich_maps([doc])
     await log_audit(
         "login", "auth", entity_id=doc["id"],
@@ -1955,6 +1990,7 @@ import routes_users  # noqa: E402,F401  (side-effect: route registration)
 import routes_import  # noqa: E402,F401  (side-effect: route registration)
 import routes_mobile_auth  # noqa: E402,F401  (side-effect: mobile JWT route registration)
 import routes_notifications  # noqa: E402,F401  (side-effect: push notification route registration)
+import routes_sessions  # noqa: E402,F401  (side-effect: active-sessions admin route registration)
 # ---------------------------------------------------------------------------
 # Login security — inspect throttle records (suspicious activity) & unlock.
 # ---------------------------------------------------------------------------
@@ -2062,7 +2098,7 @@ async def _user_from_token(token: Optional[str]):
 
 # API-key auth: keys never reach management/auth/system endpoints. API function
 # is not defined yet, so an active key is allowed on all other /api routes.
-_APIKEY_BLOCKED_PREFIXES = ("/api/clients", "/api/auth", "/api/database", "/api/login-attempts")
+_APIKEY_BLOCKED_PREFIXES = ("/api/clients", "/api/auth", "/api/database", "/api/login-attempts", "/api/sessions")
 
 
 async def _client_from_api_key(api_key: str):

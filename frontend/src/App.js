@@ -27,6 +27,7 @@ import EmailTemplatesPage from "@/pages/app/EmailTemplatesPage";
 import BrandingPage from "@/pages/app/BrandingPage";
 import ClientsPage from "@/pages/app/ClientsPage";
 import LoginSecurityPage from "@/pages/app/LoginSecurityPage";
+import SessionsPage from "@/pages/app/SessionsPage";
 import ComponentsPage from "@/pages/ComponentsPage";
 import DesignTokensPage from "@/pages/DesignTokensPage";
 import DevelopmentOverviewPage from "@/pages/development/DevelopmentOverviewPage";
@@ -116,6 +117,7 @@ function App() {
           <Route path="/email-templates" element={<AdminRoute><EmailTemplatesPage /></AdminRoute>} />
           <Route path="/database" element={<AdminRoute><DatabasePage /></AdminRoute>} />
           <Route path="/login-security" element={<AdminRoute><LoginSecurityPage /></AdminRoute>} />
+          <Route path="/sessions" element={<AdminRoute><SessionsPage /></AdminRoute>} />
           <Route path="/audit-log" element={<AuditLogPage />} />
           <Route path="/account" element={<AccountPage />} />
           <Route path="/settings" element={<SettingsPage />} />

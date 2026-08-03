@@ -23,6 +23,7 @@ from pydantic import BaseModel
 from server import (
     api_router, db, JWT_SECRET, JWT_ALGORITHM, _verify_password, _hash_password, log_audit,
     _client_ip, _login_locked_until, _record_login_failure, _clear_login_attempts,
+    _record_session, _revoke_token, _is_token_revoked,
     PASSWORD_EXPIRY_DAYS, PASSWORD_HISTORY_LIMIT,
 )
 
@@ -98,11 +99,16 @@ def _decode_mobile(token: Optional[str], verify_exp: bool = True):
 
 
 async def _user_for_token(payload: dict):
-    """Return the user IF the token's jti still matches the bound device."""
+    """Return the user IF the token is still valid: not revoked, user active, and
+    the jti still matches the bound device (single-device binding)."""
     if not payload:
+        return None
+    if await _is_token_revoked(payload):
         return None
     doc = await db.users.find_one({"id": payload.get("sub"), "deleted_at": None})
     if not doc:
+        return None
+    if doc.get("is_active") is False:
         return None
     bound = doc.get("mobile_device") or {}
     if not bound.get("jti") or bound.get("jti") != payload.get("jti"):
@@ -220,6 +226,12 @@ async def jwt_auth(payload: MobileLoginRequest, request: Request):
         }},
     )
     token = _create_mobile_token(doc["id"], jti, incoming_did)
+    await _record_session(
+        jti, doc["id"], request,
+        token_type="mobile",
+        label=payload.device_name or payload.device_os or incoming_did or "Mobile device",
+        ttl_seconds=MOBILE_REFRESH_DAYS * 86400,
+    )
     await log_audit(
         "login", "auth", entity_id=doc["id"], entity_label=doc.get("email"),
         summary=f"Mobile login {doc.get('email')} from {ip} ({device['device_name'] or incoming_did})",
@@ -273,6 +285,7 @@ async def jwt_logout(authorization: Optional[str] = Header(None)):
                 {"$unset": {"mobile_device": ""},
                  "$set": {"updated_at": datetime.now(timezone.utc).isoformat()}},
             )
+            await _revoke_token(payload)
             await log_audit(
                 "logout", "auth", entity_id=doc["id"], entity_label=doc.get("email"),
                 summary=f"Mobile logout {doc.get('email')} (device unbound)",
