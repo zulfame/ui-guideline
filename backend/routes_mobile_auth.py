@@ -313,4 +313,4 @@ async def user_auth(payload: UserAuthRequest, request: Request):
         summary=f"User-auth credential verified for {doc.get('email')} ({scope})",
         method="POST", path="/api/user-auth", status_code=200, actor=doc.get("email"),
     )
-    return JSONResponse({"success": True}, status_code=200)
+    return _ok(await _profile_payload(doc))
