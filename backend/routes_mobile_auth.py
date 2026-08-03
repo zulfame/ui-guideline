@@ -21,8 +21,9 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from server import (
-    api_router, db, JWT_SECRET, JWT_ALGORITHM, _verify_password, log_audit,
+    api_router, db, JWT_SECRET, JWT_ALGORITHM, _verify_password, _hash_password, log_audit,
     _client_ip, _login_locked_until, _record_login_failure, _clear_login_attempts,
+    PASSWORD_EXPIRY_DAYS, PASSWORD_HISTORY_LIMIT,
 )
 
 MOBILE_TOKEN_TTL = int(os.environ.get("MOBILE_JWT_EXPIRY_SECONDS") or "3600")
@@ -45,6 +46,13 @@ class UserAuthRequest(BaseModel):
     device_name: Optional[str] = None
     device_os: Optional[str] = None
     fmc_token: Optional[str] = None
+
+
+class UserPasswordRequest(BaseModel):
+    username: str = ""
+    current_password: str = ""
+    password: str = ""
+    confirmed_password: str = ""
 
 
 def _ok(data: dict, status: int = 200):
@@ -312,5 +320,70 @@ async def user_auth(payload: UserAuthRequest, request: Request):
         "login", "auth", entity_id=doc["id"], entity_label=doc.get("email"),
         summary=f"User-auth credential verified for {doc.get('email')} ({scope})",
         method="POST", path="/api/user-auth", status_code=200, actor=doc.get("email"),
+    )
+    return _ok(await _profile_payload(doc))
+
+
+
+@api_router.post("/user-password", tags=["User Auth"], summary="Change user password (API-client only)")
+async def user_password(payload: UserPasswordRequest, request: Request):
+    """Change a user's password after verifying the current one. API-client only."""
+    scope = getattr(request.state, "auth_scope", "") or ""
+    if not scope.startswith("apikey:"):
+        return _fail("A valid API key (X-API-Key header) is required.", 401)
+
+    ident = (payload.username or "").strip()
+    if not ident or not payload.current_password:
+        return _fail("The credentials you entered are incorrect", 401)
+    if not payload.password:
+        return _fail("The new password is required", 400)
+    if payload.password != payload.confirmed_password:
+        return _fail("Password confirmation does not match", 400)
+
+    ident_lower = ident.lower()
+    doc = await db.users.find_one({
+        "deleted_at": None,
+        "$or": [
+            {"email": ident_lower}, {"email": ident},
+            {"username": ident}, {"phone": ident},
+        ],
+    })
+    if not doc or not _verify_password(payload.current_password, doc.get("password") or ""):
+        await log_audit(
+            "change_password_failed", "auth", entity_label=ident,
+            summary=f"Failed user-password (bad current) for {ident} ({scope})",
+            method="POST", path="/api/user-password", status_code=401, actor=ident,
+        )
+        return _fail("The credentials you entered are incorrect", 401)
+    if doc.get("is_active") is False:
+        return _fail("Your account is inactive.", 401)
+
+    history = doc.get("password_history") or []
+    recent = history if doc.get("password") in history else [doc.get("password"), *history]
+    recent = [h for h in recent if h]
+    for h in recent[:PASSWORD_HISTORY_LIMIT]:
+        if _verify_password(payload.password, h):
+            return _fail(f"New password must differ from the last {PASSWORD_HISTORY_LIMIT} passwords", 400)
+
+    new_hash = _hash_password(payload.password)
+    new_history = [new_hash, *recent][:PASSWORD_HISTORY_LIMIT]
+    now = datetime.now(timezone.utc)
+    now_iso = now.isoformat()
+    await db.users.update_one(
+        {"id": doc["id"]},
+        {"$set": {
+            "password": new_hash,
+            "password_history": new_history,
+            "password_changed_at": now_iso,
+            "password_expires_at": (now + timedelta(days=PASSWORD_EXPIRY_DAYS)).isoformat(),
+            "must_change_password": False,
+            "updated_at": now_iso,
+        }},
+    )
+    await log_audit(
+        "change_password", "auth", entity_id=doc["id"], entity_label=doc.get("email"),
+        summary=f"User-password changed for {doc.get('email')} ({scope})",
+        method="POST", path="/api/user-password", status_code=200,
+        request={"password": "«redacted»"}, response={"success": True}, actor=doc.get("email"),
     )
     return _ok(await _profile_payload(doc))
