@@ -1647,6 +1647,8 @@ async def _get_current_user(authorization: Optional[str] = Header(None)):
     doc = await db.users.find_one({"id": payload.get("sub"), "deleted_at": None})
     if not doc:
         raise HTTPException(status_code=401, detail="User not found")
+    if doc.get("is_active") is False:
+        raise HTTPException(status_code=403, detail="Your account has been deactivated. Please contact your administrator.")
     return doc
 
 
@@ -1762,6 +1764,12 @@ async def login(payload: LoginRequest, request: Request):
         if left <= 2:
             detail = f"Invalid credentials. {left} attempt(s) left before lockout."
         raise HTTPException(status_code=401, detail=detail)
+
+    if doc.get("is_active") is False:
+        raise HTTPException(
+            status_code=403,
+            detail="Your account has been deactivated. Please contact your administrator.",
+        )
 
     await _clear_login_attempts(key)
     token = _create_access_token(doc["id"])
