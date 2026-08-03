@@ -2181,11 +2181,13 @@ async def _authz_middleware(request, call_next):
             return _envelope_error(request, 401, "Not authenticated")
         return JSONResponse(_error_body(request, 401, "Not authenticated"), status_code=401)
     request.state.auth_scope = f"user:{user.get('id')}"
-    # Mutations require admin, except a user changing their OWN password.
+    # Mutations require admin, except self-service actions: a user changing their
+    # OWN password, or managing their OWN login sessions ("My devices").
     if method in ("POST", "PUT", "DELETE", "PATCH"):
         m = _CHANGE_PW_RE.match(path)
         is_self_pw = bool(m and m.group(1) == user.get("id"))
-        if not is_self_pw and not user.get("is_admin"):
+        is_self_session = path.startswith("/api/account/sessions")
+        if not is_self_pw and not is_self_session and not user.get("is_admin"):
             return JSONResponse(_error_body(request, 403, "Admin privileges required"), status_code=403)
     return await call_next(request)
 

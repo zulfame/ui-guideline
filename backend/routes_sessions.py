@@ -17,6 +17,7 @@ from server import (
     db,
     log_audit,
     _require_admin,
+    _get_current_user,
     JWT_SECRET,
     JWT_ALGORITHM,
 )
@@ -132,6 +133,79 @@ async def revoke_user_sessions(user_id: str, current=Depends(_require_admin)):
         "revoke_session", "session", entity_id=user_id, entity_label=label,
         summary=f"Force-logout: revoked {res.modified_count} session(s) for {label}",
         method="POST", path=f"/api/sessions/revoke-user/{user_id}", status_code=200,
+        actor=current.get("email"), metadata={"revoked": res.modified_count},
+    )
+    return {"success": True, "revoked": res.modified_count}
+
+
+
+# ---------------------------------------------------------------------------
+# Self-service ("My devices") — any authenticated user manages their OWN
+# sessions. Guarded at the middleware by the /api/account/sessions exception;
+# every query is additionally scoped to current["id"] so users can only ever
+# see or revoke their own sessions.
+# ---------------------------------------------------------------------------
+def _my_session_row(d: dict, now: datetime, cur_jti):
+    exp = d.get("expires_at")
+    if isinstance(exp, datetime) and exp.tzinfo is None:
+        exp = exp.replace(tzinfo=timezone.utc)
+    return {
+        "id": d["_id"],
+        "token_type": d.get("token_type") or "web",
+        "label": d.get("label"),
+        "ip": d.get("ip"),
+        "user_agent": d.get("user_agent"),
+        "created_at": _iso(d.get("created_at")),
+        "expires_at": _iso(exp),
+        "is_current": d["_id"] == cur_jti,
+    }
+
+
+@api_router.get("/account/sessions", tags=["Account"], summary="List my own active login sessions")
+async def my_sessions(request: Request, response: Response, current=Depends(_get_current_user)):
+    now = datetime.now(timezone.utc)
+    docs = (
+        await db.sessions.find({
+            "user_id": current["id"],
+            "revoked": {"$ne": True},
+            "expires_at": {"$gt": now},
+        }).sort("created_at", -1).to_list(200)
+    )
+    cur_jti = _current_jti(request)
+    rows = [_my_session_row(d, now, cur_jti) for d in docs]
+    response.headers["X-Total-Count"] = str(len(rows))
+    return rows
+
+
+@api_router.post("/account/sessions/{jti}/revoke", tags=["Account"], summary="Sign out one of my own devices")
+async def revoke_my_session(jti: str, current=Depends(_get_current_user)):
+    doc = await db.sessions.find_one({"_id": jti, "user_id": current["id"]})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Session not found.")
+    await db.sessions.update_one(
+        {"_id": jti},
+        {"$set": {"revoked": True, "revoked_at": datetime.now(timezone.utc)}},
+    )
+    await log_audit(
+        "revoke_session", "session", entity_id=jti, entity_label=current.get("email"),
+        summary=f"Signed out a device ({current.get('email')})", method="POST",
+        path=f"/api/account/sessions/{jti}/revoke", status_code=200, actor=current.get("email"),
+    )
+    return {"success": True}
+
+
+@api_router.post("/account/sessions/revoke-others", tags=["Account"], summary="Sign out all my OTHER devices")
+async def revoke_my_other_sessions(request: Request, current=Depends(_get_current_user)):
+    now = datetime.now(timezone.utc)
+    cur_jti = _current_jti(request)
+    q: dict = {"user_id": current["id"], "revoked": {"$ne": True}, "expires_at": {"$gt": now}}
+    if cur_jti:
+        q["_id"] = {"$ne": cur_jti}
+    res = await db.sessions.update_many(q, {"$set": {"revoked": True, "revoked_at": now}})
+    await log_audit(
+        "revoke_session", "session", entity_id=current["id"], entity_label=current.get("email"),
+        summary=f"Signed out {res.modified_count} other device(s) ({current.get('email')})",
+        method="POST", path="/api/account/sessions/revoke-others", status_code=200,
         actor=current.get("email"), metadata={"revoked": res.modified_count},
     )
     return {"success": True, "revoked": res.modified_count}
