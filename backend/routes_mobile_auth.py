@@ -519,15 +519,19 @@ async def user_update(payload: UserUpdateExt, request: Request):
     doc = await _find_user_by_ident(payload.username)
     if not doc:
         return _fail("User not found", 404)
+    # Empty string / null means "leave unchanged" so a client can safely copy the
+    # full sample request (which lists every field with "" placeholders).
     raw = {
-        "name": payload.name, "email": (payload.email or None), "role_id": payload.role_id,
+        "name": payload.name, "email": payload.email, "role_id": payload.role_id,
         "office_id": payload.office_id, "phone": payload.phone, "alias": payload.alias,
         "mso_code": payload.mso_code, "collector_code": payload.collector_code,
-        "username": payload.new_username, "is_active": payload.is_active,
+        "username": payload.new_username,
     }
-    updates = _normalize_optionals({k: v for k, v in raw.items() if v is not None})
+    updates = {k: v.strip() for k, v in raw.items() if isinstance(v, str) and v.strip() != ""}
+    if payload.is_active is not None:
+        updates["is_active"] = payload.is_active
     if "email" in updates:
-        updates["email"] = updates["email"].strip().lower()
+        updates["email"] = updates["email"].lower()
         if not re.match(EMAIL_RE, updates["email"]):
             return _fail("A valid email is required", 400)
     if not updates:

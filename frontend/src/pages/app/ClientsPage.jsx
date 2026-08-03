@@ -228,7 +228,11 @@ const ENDPOINT_DOCS = [
   -H "X-API-Key: YOUR_API_KEY" \\
   -d '{
     "username": "309011221",
-    "password": "secret"
+    "password": "secret",
+    "device_identifier": "",
+    "device_name": "",
+    "device_os": "",
+    "fmc_token": ""
   }'`,
     success: PROFILE_JSON,
     errorStatus: 401,
@@ -274,10 +278,13 @@ const ENDPOINT_DOCS = [
     "name": "Budi Santoso",
     "email": "budi@example.com",
     "role_id": "ROLE_UUID",
-    "office_id": "OFFICE_UUID",
-    "username": "budi",
-    "phone": "08123456789",
-    "password": "bpr2026"
+    "office_id": "",
+    "username": "",
+    "phone": "",
+    "alias": "",
+    "mso_code": "",
+    "collector_code": "",
+    "password": ""
   }'`,
     success: PROFILE_JSON,
     successLabel: "201 Created",
@@ -299,10 +306,16 @@ const ENDPOINT_DOCS = [
   -H "X-API-Key: YOUR_API_KEY" \\
   -d '{
     "username": "budi@example.com",
-    "name": "Budi S.",
-    "phone": "08100000000",
-    "role_id": "ROLE_UUID",
-    "is_active": true
+    "name": "",
+    "email": "",
+    "role_id": "",
+    "office_id": "",
+    "phone": "",
+    "alias": "",
+    "mso_code": "",
+    "collector_code": "",
+    "new_username": "",
+    "is_active": null
   }'`,
     success: PROFILE_JSON,
     errorStatus: 404,
