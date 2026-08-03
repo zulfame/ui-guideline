@@ -31,6 +31,12 @@ import {
 import { Bar, BarChart, CartesianGrid, XAxis } from "recharts";
 
 import API from "@/lib/api";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -111,6 +117,36 @@ const ENDPOINT_DOCS = [
   }'`,
   },
   {
+    id: "jwt-me",
+    method: "GET",
+    path: "/api/jwt-me",
+    title: "Current profile",
+    auth: "bearer",
+    note: "Requires the Bearer access_token from /api/jwt-auth. Returns the current user's profile, office, and bound device.",
+    curl: `curl -X GET "${API_BASE}/api/jwt-me" \\
+  -H "Authorization: Bearer ACCESS_TOKEN"`,
+  },
+  {
+    id: "jwt-refresh",
+    method: "POST",
+    path: "/api/jwt-refresh",
+    title: "Refresh token",
+    auth: "bearer",
+    note: "Issues a fresh access_token. Accepts an expired-but-valid token within the refresh window while the device is still bound.",
+    curl: `curl -X POST "${API_BASE}/api/jwt-refresh" \\
+  -H "Authorization: Bearer ACCESS_TOKEN"`,
+  },
+  {
+    id: "jwt-logout",
+    method: "POST",
+    path: "/api/jwt-logout",
+    title: "Logout",
+    auth: "bearer",
+    note: "Ends the mobile session and unbinds the device so the account can sign in on a new device.",
+    curl: `curl -X POST "${API_BASE}/api/jwt-logout" \\
+  -H "Authorization: Bearer ACCESS_TOKEN"`,
+  },
+  {
     id: "user-auth",
     method: "POST",
     path: "/api/user-auth",
@@ -144,6 +180,12 @@ const ENDPOINT_DOCS = [
   },
 ];
 
+function authBadge(auth) {
+  if (auth === "apikey") return { label: "Requires X-API-Key", variant: "outline" };
+  if (auth === "bearer") return { label: "Requires Bearer token", variant: "outline" };
+  return { label: "Public", variant: "secondary" };
+}
+
 function CurlBlock({ doc }) {
   const [copied, setCopied] = useState(false);
   const copy = async () => {
@@ -156,30 +198,14 @@ function CurlBlock({ doc }) {
     }
   };
   return (
-    <div className="space-y-2 rounded-md border p-4" data-testid={`api-doc-${doc.id}`}>
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex flex-wrap items-center gap-2">
-          <Badge variant="secondary" className="font-mono text-xs">{doc.method}</Badge>
-          <code className="text-sm font-medium">{doc.path}</code>
-          <span className="text-xs text-muted-foreground">— {doc.title}</span>
-          <Badge
-            variant={doc.auth === "apikey" ? "outline" : "secondary"}
-            className="font-normal"
-          >
-            {doc.auth === "apikey" ? "Requires X-API-Key" : "Public"}
-          </Badge>
-        </div>
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={copy}
-          data-testid={`api-doc-copy-${doc.id}`}
-        >
+    <div className="space-y-2" data-testid={`api-doc-${doc.id}`}>
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-xs text-muted-foreground">{doc.note}</p>
+        <Button size="sm" variant="outline" onClick={copy} data-testid={`api-doc-copy-${doc.id}`}>
           {copied ? <Check className="size-4 text-primary" /> : <Copy className="size-4" />}
           {copied ? "Copied" : "Copy"}
         </Button>
       </div>
-      <p className="text-xs text-muted-foreground">{doc.note}</p>
       <pre className="overflow-x-auto rounded-md bg-muted/60 p-3 text-xs leading-relaxed">
         <code>{doc.curl}</code>
       </pre>
@@ -669,9 +695,26 @@ export default function ClientsPage() {
           </p>
         </CardHeader>
         <CardContent className="space-y-4">
-          {ENDPOINT_DOCS.map((doc) => (
-            <CurlBlock key={doc.id} doc={doc} />
-          ))}
+          <Accordion type="single" collapsible defaultValue="jwt-auth" className="w-full">
+            {ENDPOINT_DOCS.map((doc) => {
+              const ab = authBadge(doc.auth);
+              return (
+                <AccordionItem key={doc.id} value={doc.id} data-testid={`api-doc-item-${doc.id}`}>
+                  <AccordionTrigger className="hover:no-underline">
+                    <span className="flex flex-1 flex-wrap items-center gap-2 pr-2">
+                      <Badge variant="secondary" className="font-mono text-xs">{doc.method}</Badge>
+                      <code className="text-sm font-medium">{doc.path}</code>
+                      <span className="hidden text-xs text-muted-foreground sm:inline">— {doc.title}</span>
+                      <Badge variant={ab.variant} className="font-normal">{ab.label}</Badge>
+                    </span>
+                  </AccordionTrigger>
+                  <AccordionContent>
+                    <CurlBlock doc={doc} />
+                  </AccordionContent>
+                </AccordionItem>
+              );
+            })}
+          </Accordion>
         </CardContent>
       </Card>
 
