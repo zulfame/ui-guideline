@@ -3,7 +3,8 @@
 Full-stack enterprise CMS template — **React** (frontend) + **FastAPI** (backend) + **MongoDB**.
 Modules: Users, Roles, Offices, Levels, Audit Log, Database Backup/Restore (GridFS),
 Broadcast channels, Branding, dynamic Sitemap/Robots, API Clients (API keys),
-Mobile/External Auth API (JWT + credential verification), Push Notifications (Firebase FCM),
+Mobile/External Auth API (JWT + credential verification + user create/update/deactivate),
+Push Notifications (Firebase FCM), Active Sessions (admin) & self-service My Devices,
 plus an in-app Design System & Dev Guidelines.
 
 ## Project Structure
@@ -172,6 +173,18 @@ View every signed-in device (web + mobile) across all users and revoke them remo
 
 Revoking a mobile session also blocks its `POST /api/jwt-refresh`, so it cannot silently
 reissue a token.
+
+### My Devices (self-service: Account page)
+
+Every authenticated user can view and sign out of their **own** devices — no admin
+needed. All queries are scoped to the caller, so a user can only ever see or revoke
+their own sessions.
+
+| Method & Path | Auth | Purpose |
+| --- | --- | --- |
+| `GET /api/account/sessions` | Any user | List **my** active sessions (`is_current` flags the device making the request). |
+| `POST /api/account/sessions/{jti}/revoke` | Any user | Sign out one of **my** devices (`404` if the session isn't mine). |
+| `POST /api/account/sessions/revoke-others` | Any user | Sign out **all my other** devices, keeping the current one. |
 
 ## Running Locally
 
