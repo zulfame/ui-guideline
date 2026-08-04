@@ -176,12 +176,12 @@ export const ENDPOINT_DOCS = [
     path: "/api/user-password",
     title: "Change password",
     auth: "apikey",
-    note: "Requires X-API-Key. Verifies current_password, then sets the new password (password must equal confirmed_password).",
+    note: "Requires X-API-Key. Locate the user by `email`, verify current_password, then set the new password (password must equal confirmed_password).",
     curl: `curl -X POST "${API_BASE}/api/user-password" \\
   -H "Content-Type: application/json" \\
   -H "X-API-Key: YOUR_API_KEY" \\
   -d '{
-    "username": "309011221",
+    "email": "budi@example.com",
     "current_password": "bpr2026",
     "password": "newpass",
     "confirmed_password": "newpass"
@@ -200,15 +200,15 @@ export const ENDPOINT_DOCS = [
     path: "/api/user-create",
     title: "Create user",
     auth: "apikey",
-    note: "Requires X-API-Key. Creates a user. If password is omitted the system default is used and the user must change it on first login. role_id is required. Tip: get role_id / office_id from the Roles / Offices page → row menu (⋯) → Copy ID.",
+    note: "Requires X-API-Key. Creates a user. If password is omitted the system default is used and the user must change it on first login. `role` is required and `office` is optional — both use the human-readable NAME (same as the Excel import), not a UUID.",
     curl: `curl -X POST "${API_BASE}/api/user-create" \\
   -H "Content-Type: application/json" \\
   -H "X-API-Key: YOUR_API_KEY" \\
   -d '{
     "name": "Budi Santoso",
     "email": "budi@example.com",
-    "role_id": "ROLE_UUID",
-    "office_id": "",
+    "role": "Teller",
+    "office": "Kantor Pusat",
     "username": "",
     "phone": "",
     "alias": "",
@@ -231,21 +231,21 @@ export const ENDPOINT_DOCS = [
     path: "/api/user-update",
     title: "Update user",
     auth: "apikey",
-    note: "Requires X-API-Key. Locate the user by `username` (email, username, or phone) and send only the fields to change. Empty string / null leaves a field unchanged. Use `new_username` to change the username. To activate/deactivate a user, use /api/user-deactivate instead. Tip: get role_id / office_id from the Roles / Offices page → row menu (⋯) → Copy ID.",
+    note: "Requires X-API-Key. Locate the user by `email` and send only the fields to change. Empty string / null leaves a field unchanged. `role` and `office` use the human-readable NAME (same as the Excel import). Use `id` to set the numeric user_id and `username` to change the username. To activate/deactivate a user, use /api/user-deactivate instead.",
     curl: `curl -X POST "${API_BASE}/api/user-update" \\
   -H "Content-Type: application/json" \\
   -H "X-API-Key: YOUR_API_KEY" \\
   -d '{
-    "username": "budi@example.com",
+    "email": "budi@example.com",
+    "id": null,
     "name": "",
-    "email": "",
-    "role_id": "",
-    "office_id": "",
+    "role": "",
+    "office": "",
+    "username": "",
     "phone": "",
     "alias": "",
     "mso_code": "",
-    "collector_code": "",
-    "new_username": ""
+    "collector_code": ""
   }'`,
     success: PROFILE_JSON,
     errorStatus: 404,
@@ -266,7 +266,7 @@ export const ENDPOINT_DOCS = [
   -H "Content-Type: application/json" \\
   -H "X-API-Key: YOUR_API_KEY" \\
   -d '{
-    "username": "budi@example.com",
+    "email": "budi@example.com",
     "active": false
   }'`,
     success: PROFILE_JSON,

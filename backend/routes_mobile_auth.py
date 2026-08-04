@@ -357,7 +357,7 @@ async def user_password(payload: UserPasswordRequest, request: Request):
     if not scope.startswith("apikey:"):
         return _fail("A valid API key (X-API-Key header) is required.", 401)
 
-    ident = (payload.username or "").strip()
+    ident = (payload.email or "").strip()
     if not ident or not payload.current_password:
         return _fail("The credentials you entered are incorrect", 401)
     if not payload.password:
@@ -365,14 +365,7 @@ async def user_password(payload: UserPasswordRequest, request: Request):
     if payload.password != payload.confirmed_password:
         return _fail("Password confirmation does not match", 400)
 
-    ident_lower = ident.lower()
-    doc = await db.users.find_one({
-        "deleted_at": None,
-        "$or": [
-            {"email": ident_lower}, {"email": ident},
-            {"username": ident}, {"phone": ident},
-        ],
-    })
+    doc = await _find_user_by_email(ident)
     if not doc or not _verify_password(payload.current_password, doc.get("password") or ""):
         await log_audit(
             "change_password_failed", "auth", entity_label=ident,
@@ -470,6 +463,41 @@ async def _find_user_by_ident(ident: str):
     })
 
 
+async def _find_user_by_email(email: str):
+    email = (email or "").strip().lower()
+    if not email:
+        return None
+    return await db.users.find_one({"email": email, "deleted_at": None})
+
+
+async def _resolve_role_id(role_name: str):
+    """Resolve a role NAME (case-insensitive) to its UUID. None if not given."""
+    name = (role_name or "").strip()
+    if not name:
+        return None
+    r = await db.roles.find_one(
+        {"name": {"$regex": f"^{re.escape(name)}$", "$options": "i"}},
+        {"_id": 0, "id": 1},
+    )
+    if not r:
+        raise HTTPException(status_code=400, detail=f"role '{name}' not found")
+    return r["id"]
+
+
+async def _resolve_office_id(office_name: str):
+    """Resolve an office NAME (case-insensitive) to its UUID. None if not given."""
+    name = (office_name or "").strip()
+    if not name:
+        return None
+    o = await db.offices.find_one(
+        {"name": {"$regex": f"^{re.escape(name)}$", "$options": "i"}},
+        {"_id": 0, "id": 1},
+    )
+    if not o:
+        raise HTTPException(status_code=400, detail=f"office '{name}' not found")
+    return o["id"]
+
+
 @api_router.post("/user-create", tags=["User Management"], summary="Create a user (API-client only)")
 async def user_create(payload: UserCreateExt, request: Request):
     scope = _require_apikey(request)
@@ -481,14 +509,19 @@ async def user_create(payload: UserCreateExt, request: Request):
         return _fail("Name is required", 400)
     if not email or not re.match(EMAIL_RE, email):
         return _fail("A valid email is required", 400)
-    if not (payload.role_id or "").strip():
-        return _fail("role_id is required", 400)
+    if not (payload.role or "").strip():
+        return _fail("role is required", 400)
     raw_pw = (payload.password or "").strip() or DEFAULT_USER_PASSWORD
     if len(raw_pw) < 6:
         return _fail("Password must be at least 6 characters", 400)
+    try:
+        role_id = await _resolve_role_id(payload.role)
+        office_id = await _resolve_office_id(payload.office)
+    except HTTPException as e:
+        return _fail(e.detail if isinstance(e.detail, str) else "Validation failed", e.status_code)
     data = _normalize_optionals({
-        "name": name, "email": email, "role_id": payload.role_id.strip(),
-        "office_id": payload.office_id, "username": payload.username, "phone": payload.phone,
+        "name": name, "email": email, "role_id": role_id,
+        "office_id": office_id, "username": payload.username, "phone": payload.phone,
         "alias": payload.alias, "mso_code": payload.mso_code, "collector_code": payload.collector_code,
         "is_active": True,
     })
@@ -524,22 +557,27 @@ async def user_update(payload: UserUpdateExt, request: Request):
     scope = _require_apikey(request)
     if not scope:
         return _fail("A valid API key (X-API-Key header) is required.", 401)
-    doc = await _find_user_by_ident(payload.username)
+    doc = await _find_user_by_email(payload.email)
     if not doc:
         return _fail("User not found", 404)
     # Empty string / null means "leave unchanged" so a client can safely copy the
     # full sample request (which lists every field with "" placeholders).
+    try:
+        role_id = await _resolve_role_id(payload.role)
+        office_id = await _resolve_office_id(payload.office)
+    except HTTPException as e:
+        return _fail(e.detail if isinstance(e.detail, str) else "Validation failed", e.status_code)
     raw = {
-        "name": payload.name, "email": payload.email, "role_id": payload.role_id,
-        "office_id": payload.office_id, "phone": payload.phone, "alias": payload.alias,
+        "name": payload.name, "role_id": role_id,
+        "office_id": office_id, "phone": payload.phone, "alias": payload.alias,
         "mso_code": payload.mso_code, "collector_code": payload.collector_code,
-        "username": payload.new_username,
+        "username": payload.username,
     }
-    updates = {k: v.strip() for k, v in raw.items() if isinstance(v, str) and v.strip() != ""}
-    if "email" in updates:
-        updates["email"] = updates["email"].lower()
-        if not re.match(EMAIL_RE, updates["email"]):
-            return _fail("A valid email is required", 400)
+    updates = {k: (v.strip() if isinstance(v, str) else v)
+               for k, v in raw.items()
+               if v is not None and not (isinstance(v, str) and v.strip() == "")}
+    if payload.id is not None:
+        updates["user_id"] = payload.id
     if not updates:
         return _fail("No fields to update", 400)
     try:
@@ -564,7 +602,7 @@ async def user_deactivate(payload: UserDeactivateExt, request: Request):
     scope = _require_apikey(request)
     if not scope:
         return _fail("A valid API key (X-API-Key header) is required.", 401)
-    doc = await _find_user_by_ident(payload.username)
+    doc = await _find_user_by_email(payload.email)
     if not doc:
         return _fail("User not found", 404)
     now_iso = datetime.now(timezone.utc).isoformat()
