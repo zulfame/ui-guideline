@@ -26,6 +26,7 @@ import PushNotificationsPage from "@/pages/app/PushNotificationsPage";
 import EmailTemplatesPage from "@/pages/app/EmailTemplatesPage";
 import BrandingPage from "@/pages/app/BrandingPage";
 import ClientsPage from "@/pages/app/ClientsPage";
+import ApiDocsPage from "@/pages/app/ApiDocsPage";
 import LoginSecurityPage from "@/pages/app/LoginSecurityPage";
 import SessionsPage from "@/pages/app/SessionsPage";
 import ComponentsPage from "@/pages/ComponentsPage";
@@ -111,6 +112,7 @@ function App() {
           <Route path="/offices/new" element={<AdminRoute><OfficeFormPage /></AdminRoute>} />
           <Route path="/offices/:id/edit" element={<AdminRoute><OfficeFormPage /></AdminRoute>} />
           <Route path="/clients" element={<AdminRoute><ClientsPage /></AdminRoute>} />
+          <Route path="/developers" element={<AdminRoute><ApiDocsPage /></AdminRoute>} />
           <Route path="/branding" element={<AdminRoute><BrandingPage /></AdminRoute>} />
           <Route path="/broadcast" element={<AdminRoute><BroadcastPage /></AdminRoute>} />
           <Route path="/push-notifications" element={<AdminRoute><PushNotificationsPage /></AdminRoute>} />

@@ -9,6 +9,7 @@ import {
 } from "@tanstack/react-table";
 import {
   ArrowDown,
+  ArrowRight,
   ArrowUp,
   ArrowUpDown,
   Ban,
@@ -30,13 +31,9 @@ import {
 } from "lucide-react";
 import { Bar, BarChart, CartesianGrid, XAxis } from "recharts";
 
+import { useNavigate } from "react-router-dom";
+
 import API from "@/lib/api";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -95,317 +92,6 @@ import { toast } from "@/components/ui/sonner";
 
 const usageChartConfig = { count: { label: "Requests", color: "hsl(var(--chart-1))" } };
 
-const API_BASE = process.env.REACT_APP_BACKEND_URL;
-
-const TOKEN_JSON = `{
-  "success": true,
-  "data": {
-    "token_type": "bearer",
-    "expires_in": 3600,
-    "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-  }
-}`;
-
-const PROFILE_JSON = `{
-  "success": true,
-  "data": {
-    "user": {
-      "id": 42,
-      "name": "Budi Santoso",
-      "username": "309011221",
-      "email": "budi@example.com",
-      "role": "Collector",
-      "office": "KC Bangunarta",
-      "alias": "Budi",
-      "mso_code": "MSO01",
-      "collector_code": "COL07",
-      "is_active": true
-    },
-    "office": {
-      "code": "001",
-      "name": "KC Bangunarta",
-      "address": "Jl. Merdeka No. 10",
-      "telephone": "0281-000000",
-      "longitude": 109.2409,
-      "latitude": -7.4256,
-      "radius": 100,
-      "coa": null
-    },
-    "device": {
-      "device_identifier": "DEVICE-UUID",
-      "device_name": "Pixel 9",
-      "device_os": "Android 16",
-      "fmc_token": "fcm-token"
-    }
-  }
-}`;
-
-const ENDPOINT_DOCS = [
-  {
-    id: "jwt-auth",
-    method: "POST",
-    path: "/api/jwt-auth",
-    title: "Mobile login",
-    auth: "public",
-    note: "Public (no API key). Verifies credentials and binds the account to a single device. Username can be email, username, or phone.",
-    curl: `curl -X POST "${API_BASE}/api/jwt-auth" \\
-  -H "Content-Type: application/json" \\
-  -d '{
-    "username": "309011221",
-    "password": "secret",
-    "device_identifier": "DEVICE-UUID",
-    "device_name": "Pixel 9",
-    "device_os": "Android 16",
-    "fmc_token": "fcm-token"
-  }'`,
-    success: TOKEN_JSON,
-    errorStatus: 401,
-    error: `{
-  "success": false,
-  "message": "The credentials you entered are incorrect"
-}`,
-  },
-  {
-    id: "jwt-me",
-    method: "GET",
-    path: "/api/jwt-me",
-    title: "Current profile",
-    auth: "bearer",
-    note: "Requires the Bearer access_token from /api/jwt-auth. Returns the current user's profile, office, and bound device.",
-    curl: `curl -X GET "${API_BASE}/api/jwt-me" \\
-  -H "Authorization: Bearer ACCESS_TOKEN"`,
-    success: PROFILE_JSON,
-    errorStatus: 401,
-    error: `{
-  "success": false,
-  "message": "Session ended. Please sign in again."
-}`,
-  },
-  {
-    id: "jwt-refresh",
-    method: "POST",
-    path: "/api/jwt-refresh",
-    title: "Refresh token",
-    auth: "bearer",
-    note: "Issues a fresh access_token. Accepts an expired-but-valid token within the refresh window while the device is still bound.",
-    curl: `curl -X POST "${API_BASE}/api/jwt-refresh" \\
-  -H "Authorization: Bearer ACCESS_TOKEN"`,
-    success: TOKEN_JSON,
-    errorStatus: 401,
-    error: `{
-  "success": false,
-  "message": "Session ended. Please sign in again."
-}`,
-  },
-  {
-    id: "jwt-logout",
-    method: "POST",
-    path: "/api/jwt-logout",
-    title: "Logout",
-    auth: "bearer",
-    note: "Ends the mobile session, unbinds the device, and revokes the token server-side so it can no longer be used.",
-    curl: `curl -X POST "${API_BASE}/api/jwt-logout" \\
-  -H "Authorization: Bearer ACCESS_TOKEN"`,
-    success: `{
-  "success": true,
-  "message": "Logged out successfully."
-}`,
-    errorStatus: 401,
-    error: `{
-  "success": false,
-  "message": "Invalid token."
-}`,
-  },
-  {
-    id: "user-auth",
-    method: "POST",
-    path: "/api/user-auth",
-    title: "Verify credentials",
-    auth: "apikey",
-    note: "Requires X-API-Key. Only verifies the credential is correct (no device binding). Returns the user profile on success.",
-    curl: `curl -X POST "${API_BASE}/api/user-auth" \\
-  -H "Content-Type: application/json" \\
-  -H "X-API-Key: YOUR_API_KEY" \\
-  -d '{
-    "username": "309011221",
-    "password": "secret",
-    "device_identifier": "",
-    "device_name": "",
-    "device_os": "",
-    "fmc_token": ""
-  }'`,
-    success: PROFILE_JSON,
-    errorStatus: 401,
-    error: `{
-  "success": false,
-  "message": "The credentials you entered are incorrect"
-}`,
-  },
-  {
-    id: "user-password",
-    method: "POST",
-    path: "/api/user-password",
-    title: "Change password",
-    auth: "apikey",
-    note: "Requires X-API-Key. Verifies current_password, then sets the new password (password must equal confirmed_password).",
-    curl: `curl -X POST "${API_BASE}/api/user-password" \\
-  -H "Content-Type: application/json" \\
-  -H "X-API-Key: YOUR_API_KEY" \\
-  -d '{
-    "username": "309011221",
-    "current_password": "bpr2026",
-    "password": "newpass",
-    "confirmed_password": "newpass"
-  }'`,
-    success: PROFILE_JSON,
-    errorStatus: 400,
-    error: `{
-  "success": false,
-  "message": "Password confirmation does not match"
-}`,
-  },
-  {
-    id: "user-create",
-    method: "POST",
-    path: "/api/user-create",
-    title: "Create user",
-    auth: "apikey",
-    note: "Requires X-API-Key. Creates a user. If password is omitted the system default is used and the user must change it on first login. role_id is required.",
-    curl: `curl -X POST "${API_BASE}/api/user-create" \\
-  -H "Content-Type: application/json" \\
-  -H "X-API-Key: YOUR_API_KEY" \\
-  -d '{
-    "name": "Budi Santoso",
-    "email": "budi@example.com",
-    "role_id": "ROLE_UUID",
-    "office_id": "",
-    "username": "",
-    "phone": "",
-    "alias": "",
-    "mso_code": "",
-    "collector_code": "",
-    "password": ""
-  }'`,
-    success: PROFILE_JSON,
-    successLabel: "201 Created",
-    errorStatus: 409,
-    error: `{
-  "success": false,
-  "message": "User email already exists"
-}`,
-  },
-  {
-    id: "user-update",
-    method: "POST",
-    path: "/api/user-update",
-    title: "Update user",
-    auth: "apikey",
-    note: "Requires X-API-Key. Locate the user by `username` (email, username, or phone) and send only the fields to change. Use `new_username` to change the username and `is_active` to toggle status.",
-    curl: `curl -X POST "${API_BASE}/api/user-update" \\
-  -H "Content-Type: application/json" \\
-  -H "X-API-Key: YOUR_API_KEY" \\
-  -d '{
-    "username": "budi@example.com",
-    "name": "",
-    "email": "",
-    "role_id": "",
-    "office_id": "",
-    "phone": "",
-    "alias": "",
-    "mso_code": "",
-    "collector_code": "",
-    "new_username": "",
-    "is_active": null
-  }'`,
-    success: PROFILE_JSON,
-    errorStatus: 404,
-    error: `{
-  "success": false,
-  "message": "User not found"
-}`,
-  },
-  {
-    id: "user-deactivate",
-    method: "POST",
-    path: "/api/user-deactivate",
-    title: "Deactivate / reactivate user",
-    auth: "apikey",
-    note: "Requires X-API-Key. Set active=false (default) to deactivate — the user can no longer log in and existing tokens are rejected. Set active=true to reactivate.",
-    curl: `curl -X POST "${API_BASE}/api/user-deactivate" \\
-  -H "Content-Type: application/json" \\
-  -H "X-API-Key: YOUR_API_KEY" \\
-  -d '{
-    "username": "budi@example.com",
-    "active": false
-  }'`,
-    success: PROFILE_JSON,
-    errorStatus: 404,
-    error: `{
-  "success": false,
-  "message": "User not found"
-}`,
-  },
-];
-
-function authBadge(auth) {
-  if (auth === "apikey") return { label: "Requires X-API-Key", variant: "outline" };
-  if (auth === "bearer") return { label: "Requires Bearer token", variant: "outline" };
-  return { label: "Public", variant: "secondary" };
-}
-
-function CurlBlock({ doc }) {
-  const [copied, setCopied] = useState(false);
-  const copy = async () => {
-    try {
-      await navigator.clipboard.writeText(doc.curl);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
-    } catch {
-      toast.error("Could not copy — please copy manually");
-    }
-  };
-  return (
-    <div className="space-y-4" data-testid={`api-doc-${doc.id}`}>
-      <div className="space-y-2">
-        <div className="flex items-center justify-between gap-2">
-          <p className="text-xs text-muted-foreground">{doc.note}</p>
-          <Button size="sm" variant="outline" onClick={copy} data-testid={`api-doc-copy-${doc.id}`}>
-            {copied ? <Check className="size-4 text-primary" /> : <Copy className="size-4" />}
-            {copied ? "Copied" : "Copy"}
-          </Button>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-medium text-muted-foreground">Request</span>
-        </div>
-        <pre className="overflow-x-auto rounded-md bg-muted/60 p-3 text-xs leading-relaxed">
-          <code>{doc.curl}</code>
-        </pre>
-      </div>
-
-      <div className="grid gap-4 lg:grid-cols-2">
-        <div className="space-y-2" data-testid={`api-doc-success-${doc.id}`}>
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-medium text-muted-foreground">Success response</span>
-            <Badge variant="secondary" className="font-normal tabular-nums">{doc.successLabel || "200 OK"}</Badge>
-          </div>
-          <pre className="overflow-x-auto rounded-md border border-primary/15 bg-primary/5 p-3 text-xs leading-relaxed">
-            <code>{doc.success}</code>
-          </pre>
-        </div>
-        <div className="space-y-2" data-testid={`api-doc-error-${doc.id}`}>
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-medium text-muted-foreground">Error response</span>
-            <Badge variant="destructive" className="font-normal tabular-nums">{doc.errorStatus}</Badge>
-          </div>
-          <pre className="overflow-x-auto rounded-md border border-destructive/20 bg-destructive/5 p-3 text-xs leading-relaxed">
-            <code>{doc.error}</code>
-          </pre>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 const fmtDate = (iso) => {
   if (!iso) return "—";
   const d = new Date(iso);
@@ -434,6 +120,7 @@ function SortableHeader({ column, children, align = "left" }) {
 }
 
 export default function ClientsPage() {
+  const navigate = useNavigate();
   const [clients, setClients] = useState([]);
   const [status, setStatus] = useState("loading"); // loading | ready | error
   const [globalFilter, setGlobalFilter] = useState("");
@@ -875,39 +562,28 @@ export default function ClientsPage() {
         </CardContent>
       </Card>
 
-      {/* API documentation */}
+      {/* API documentation — full reference lives on its own page */}
       <Card data-testid="api-docs-card">
-        <CardHeader className="flex flex-col gap-1 space-y-0">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Terminal className="size-4" /> API Documentation
-          </CardTitle>
-          <p className="text-xs text-muted-foreground">
-            Example requests for authenticating and managing user credentials with an API key.
-            Replace <code className="rounded bg-muted px-1 py-0.5">YOUR_API_KEY</code> with a key
-            created above.
-          </p>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <Accordion type="single" collapsible defaultValue="jwt-auth" className="w-full">
-            {ENDPOINT_DOCS.map((doc) => {
-              const ab = authBadge(doc.auth);
-              return (
-                <AccordionItem key={doc.id} value={doc.id} data-testid={`api-doc-item-${doc.id}`}>
-                  <AccordionTrigger className="hover:no-underline">
-                    <span className="flex flex-1 flex-wrap items-center gap-2 pr-2">
-                      <Badge variant="secondary" className="font-mono text-xs">{doc.method}</Badge>
-                      <code className="text-sm font-medium">{doc.path}</code>
-                      <span className="hidden text-xs text-muted-foreground sm:inline">— {doc.title}</span>
-                      <Badge variant={ab.variant} className="font-normal">{ab.label}</Badge>
-                    </span>
-                  </AccordionTrigger>
-                  <AccordionContent>
-                    <CurlBlock doc={doc} />
-                  </AccordionContent>
-                </AccordionItem>
-              );
-            })}
-          </Accordion>
+        <CardContent className="flex flex-col gap-4 py-5 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-3">
+            <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <Terminal className="size-5" />
+            </div>
+            <div className="space-y-0.5">
+              <h3 className="text-sm font-semibold">API Documentation</h3>
+              <p className="text-xs text-muted-foreground">
+                Full request &amp; response examples for the mobile and API-key endpoints.
+                Use a key created above as <code className="rounded bg-muted px-1 py-0.5">YOUR_API_KEY</code>.
+              </p>
+            </div>
+          </div>
+          <Button
+            onClick={() => navigate("/developers")}
+            className="shrink-0"
+            data-testid="open-api-docs-button"
+          >
+            View API Docs <ArrowRight className="size-4" />
+          </Button>
         </CardContent>
       </Card>
 

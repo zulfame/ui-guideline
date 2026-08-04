@@ -3,11 +3,14 @@
 Extracted from server.py (behavior unchanged). Routes register on the shared
 `api_router` at import time.
 """
+import io
 import uuid
 from datetime import datetime, timezone
 from typing import List, Optional
 
 from fastapi import HTTPException, Query, Response
+from fastapi.responses import StreamingResponse
+from openpyxl import Workbook
 from pydantic import BaseModel, Field, ConfigDict
 from pymongo import UpdateOne
 
@@ -211,6 +214,65 @@ async def bulk_delete_roles(payload: BulkDeleteRequest):
         metadata={"count": result.deleted_count, "children_promoted": len(ops)},
     )
     return {"success": True, "deleted": result.deleted_count}
+
+
+@api_router.get("/roles/export", tags=["Roles"], summary="Export roles (CSV/Excel)")
+async def export_roles(format: str = Query("xlsx", description="csv | xlsx")):
+    """Stream all roles as a CSV or Excel file with parent / dotted-superior / level
+    resolved to their names. Registered BEFORE /roles/{role_id} so 'export' isn't
+    captured as a role id."""
+    docs = await db.roles.find({}, {"_id": 0}).sort("name", 1).to_list(10000)
+    role_names = {d["id"]: d.get("name") for d in docs}
+    level_ids = [d.get("level_id") for d in docs if d.get("level_id")]
+    level_names = {}
+    if level_ids:
+        async for lv in db.levels.find({"id": {"$in": level_ids}}, {"_id": 0, "id": 1, "name": 1}):
+            level_names[lv["id"]] = lv.get("name")
+    headers = ["Name", "Parent", "Dotted Superior", "Level", "Order"]
+    rows = [
+        [
+            d.get("name"),
+            role_names.get(d.get("parent_id")) or "",
+            role_names.get(d.get("dotted_parent_id")) or "",
+            level_names.get(d.get("level_id")) or "",
+            d.get("order", 0),
+        ]
+        for d in docs
+    ]
+    stamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+    await log_audit(
+        "export", "role",
+        summary=f"Exported {len(rows)} role(s) as {format}",
+        method="GET", path="/api/roles/export", status_code=200,
+        metadata={"count": len(rows), "format": format},
+    )
+    if format == "xlsx":
+        wb = Workbook()
+        ws = wb.active
+        ws.title = "Roles"
+        ws.append(headers)
+        for r in rows:
+            ws.append(r)
+        buf = io.BytesIO()
+        wb.save(buf)
+        buf.seek(0)
+        return StreamingResponse(
+            buf,
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={"Content-Disposition": f'attachment; filename="roles_{stamp}.xlsx"'},
+        )
+    import csv
+    sbuf = io.StringIO()
+    writer = csv.writer(sbuf)
+    writer.writerow(headers)
+    for r in rows:
+        writer.writerow(r)
+    data = sbuf.getvalue().encode("utf-8-sig")
+    return StreamingResponse(
+        io.BytesIO(data),
+        media_type="text/csv",
+        headers={"Content-Disposition": f'attachment; filename="roles_{stamp}.csv"'},
+    )
 
 
 @api_router.get("/roles/{role_id}", response_model=Role, tags=["Roles"], summary="Get role")

@@ -715,6 +715,28 @@ export default function RolesPage() {
   };
   const [levelsOpen, setLevelsOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
+  const [exportingData, setExportingData] = useState(false);
+
+  const exportRoles = async (format) => {
+    setExportingData(true);
+    try {
+      const res = await API.get("/roles/export", { params: { format }, responseType: "blob" });
+      const stamp = new Date().toISOString().slice(0, 19).replace(/[-:T]/g, "");
+      const url = URL.createObjectURL(res.data);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `roles_${stamp}.${format === "xlsx" ? "xlsx" : "csv"}`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      toast.success("Roles exported");
+    } catch {
+      toast.error("Failed to export roles");
+    } finally {
+      setExportingData(false);
+    }
+  };
 
   const loadLevels = async () => {
     try {
@@ -989,6 +1011,20 @@ export default function RolesPage() {
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setImportOpen(true)} data-testid="roles-import">
                   <Upload className="size-4" /> Import
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => exportRoles("xlsx")}
+                  disabled={exportingData}
+                  data-testid="roles-export-xlsx"
+                >
+                  <Download className="size-4" /> Export (Excel)
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => exportRoles("csv")}
+                  disabled={exportingData}
+                  data-testid="roles-export-csv"
+                >
+                  <Download className="size-4" /> Export (CSV)
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => setLevelsOpen(true)} data-testid="roles-levels-btn">

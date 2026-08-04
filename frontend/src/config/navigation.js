@@ -18,6 +18,7 @@ import {
   ScrollText,
   ShieldAlert,
   MonitorSmartphone,
+  Terminal,
   BellRing,
   Mail,
   FolderCog,
@@ -51,6 +52,7 @@ export const navAreas = [
               { title: "Roles", to: "/roles", icon: ShieldCheck },
               { title: "Offices", to: "/offices", icon: Building2 },
               { title: "Clients", to: "/clients", icon: KeyRound, adminOnly: true },
+              { title: "API Docs", to: "/developers", icon: Terminal, adminOnly: true },
             ],
           },
           {
