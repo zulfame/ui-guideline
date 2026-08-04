@@ -19,6 +19,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Copy,
+  Download,
   FilterX,
   MoreHorizontal,
   Pencil,
@@ -395,6 +396,28 @@ export default function OfficesPage() {
   const [reassignTarget, setReassignTarget] = useState("");
   const [bulkOpen, setBulkOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
+  const [exportingData, setExportingData] = useState(false);
+
+  const exportOffices = async (format) => {
+    setExportingData(true);
+    try {
+      const res = await API.get("/offices/export", { params: { format }, responseType: "blob" });
+      const stamp = new Date().toISOString().slice(0, 19).replace(/[-:T]/g, "");
+      const url = URL.createObjectURL(res.data);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `offices_${stamp}.${format === "xlsx" ? "xlsx" : "csv"}`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      toast.success("Offices exported");
+    } catch {
+      toast.error("Failed to export offices");
+    } finally {
+      setExportingData(false);
+    }
+  };
 
   const fetchOffices = useCallback(async () => {
     setStatus("loading");
@@ -602,6 +625,21 @@ export default function OfficesPage() {
                 >
                   <Upload className="size-4" /> Import
                 </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="sm" disabled={exportingData} data-testid="offices-export">
+                      <Download className="size-4" /> Export
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => exportOffices("xlsx")} data-testid="offices-export-xlsx">
+                      <Download className="size-4" /> Export (Excel)
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => exportOffices("csv")} data-testid="offices-export-csv">
+                      <Download className="size-4" /> Export (CSV)
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
                 <Button size="sm" onClick={openCreate} data-testid="offices-add">
                   <Plus className="size-4" /> Add Office
                 </Button>

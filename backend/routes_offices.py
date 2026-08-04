@@ -3,11 +3,14 @@
 Extracted from server.py (behavior unchanged). Routes register on the shared
 `api_router` at import time.
 """
+import io
 import uuid
 from datetime import datetime, timezone
 from typing import List, Optional
 
 from fastapi import HTTPException, Query, Response
+from fastapi.responses import StreamingResponse
+from openpyxl import Workbook
 from pydantic import BaseModel, Field, ConfigDict
 
 from server import (
@@ -137,6 +140,62 @@ async def bulk_delete_offices(payload: BulkDeleteRequest):
         metadata={"count": result.deleted_count},
     )
     return {"success": True, "deleted": result.deleted_count}
+
+
+@api_router.get("/offices/export", tags=["Offices"], summary="Export offices (CSV/Excel)")
+async def export_offices(format: str = Query("xlsx", description="csv | xlsx")):
+    """Stream all offices with full data (including UUID id). Registered BEFORE
+    /offices/{office_id} so 'export' isn't captured as an office id."""
+    docs = await db.offices.find({}, {"_id": 0}).sort("code", 1).to_list(10000)
+    headers = ["ID", "Code", "Name", "Address", "Telephone", "Longitude", "Latitude", "Radius", "Note"]
+    rows = [
+        [
+            d.get("id"),
+            d.get("code"),
+            d.get("name"),
+            d.get("address") or "",
+            d.get("telephone") or "",
+            d.get("longitude"),
+            d.get("latitude"),
+            d.get("radius"),
+            d.get("note") or "",
+        ]
+        for d in docs
+    ]
+    stamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+    await log_audit(
+        "export", "office",
+        summary=f"Exported {len(rows)} office(s) as {format}",
+        method="GET", path="/api/offices/export", status_code=200,
+        metadata={"count": len(rows), "format": format},
+    )
+    if format == "xlsx":
+        wb = Workbook()
+        ws = wb.active
+        ws.title = "Offices"
+        ws.append(headers)
+        for r in rows:
+            ws.append(r)
+        buf = io.BytesIO()
+        wb.save(buf)
+        buf.seek(0)
+        return StreamingResponse(
+            buf,
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={"Content-Disposition": f'attachment; filename="offices_{stamp}.xlsx"'},
+        )
+    import csv
+    sbuf = io.StringIO()
+    writer = csv.writer(sbuf)
+    writer.writerow(headers)
+    for r in rows:
+        writer.writerow(r)
+    data = sbuf.getvalue().encode("utf-8-sig")
+    return StreamingResponse(
+        io.BytesIO(data),
+        media_type="text/csv",
+        headers={"Content-Disposition": f'attachment; filename="offices_{stamp}.csv"'},
+    )
 
 
 @api_router.get("/offices/{office_id}", response_model=Office, tags=["Offices"], summary="Get office")

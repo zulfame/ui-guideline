@@ -228,13 +228,17 @@ async def export_roles(format: str = Query("xlsx", description="csv | xlsx")):
     if level_ids:
         async for lv in db.levels.find({"id": {"$in": level_ids}}, {"_id": 0, "id": 1, "name": 1}):
             level_names[lv["id"]] = lv.get("name")
-    headers = ["Name", "Parent", "Dotted Superior", "Level", "Order"]
+    headers = ["ID", "Name", "Parent", "Parent ID", "Dotted Superior", "Dotted Superior ID", "Level", "Level ID", "Order"]
     rows = [
         [
+            d.get("id"),
             d.get("name"),
             role_names.get(d.get("parent_id")) or "",
+            d.get("parent_id") or "",
             role_names.get(d.get("dotted_parent_id")) or "",
+            d.get("dotted_parent_id") or "",
             level_names.get(d.get("level_id")) or "",
+            d.get("level_id") or "",
             d.get("order", 0),
         ]
         for d in docs
