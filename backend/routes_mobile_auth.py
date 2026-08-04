@@ -196,15 +196,25 @@ async def jwt_auth(payload: MobileLoginRequest, request: Request):
         return _fail("Your account is inactive.", 401)
 
     incoming_did = (payload.device_identifier or "").strip()
+    incoming_name = (payload.device_name or "").strip()
+    incoming_os = (payload.device_os or "").strip()
+    if not incoming_did or not incoming_name or not incoming_os:
+        return _fail("device_identifier, device_name and device_os are required", 400)
+
     bound = doc.get("mobile_device") or {}
-    bound_did = (bound.get("device_identifier") or "").strip()
-    if bound.get("jti") and bound_did and incoming_did and bound_did != incoming_did:
-        await log_audit(
-            "login_failed", "auth", entity_id=doc["id"], entity_label=doc.get("email"),
-            summary=f"Mobile login blocked (bound to another device) for {doc.get('email')} from {ip}",
-            method="POST", path="/api/jwt-auth", status_code=401, actor=doc.get("email"),
+    if bound.get("device_identifier"):
+        same_device = (
+            (bound.get("device_identifier") or "").strip() == incoming_did
+            and (bound.get("device_name") or "").strip() == incoming_name
+            and (bound.get("device_os") or "").strip() == incoming_os
         )
-        return _fail("This account is already linked to another device", 401)
+        if not same_device:
+            await log_audit(
+                "login_failed", "auth", entity_id=doc["id"], entity_label=doc.get("email"),
+                summary=f"Mobile login blocked (bound to another device) for {doc.get('email')} from {ip}",
+                method="POST", path="/api/jwt-auth", status_code=401, actor=doc.get("email"),
+            )
+            return _fail("This account is already linked to another device", 401)
 
     await _clear_login_attempts(key)
     jti = uuid.uuid4().hex
@@ -329,9 +339,8 @@ async def user_auth(payload: UserAuthRequest, request: Request):
         )
         return _fail("The credentials you entered are incorrect", 401)
 
-    if doc.get("is_active") is False:
-        return _fail("Your account is inactive.", 401)
-
+    # Inactive users are intentionally allowed here — the client still gets the
+    # profile (with is_active=false) so it can decide what to do.
     await log_audit(
         "login", "auth", entity_id=doc["id"], entity_label=doc.get("email"),
         summary=f"User-auth credential verified for {doc.get('email')} ({scope})",
@@ -435,7 +444,6 @@ class UserUpdateExt(BaseModel):
     mso_code: Optional[str] = None
     collector_code: Optional[str] = None
     new_username: Optional[str] = None  # set to change the user's username field
-    is_active: Optional[bool] = None
 
 
 class UserDeactivateExt(BaseModel):
@@ -528,8 +536,6 @@ async def user_update(payload: UserUpdateExt, request: Request):
         "username": payload.new_username,
     }
     updates = {k: v.strip() for k, v in raw.items() if isinstance(v, str) and v.strip() != ""}
-    if payload.is_active is not None:
-        updates["is_active"] = payload.is_active
     if "email" in updates:
         updates["email"] = updates["email"].lower()
         if not re.match(EMAIL_RE, updates["email"]):

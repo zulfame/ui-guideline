@@ -75,7 +75,7 @@ export const ENDPOINT_DOCS = [
     path: "/api/jwt-auth",
     title: "Mobile login",
     auth: "public",
-    note: "Public (no API key). Verifies credentials and binds the account to a single device. Username can be email, username, or phone.",
+    note: "Public (no API key). device_identifier, device_name and device_os are REQUIRED and must match the account's bound device — logging in from a different device returns \"This account is already linked to another device\". Username can be email, username, or phone.",
     curl: `curl -X POST "${API_BASE}/api/jwt-auth" \\
   -H "Content-Type: application/json" \\
   -d '{
@@ -154,7 +154,7 @@ export const ENDPOINT_DOCS = [
     path: "/api/user-auth",
     title: "Verify credentials",
     auth: "apikey",
-    note: "Requires X-API-Key. Only verifies the credential is correct (no device binding). Returns the user profile on success.",
+    note: "Requires X-API-Key. Only verifies the credential is correct (no device binding). Returns the profile even for inactive users — check the `is_active` field in the response.",
     curl: `curl -X POST "${API_BASE}/api/user-auth" \\
   -H "Content-Type: application/json" \\
   -H "X-API-Key: YOUR_API_KEY" \\
@@ -200,7 +200,7 @@ export const ENDPOINT_DOCS = [
     path: "/api/user-create",
     title: "Create user",
     auth: "apikey",
-    note: "Requires X-API-Key. Creates a user. If password is omitted the system default is used and the user must change it on first login. role_id is required.",
+    note: "Requires X-API-Key. Creates a user. If password is omitted the system default is used and the user must change it on first login. role_id is required. Tip: get role_id / office_id from the Roles / Offices page → row menu (⋯) → Copy ID.",
     curl: `curl -X POST "${API_BASE}/api/user-create" \\
   -H "Content-Type: application/json" \\
   -H "X-API-Key: YOUR_API_KEY" \\
@@ -231,7 +231,7 @@ export const ENDPOINT_DOCS = [
     path: "/api/user-update",
     title: "Update user",
     auth: "apikey",
-    note: "Requires X-API-Key. Locate the user by `username` (email, username, or phone) and send only the fields to change. Empty string / null leaves a field unchanged. Use `new_username` to change the username and `is_active` to toggle status.",
+    note: "Requires X-API-Key. Locate the user by `username` (email, username, or phone) and send only the fields to change. Empty string / null leaves a field unchanged. Use `new_username` to change the username. To activate/deactivate a user, use /api/user-deactivate instead. Tip: get role_id / office_id from the Roles / Offices page → row menu (⋯) → Copy ID.",
     curl: `curl -X POST "${API_BASE}/api/user-update" \\
   -H "Content-Type: application/json" \\
   -H "X-API-Key: YOUR_API_KEY" \\
@@ -245,8 +245,7 @@ export const ENDPOINT_DOCS = [
     "alias": "",
     "mso_code": "",
     "collector_code": "",
-    "new_username": "",
-    "is_active": null
+    "new_username": ""
   }'`,
     success: PROFILE_JSON,
     errorStatus: 404,

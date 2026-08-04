@@ -20,6 +20,7 @@ import {
   ChevronDown,
   ChevronLeft,
   ChevronRight,
+  Copy,
   Download,
   FileImage,
   FileText,
@@ -934,6 +935,16 @@ export default function RolesPage() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
+              <DropdownMenuItem
+                onClick={() => {
+                  navigator.clipboard?.writeText(row.original.id);
+                  toast.success("Role ID copied", { description: row.original.id });
+                }}
+                data-testid={`roles-copy-id-${row.original.id}`}
+              >
+                <Copy className="size-4" /> Copy ID
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
               <DropdownMenuItem
                 onClick={() => moveRole(row.original, -1)}
                 data-testid={`roles-move-left-${row.original.id}`}
