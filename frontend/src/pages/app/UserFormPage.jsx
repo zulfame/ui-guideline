@@ -26,6 +26,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Combobox } from "@/components/composite/Combobox";
 import {
   Form,
   FormControl,
@@ -261,18 +262,17 @@ export default function UserFormPage() {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Role</FormLabel>
-                        <Select value={field.value} onValueChange={field.onChange}>
-                          <FormControl>
-                            <SelectTrigger data-testid="user-field-role">
-                              <SelectValue placeholder="Select role" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {roles.map((r) => (
-                              <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <FormControl>
+                          <Combobox
+                            options={roles.map((r) => ({ value: r.id, label: r.name }))}
+                            value={field.value}
+                            onChange={(v) => field.onChange(v)}
+                            placeholder="Select role"
+                            searchPlaceholder="Search role..."
+                            emptyText="No role found."
+                            data-testid="user-field-role"
+                          />
+                        </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -284,19 +284,20 @@ export default function UserFormPage() {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Office</FormLabel>
-                        <Select value={field.value || undefined} onValueChange={field.onChange}>
-                          <FormControl>
-                            <SelectTrigger data-testid="user-field-office">
-                              <SelectValue placeholder="Select office (optional)" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value={NONE_OFFICE} data-testid="user-field-office-none">None</SelectItem>
-                            {offices.map((o) => (
-                              <SelectItem key={o.id} value={o.id}>{o.name}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <FormControl>
+                          <Combobox
+                            options={[
+                              { value: NONE_OFFICE, label: "None" },
+                              ...offices.map((o) => ({ value: o.id, label: o.name })),
+                            ]}
+                            value={field.value || undefined}
+                            onChange={(v) => field.onChange(v)}
+                            placeholder="Select office (optional)"
+                            searchPlaceholder="Search office..."
+                            emptyText="No office found."
+                            data-testid="user-field-office"
+                          />
+                        </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
