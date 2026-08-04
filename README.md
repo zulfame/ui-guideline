@@ -131,10 +131,10 @@ inside the app on **System → … → Clients → API Documentation**.
 | `POST /api/jwt-refresh` | Bearer token | Issues a fresh access token (accepts an expired-but-valid token within `MOBILE_JWT_REFRESH_DAYS`). |
 | `POST /api/jwt-logout` | Bearer token | Ends the session, **unbinds the device**, and **revokes the token server-side**. |
 | `POST /api/user-auth` | `X-API-Key` | Verifies a credential is correct (no device binding). Returns the same profile as `/api/jwt-me`. |
-| `POST /api/user-password` | `X-API-Key` | Changes a user password (`current_password` + `password` + `confirmed_password`); enforces the no-reuse history policy. |
-| `POST /api/user-create` | `X-API-Key` | Creates a user. `role_id` required; `password` optional (defaults to the system password, user must change on first login). Returns the created profile. |
-| `POST /api/user-update` | `X-API-Key` | Updates a user located by `username` (email/username/phone). Send only fields to change; `new_username` changes the username, `is_active` toggles status. |
-| `POST /api/user-deactivate` | `X-API-Key` | Deactivates (`active:false`, default) or reactivates (`active:true`) a user. Deactivated users cannot log in and existing tokens are rejected. |
+| `POST /api/user-password` | `X-API-Key` | Changes a user password. Locate the user by `email`; body `current_password` + `password` + `confirmed_password`; enforces the no-reuse history policy. |
+| `POST /api/user-create` | `X-API-Key` | Creates a user. `email` required and unique; `role` required and `office` optional — both use the human-readable **name** (same as the Excel import), not a UUID; `password` optional (defaults to the system password, user must change on first login). Returns the created profile. |
+| `POST /api/user-update` | `X-API-Key` | Updates a user located by `email`. Send only fields to change (empty/null leaves a field unchanged); `role`/`office` use the human-readable name, `username` changes the username, `id` sets the numeric user_id. To toggle status use `/api/user-deactivate`. |
+| `POST /api/user-deactivate` | `X-API-Key` | Locate the user by `email` and deactivate (`active:false`, default) or reactivate (`active:true`). Deactivated users cannot log in and existing tokens are rejected. |
 
 Admins can also manage the single-device binding and send push notifications:
 
