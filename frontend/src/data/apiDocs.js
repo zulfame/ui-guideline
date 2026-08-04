@@ -1,6 +1,6 @@
 // Central source of truth for the External / Mobile API documentation.
 // Rendered by the dedicated ApiDocsPage (System → API Docs).
-const API_BASE = process.env.REACT_APP_BACKEND_URL;
+export const API_BASE = process.env.REACT_APP_BACKEND_URL;
 
 const TOKEN_JSON = `{
   "success": true,
