@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Check, Copy, KeyRound, Link2, Search, Smartphone } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -9,6 +9,17 @@ import { toast } from "@/components/ui/sonner";
 import { API_BASE, API_DOC_GROUPS, ENDPOINT_DOCS, authBadge } from "@/data/apiDocs";
 
 const GROUP_ICON = { mobile: Smartphone, server: KeyRound };
+
+// Nearest scrollable ancestor — the content region in AppLayout scrolls, not the window.
+function getScrollParent(node) {
+  let el = node?.parentElement;
+  while (el) {
+    const oy = getComputedStyle(el).overflowY;
+    if (oy === "auto" || oy === "scroll") return el;
+    el = el.parentElement;
+  }
+  return null;
+}
 
 function methodClass(method) {
   switch (method) {
@@ -119,6 +130,8 @@ function EndpointCard({ doc }) {
 
 export default function ApiDocsPage() {
   const [query, setQuery] = useState("");
+  const [activeId, setActiveId] = useState(ENDPOINT_DOCS[0]?.id);
+  const rootRef = useRef(null);
 
   const grouped = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -135,8 +148,36 @@ export default function ApiDocsPage() {
     })).filter((g) => g.items.length > 0);
   }, [query]);
 
+  // Scroll-spy: highlight the endpoint currently near the top of the viewport.
+  useEffect(() => {
+    const ids = grouped.flatMap((g) => g.items.map((d) => d.id));
+    const els = ids.map((id) => document.getElementById(id)).filter(Boolean);
+    if (!els.length) return undefined;
+    const root = getScrollParent(rootRef.current);
+    const visible = new Set();
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((e) => {
+          if (e.isIntersecting) visible.add(e.target.id);
+          else visible.delete(e.target.id);
+        });
+        const topmost = ids.find((id) => visible.has(id));
+        if (topmost) setActiveId(topmost);
+      },
+      { root, rootMargin: "-15% 0px -70% 0px", threshold: 0 },
+    );
+    els.forEach((el) => observer.observe(el));
+    return () => observer.disconnect();
+  }, [grouped]);
+
+  const goTo = (e, id) => {
+    e.preventDefault();
+    document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    setActiveId(id);
+  };
+
   return (
-    <div className="space-y-5" data-testid="api-docs-page">
+    <div ref={rootRef} className="space-y-5" data-testid="api-docs-page">
       {/* Slim header strip (replaces the old intro card) */}
       <div className="flex flex-col gap-3 border-b pb-5 sm:flex-row sm:items-end sm:justify-between">
         <div className="space-y-1">
@@ -178,20 +219,31 @@ export default function ApiDocsPage() {
                     {g.title}
                   </div>
                   <ul className="space-y-0.5">
-                    {g.items.map((d) => (
-                      <li key={d.id}>
-                        <a
-                          href={`#${d.id}`}
-                          className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                          data-testid={`api-docs-nav-${d.id}`}
-                        >
-                          <span className={`w-11 shrink-0 rounded px-1 py-0.5 text-center font-mono text-[10px] font-bold ${methodClass(d.method)}`}>
-                            {d.method}
-                          </span>
-                          <span className="truncate">{d.title}</span>
-                        </a>
-                      </li>
-                    ))}
+                    {g.items.map((d) => {
+                      const active = d.id === activeId;
+                      return (
+                        <li key={d.id}>
+                          <a
+                            href={`#${d.id}`}
+                            onClick={(e) => goTo(e, d.id)}
+                            aria-current={active ? "true" : undefined}
+                            className={`flex items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors ${
+                              active
+                                ? "bg-muted font-medium text-foreground"
+                                : "text-muted-foreground hover:bg-muted/60 hover:text-foreground"
+                            }`}
+                            data-testid={`api-docs-nav-${d.id}`}
+                          >
+                            <span
+                              className={`w-11 shrink-0 rounded px-1 py-0.5 text-center font-mono text-[10px] font-bold ${methodClass(d.method)}`}
+                            >
+                              {d.method}
+                            </span>
+                            <span className="truncate">{d.title}</span>
+                          </a>
+                        </li>
+                      );
+                    })}
                   </ul>
                 </div>
               );

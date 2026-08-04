@@ -160,11 +160,7 @@ export const ENDPOINT_DOCS = [
   -H "X-API-Key: YOUR_API_KEY" \\
   -d '{
     "username": "309011221",
-    "password": "secret",
-    "device_identifier": "",
-    "device_name": "",
-    "device_os": "",
-    "fmc_token": ""
+    "password": "secret"
   }'`,
     success: PROFILE_JSON,
     errorStatus: 401,
