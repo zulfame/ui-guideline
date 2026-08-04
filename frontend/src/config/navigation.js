@@ -52,13 +52,13 @@ export const navAreas = [
               { title: "Roles", to: "/roles", icon: ShieldCheck },
               { title: "Offices", to: "/offices", icon: Building2 },
               { title: "Clients", to: "/clients", icon: KeyRound, adminOnly: true },
-              { title: "API Docs", to: "/developers", icon: Terminal, adminOnly: true },
             ],
           },
           {
             title: "System",
             icon: Settings2,
             children: [
+              { title: "API Docs", to: "/developers", icon: Terminal, adminOnly: true },
               { title: "Audit Log", to: "/audit-log", icon: ScrollText },
               { title: "Branding", to: "/branding", icon: Paintbrush, adminOnly: true },
               { title: "Broadcast", to: "/broadcast", icon: Radio, adminOnly: true },

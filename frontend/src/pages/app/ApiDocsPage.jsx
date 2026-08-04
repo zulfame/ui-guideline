@@ -157,7 +157,7 @@ export default function ApiDocsPage() {
 
       <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
         {/* Left index */}
-        <aside className="lg:sticky lg:top-20 lg:w-64 lg:shrink-0" data-testid="api-docs-index">
+        <aside className="lg:sticky lg:top-4 lg:w-64 lg:shrink-0" data-testid="api-docs-index">
           <div className="relative mb-4">
             <Search className="absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input
