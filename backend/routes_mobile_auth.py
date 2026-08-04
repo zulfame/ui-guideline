@@ -53,7 +53,7 @@ class UserAuthRequest(BaseModel):
 
 
 class UserPasswordRequest(BaseModel):
-    username: str = ""
+    email: str = ""
     current_password: str = ""
     password: str = ""
     confirmed_password: str = ""
@@ -423,8 +423,8 @@ async def user_password(payload: UserPasswordRequest, request: Request):
 class UserCreateExt(BaseModel):
     name: str = ""
     email: str = ""
-    role_id: str = ""
-    office_id: Optional[str] = None
+    role: str = ""  # role NAME (same as Excel import), required
+    office: Optional[str] = None  # office NAME (optional)
     username: Optional[str] = None
     phone: Optional[str] = None
     alias: Optional[str] = None
@@ -434,20 +434,20 @@ class UserCreateExt(BaseModel):
 
 
 class UserUpdateExt(BaseModel):
-    username: str = ""  # identifier to locate the user (email, username, or phone)
+    email: str = ""  # unique identifier (required) to locate the user
+    id: Optional[int] = None  # set the user's numeric user_id
     name: Optional[str] = None
-    email: Optional[str] = None
-    role_id: Optional[str] = None
-    office_id: Optional[str] = None
+    role: Optional[str] = None  # role NAME (same as Excel import)
+    office: Optional[str] = None  # office NAME
+    username: Optional[str] = None  # sets the username field
     phone: Optional[str] = None
     alias: Optional[str] = None
     mso_code: Optional[str] = None
     collector_code: Optional[str] = None
-    new_username: Optional[str] = None  # set to change the user's username field
 
 
 class UserDeactivateExt(BaseModel):
-    username: str = ""  # identifier (email, username, or phone)
+    email: str = ""  # unique identifier (required)
     active: bool = False  # False = deactivate (default); True = reactivate
 
 
