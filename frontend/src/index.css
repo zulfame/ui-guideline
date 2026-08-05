@@ -83,6 +83,7 @@ code {
         --ctl-h-lg: 2.25rem;  /* large control · h-9 */
         --field-gap: 0.75rem; /* form field-stack · space-y-3 */
         --item-gap: 0.375rem; /* label→control · space-y-1.5 */
+        --tbl-cell-py: 0.375rem; /* table row vertical padding · compact */
 
         --chart-1: var(--hue-chart-1);
         --chart-2: var(--hue-chart-2);
@@ -146,6 +147,21 @@ code {
         --ctl-h-lg: 2.75rem;  /* large control · h-11 */
         --field-gap: 1.25rem; /* form field-stack · space-y-5 */
         --item-gap: 0.5rem;   /* label→control · space-y-2 */
+        --tbl-cell-py: 0.75rem; /* table row vertical padding · roomy */
+    }
+}
+
+/* Density-aware table rows (opt-in via `.tbl-density`).
+   Vertical padding follows the global Dense/Comfortable toggle; horizontal
+   padding stays from the cell's own utility classes. */
+@layer components {
+    .tbl-density td,
+    .tbl-density th {
+        padding-top: var(--tbl-cell-py);
+        padding-bottom: var(--tbl-cell-py);
+    }
+    .tbl-density th {
+        height: auto;
     }
 }
 

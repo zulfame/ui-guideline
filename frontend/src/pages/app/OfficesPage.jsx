@@ -718,7 +718,7 @@ export default function OfficesPage() {
           />
         ) : (
           <>
-            <Table data-testid="offices-table" className="[&_td]:whitespace-nowrap [&_th]:whitespace-nowrap">
+            <Table data-testid="offices-table" className="tbl-density [&_td]:whitespace-nowrap [&_th]:whitespace-nowrap">
               <TableHeader>
                 {table.getHeaderGroups().map((hg) => (
                   <TableRow key={hg.id} className="bg-muted/50 hover:bg-muted/50">
