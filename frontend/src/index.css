@@ -83,7 +83,7 @@ code {
         --ctl-h-lg: 2.25rem;  /* large control · h-9 */
         --field-gap: 0.75rem; /* form field-stack · space-y-3 */
         --item-gap: 0.375rem; /* label→control · space-y-1.5 */
-        --tbl-cell-py: 0.375rem; /* table row vertical padding · compact */
+        --tbl-cell-py: 0.25rem; /* table row vertical padding · compact */
 
         --chart-1: var(--hue-chart-1);
         --chart-2: var(--hue-chart-2);

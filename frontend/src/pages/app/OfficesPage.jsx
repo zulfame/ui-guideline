@@ -547,7 +547,7 @@ export default function OfficesPage() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="size-8"
+                  className="size-7"
                   aria-label="Row actions"
                   data-testid={`offices-row-actions-${row.original.id}`}
                 >
