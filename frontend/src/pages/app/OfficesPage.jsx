@@ -18,11 +18,10 @@ import {
   ArrowUpDown,
   ChevronLeft,
   ChevronRight,
-  Copy,
   Download,
+  Eye,
   FilterX,
   MoreHorizontal,
-  Pencil,
   Plus,
   RefreshCw,
   Search,
@@ -556,20 +555,10 @@ export default function OfficesPage() {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuItem
-                  onClick={() => {
-                    navigator.clipboard?.writeText(row.original.id);
-                    toast.success("Office ID copied", { description: row.original.id });
-                  }}
-                  data-testid={`offices-copy-id-${row.original.id}`}
-                >
-                  <Copy className="size-4" /> Copy ID
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
                   onClick={() => openEdit(row.original)}
-                  data-testid={`offices-edit-${row.original.id}`}
+                  data-testid={`offices-detail-${row.original.id}`}
                 >
-                  <Pencil className="size-4" /> Edit
+                  <Eye className="size-4" /> Detail
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem

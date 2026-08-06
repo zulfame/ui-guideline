@@ -166,27 +166,25 @@ export default function OfficeFormPage() {
           <form onSubmit={form.handleSubmit(submit)} noValidate>
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">{isEdit ? "Edit Office" : "Add Office"}</CardTitle>
-                <CardDescription>
-                  {isEdit ? "Update the office details below." : "Create a new office. Code and name are required."}
-                </CardDescription>
+                <CardTitle className="text-base">{isEdit ? "Detail Office" : "Add Office"}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-5">
-                <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <div className="grid grid-cols-1 items-start gap-x-4 gap-y-2 sm:grid-cols-2 lg:grid-cols-4">
                   {TEXT_FIELDS.map((f) => (
                     <FormField
                       key={f.name}
                       control={form.control}
                       name={f.name}
                       render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>{f.label}</FormLabel>
+                        <FormItem className="space-y-0.5">
+                          <FormLabel className="text-[13px]">{f.label}</FormLabel>
                           <FormControl>
                             <Input
                               type={f.type || "text"}
                               step={f.step}
                               placeholder={f.optional ? "(Optional)" : undefined}
                               {...field}
+                              className="text-[13px]"
                               data-testid={`office-field-${f.name}`}
                             />
                           </FormControl>

@@ -212,7 +212,7 @@ export const getBreadcrumb = (pathname) => {
     { re: /^\/roles\/new$/, parent: "/roles", title: "Add Role" },
     { re: /^\/roles\/[^/]+\/edit$/, parent: "/roles", title: "Edit Role" },
     { re: /^\/offices\/new$/, parent: "/offices", title: "Add Office" },
-    { re: /^\/offices\/[^/]+\/edit$/, parent: "/offices", title: "Edit Office" },
+    { re: /^\/offices\/[^/]+\/edit$/, parent: "/offices", title: "Detail Office" },
   ];
   for (const sr of subRoutes) {
     if (sr.re.test(pathname)) {
