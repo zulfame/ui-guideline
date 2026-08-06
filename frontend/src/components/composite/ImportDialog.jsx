@@ -7,6 +7,7 @@ import {
   FileSpreadsheet,
   Loader2,
   Upload,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -312,22 +313,22 @@ export function ImportDialog({
             </>
           ) : (
             <>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={downloadTemplate}
-                disabled={downloading || busy}
-                data-testid="import-download-template"
-              >
-                <Download className="size-4" />
-                {downloading ? "Preparing..." : "Template"}
-              </Button>
+              <DialogClose asChild>
+                <Button type="button" variant="outline" disabled={busy} data-testid="import-cancel">
+                  <X className="size-4" /> Cancel
+                </Button>
+              </DialogClose>
               <div className="flex flex-col-reverse gap-2 sm:flex-row">
-                <DialogClose asChild>
-                  <Button type="button" variant="outline" disabled={busy} data-testid="import-cancel">
-                    Cancel
-                  </Button>
-                </DialogClose>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={downloadTemplate}
+                  disabled={downloading || busy}
+                  data-testid="import-download-template"
+                >
+                  <Download className="size-4" />
+                  {downloading ? "Preparing..." : "Template"}
+                </Button>
                 <Button type="button" onClick={runPreview} disabled={!file || busy} data-testid="import-preview-btn">
                   {busy ? <Loader2 className="size-4 animate-spin" /> : <Upload className="size-4" />}
                   {busy ? "Checking..." : "Preview"}

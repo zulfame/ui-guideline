@@ -19,10 +19,10 @@ def state():
     # Cleanup roles first
     for rid in s["roles"]:
         try: requests.delete(f"{API}/roles/{rid}", timeout=10)
-        except: pass
+        except Exception: pass
     for lid in s["levels"]:
         try: requests.delete(f"{API}/levels/{lid}", timeout=10)
-        except: pass
+        except Exception: pass
 
 
 class TestLevelsCRUD:
