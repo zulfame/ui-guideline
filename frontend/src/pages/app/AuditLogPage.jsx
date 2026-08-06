@@ -302,8 +302,8 @@ export default function AuditLogPage() {
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Filters */}
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-            <div className="relative w-full lg:max-w-xs">
+          <div className="flex flex-col gap-2 rounded-lg border bg-muted/40 p-2 lg:flex-row lg:items-center lg:justify-between">
+            <div className="relative w-full lg:max-w-[15rem]">
               <Search className="absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
               <Input
                 value={q}
@@ -311,8 +311,8 @@ export default function AuditLogPage() {
                   setPage(0);
                   setQ(e.target.value);
                 }}
-                placeholder="Search summary, entity, actor..."
-                className="pl-8"
+                placeholder="Search..."
+                className="h-[var(--ctl-h-sm)] pl-8 text-xs"
                 data-testid="audit-search"
               />
             </div>
@@ -324,7 +324,7 @@ export default function AuditLogPage() {
                   setPage(0);
                   setDateFrom(e.target.value);
                 }}
-                className="h-9 w-full sm:w-[150px]"
+                className="h-[var(--ctl-h-sm)] w-full text-xs sm:w-[150px]"
                 data-testid="audit-date-from"
                 aria-label="From date"
               />
@@ -335,7 +335,7 @@ export default function AuditLogPage() {
                   setPage(0);
                   setDateTo(e.target.value);
                 }}
-                className="h-9 w-full sm:w-[150px]"
+                className="h-[var(--ctl-h-sm)] w-full text-xs sm:w-[150px]"
                 data-testid="audit-date-to"
                 aria-label="To date"
               />
@@ -344,7 +344,7 @@ export default function AuditLogPage() {
                   variant="outline"
                   size="sm"
                   onClick={resetFilters}
-                  className="col-span-2 h-9 sm:col-auto"
+                  className="col-span-2 sm:col-auto"
                   data-testid="audit-reset"
                 >
                   <FilterX className="size-4" /> Reset
@@ -388,7 +388,7 @@ export default function AuditLogPage() {
                 }
               />
             ) : (
-              <Table data-testid="audit-table" className="[&_td]:whitespace-nowrap [&_th]:whitespace-nowrap">
+              <Table data-testid="audit-table" className="tbl-density [&_td]:whitespace-nowrap [&_th]:whitespace-nowrap">
                 <TableHeader>
                   <TableRow className="bg-muted/50 hover:bg-muted/50">
                     <TableHead className="w-10">
@@ -443,6 +443,7 @@ export default function AuditLogPage() {
                         <Button
                           variant="ghost"
                           size="icon"
+                          className="size-7"
                           onClick={() => setDetail(r)}
                           data-testid={`audit-view-${r.id}`}
                           aria-label="View details"
@@ -468,7 +469,7 @@ export default function AuditLogPage() {
                     setPageSize(Number(v));
                   }}
                 >
-                  <SelectTrigger className="h-8 w-[70px]" data-testid="audit-page-size">
+                  <SelectTrigger className="h-[var(--ctl-h-sm)] w-[70px]" data-testid="audit-page-size">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -489,7 +490,7 @@ export default function AuditLogPage() {
                   <Button
                     variant="outline"
                     size="icon"
-                    className="size-8"
+                    className="size-[var(--ctl-h-sm)]"
                     onClick={() => setPage((p) => Math.max(0, p - 1))}
                     disabled={page === 0}
                     aria-label="Previous page"
@@ -500,7 +501,7 @@ export default function AuditLogPage() {
                   <Button
                     variant="outline"
                     size="icon"
-                    className="size-8"
+                    className="size-[var(--ctl-h-sm)]"
                     onClick={() => setPage((p) => Math.min(pageCount - 1, p + 1))}
                     disabled={page >= pageCount - 1}
                     aria-label="Next page"
