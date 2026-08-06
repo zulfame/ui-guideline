@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { AlertCircle, Loader2 } from "lucide-react";
+import { AlertCircle, Loader2, LogIn } from "lucide-react";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -185,7 +185,9 @@ export const LoginForm = () => {
               Signing in...
             </>
           ) : (
-            "Sign In"
+            <>
+              <LogIn className="h-4 w-4" aria-hidden="true" /> Sign In
+            </>
           )}
         </Button>
       </form>

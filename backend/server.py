@@ -1276,6 +1276,7 @@ _MAX_ASSET_BYTES = 5 * 1024 * 1024  # 5 MB
 DEFAULT_BRANDING = {
     "app_name": "Application Name",
     "tagline": "",
+    "brand_initial": "",
     "meta_description": "",
     "meta_keywords": "",
     "og_title": "",
@@ -1295,6 +1296,7 @@ def _branding_bucket() -> AsyncIOMotorGridFSBucket:
 class BrandingUpdate(BaseModel):
     app_name: Optional[str] = None
     tagline: Optional[str] = None
+    brand_initial: Optional[str] = None
     meta_description: Optional[str] = None
     meta_keywords: Optional[str] = None
     og_title: Optional[str] = None

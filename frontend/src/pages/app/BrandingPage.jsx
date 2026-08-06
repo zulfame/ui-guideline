@@ -1,16 +1,15 @@
 import { useEffect, useRef, useState } from "react";
-import { ImageIcon, Loader2, Plus, RotateCcw, Save, Trash2, Upload } from "lucide-react";
+import { Eye, ImageIcon, Info, Loader2, Plus, RotateCcw, Save, Trash2, Upload } from "lucide-react";
 import { toast } from "sonner";
 
 import API from "@/lib/api";
 import { SortHead, useSortableRows } from "@/components/composite/sortable-table";
 import { useBranding } from "@/context/BrandingContext";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
@@ -35,6 +34,7 @@ const SITEMAP_SORT = { path: (u) => u.path };
 const TEXT_FIELDS = [
   "app_name",
   "tagline",
+  "brand_initial",
   "meta_description",
   "meta_keywords",
   "og_title",
@@ -51,6 +51,18 @@ const extract = (b) => {
   return out;
 };
 
+/** Reusable section wrapper — bordered card with a title header (reference layout). */
+function Section({ title, children, testid }) {
+  return (
+    <Card data-testid={testid}>
+      <CardHeader className="pb-4">
+        <CardTitle className="text-base">{title}</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">{children}</CardContent>
+    </Card>
+  );
+}
+
 function AssetField({ kind, label, hint, previewUrl, onChanged }) {
   const inputRef = useRef(null);
   const [busy, setBusy] = useState(false);
@@ -63,10 +75,10 @@ function AssetField({ kind, label, hint, previewUrl, onChanged }) {
       const fd = new FormData();
       fd.append("file", f);
       await API.post(`/branding/assets/${kind}`, fd);
-      toast.success(`${label} updated`);
+      toast.success(`${label} diperbarui`);
       await onChanged();
     } catch (err) {
-      toast.error(err?.response?.data?.detail || "Upload failed. Please try again.");
+      toast.error(err?.response?.data?.detail || "Unggah gagal. Silakan coba lagi.");
     } finally {
       setBusy(false);
       if (inputRef.current) inputRef.current.value = "";
@@ -77,10 +89,10 @@ function AssetField({ kind, label, hint, previewUrl, onChanged }) {
     setBusy(true);
     try {
       await API.delete(`/branding/assets/${kind}`);
-      toast.success(`${label} reset`);
+      toast.success(`${label} direset`);
       await onChanged();
     } catch {
-      toast.error("Reset failed. Please try again.");
+      toast.error("Reset gagal. Silakan coba lagi.");
     } finally {
       setBusy(false);
     }
@@ -118,7 +130,7 @@ function AssetField({ kind, label, hint, previewUrl, onChanged }) {
             data-testid={`branding-upload-${kind}`}
           >
             {busy ? <Loader2 className="size-4 animate-spin" /> : <Upload className="size-4" />}
-            {previewUrl ? "Replace" : "Upload"}
+            {previewUrl ? "Ganti" : "Unggah"}
           </Button>
           <Button
             type="button"
@@ -150,7 +162,7 @@ function SitemapManager() {
       const { data } = await API.get("/sitemap-urls");
       setUrls(data);
     } catch {
-      toast.error("Failed to load sitemap URLs.");
+      toast.error("Gagal memuat URL sitemap.");
     } finally {
       setLoading(false);
     }
@@ -162,7 +174,7 @@ function SitemapManager() {
 
   const add = async () => {
     if (!newPath.trim()) {
-      toast.error("Path is required.");
+      toast.error("Path wajib diisi.");
       return;
     }
     setAdding(true);
@@ -172,13 +184,13 @@ function SitemapManager() {
         changefreq: newFreq,
         priority: newPriority,
       });
-      toast.success("URL added");
+      toast.success("URL ditambahkan");
       setNewPath("");
       setNewFreq("weekly");
       setNewPriority("0.5");
       fetchUrls();
     } catch (err) {
-      toast.error(err?.response?.data?.detail || "Failed to add URL.");
+      toast.error(err?.response?.data?.detail || "Gagal menambahkan URL.");
     } finally {
       setAdding(false);
     }
@@ -189,7 +201,7 @@ function SitemapManager() {
     try {
       await API.put(`/sitemap-urls/${id}`, { [field]: value });
     } catch (err) {
-      toast.error(err?.response?.data?.detail || "Update failed.");
+      toast.error(err?.response?.data?.detail || "Pembaruan gagal.");
       fetchUrls();
     }
   };
@@ -197,19 +209,21 @@ function SitemapManager() {
   const remove = async (id) => {
     try {
       await API.delete(`/sitemap-urls/${id}`);
-      toast.success("URL removed");
+      toast.success("URL dihapus");
       fetchUrls();
     } catch {
-      toast.error("Delete failed.");
+      toast.error("Hapus gagal.");
     }
   };
 
   return (
     <div className="space-y-4">
       <p className="text-sm text-muted-foreground">
-        Manage the public pages included in <span className="font-medium text-foreground">sitemap.xml</span>.
-        The site root is added automatically; add, edit, or remove entries as needed. Paths combine
-        with your app&apos;s address, which is <span className="font-medium text-foreground">detected automatically</span> from the server.
+        Kelola halaman publik yang disertakan pada{" "}
+        <span className="font-medium text-foreground">sitemap.xml</span>. Root situs ditambahkan
+        otomatis; tambah, ubah, atau hapus entri sesuai kebutuhan. Path digabung dengan alamat
+        aplikasi Anda yang <span className="font-medium text-foreground">terdeteksi otomatis</span>{" "}
+        dari server.
       </p>
 
       {/* Add row */}
@@ -225,7 +239,7 @@ function SitemapManager() {
           />
         </div>
         <div className="space-y-1.5">
-          <Label>Change freq</Label>
+          <Label>Frekuensi</Label>
           <Select value={newFreq} onValueChange={setNewFreq}>
             <SelectTrigger className="w-full sm:w-36" data-testid="sitemap-new-freq">
               <SelectValue />
@@ -238,7 +252,7 @@ function SitemapManager() {
           </Select>
         </div>
         <div className="space-y-1.5">
-          <Label>Priority</Label>
+          <Label>Prioritas</Label>
           <Select value={newPriority} onValueChange={setNewPriority}>
             <SelectTrigger className="w-full sm:w-24" data-testid="sitemap-new-priority">
               <SelectValue />
@@ -252,42 +266,43 @@ function SitemapManager() {
         </div>
         <Button
           onClick={add}
+          size="sm"
           disabled={adding}
           className="w-full sm:w-auto"
           data-testid="sitemap-add-btn"
         >
           {adding ? <Loader2 className="size-4 animate-spin" /> : <Plus className="size-4" />}
-          Add
+          Tambah
         </Button>
       </div>
 
       <div className="rounded-md border">
         <Table
           data-testid="sitemap-table"
-          className="[&_td]:whitespace-nowrap [&_th]:whitespace-nowrap"
+          className="tbl-density [&_td]:whitespace-nowrap [&_th]:whitespace-nowrap"
         >
           <TableHeader>
             <TableRow className="bg-muted/50 hover:bg-muted/50">
               <TableHead>
                 <SortHead label="Path" sortKey="path" sort={sort} onToggle={toggle} />
               </TableHead>
-              <TableHead>Change freq</TableHead>
-              <TableHead>Priority</TableHead>
-              <TableHead>Enabled</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+              <TableHead>Frekuensi</TableHead>
+              <TableHead>Prioritas</TableHead>
+              <TableHead>Aktif</TableHead>
+              <TableHead className="text-right">Aksi</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {loading ? (
               <TableRow>
                 <TableCell colSpan={5} className="text-center text-muted-foreground">
-                  Loading…
+                  Memuat…
                 </TableCell>
               </TableRow>
             ) : urls.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={5} className="text-center text-muted-foreground">
-                  No URLs yet.
+                  Belum ada URL.
                 </TableCell>
               </TableRow>
             ) : (
@@ -331,7 +346,7 @@ function SitemapManager() {
                       size="icon"
                       className="size-8 text-destructive"
                       onClick={() => remove(u.id)}
-                      aria-label="Delete URL"
+                      aria-label="Hapus URL"
                       data-testid={`sitemap-delete-${u.id}`}
                     >
                       <Trash2 className="size-4" />
@@ -351,7 +366,6 @@ export default function BrandingPage() {
   const { branding, refresh, assetUrl } = useBranding();
   const [form, setForm] = useState(null);
   const [saving, setSaving] = useState(false);
-  const [tab, setTab] = useState("general");
 
   useEffect(() => {
     if (form === null && branding) setForm(extract(branding));
@@ -364,9 +378,9 @@ export default function BrandingPage() {
     try {
       await API.put("/branding", form);
       await refresh();
-      toast.success("Branding saved");
+      toast.success("Branding tersimpan");
     } catch (err) {
-      toast.error(err?.response?.data?.detail || "Save failed. Please try again.");
+      toast.error(err?.response?.data?.detail || "Simpan gagal. Silakan coba lagi.");
     } finally {
       setSaving(false);
     }
@@ -374,254 +388,267 @@ export default function BrandingPage() {
 
   if (!form) return null;
 
+  const initial =
+    (form.brand_initial || "").trim() ||
+    (form.app_name || "A").trim().slice(0, 2).toUpperCase();
+  const ogUrl = assetUrl("og_image");
+
   return (
-    <div className="space-y-6" data-testid="branding-page">
-      <Tabs value={tab} onValueChange={setTab} className="space-y-4">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <TabsList className="w-full justify-start overflow-x-auto sm:w-auto">
-            <TabsTrigger value="general" data-testid="branding-tab-general">General</TabsTrigger>
-            <TabsTrigger value="logos" data-testid="branding-tab-logos">Logos & Favicon</TabsTrigger>
-            <TabsTrigger value="seo" data-testid="branding-tab-seo">SEO</TabsTrigger>
-            <TabsTrigger value="sitemap" data-testid="branding-tab-sitemap">Sitemap</TabsTrigger>
-            <TabsTrigger value="social" data-testid="branding-tab-social">Social</TabsTrigger>
-            <TabsTrigger value="contact" data-testid="branding-tab-contact">Contact</TabsTrigger>
-          </TabsList>
-          <Button
-            onClick={save}
-            disabled={saving}
-            className="hidden sm:inline-flex sm:w-auto"
-            data-testid="branding-save-btn"
+    <div className="space-y-6 pb-24" data-testid="branding-page">
+      {/* Identitas Aplikasi */}
+      <Section title="Identitas Aplikasi" testid="branding-section-identity">
+        <div className="grid grid-cols-1 items-end gap-4 lg:grid-cols-4">
+          <div className="space-y-1.5">
+            <Label htmlFor="app_name">Nama Aplikasi</Label>
+            <Input
+              id="app_name"
+              value={form.app_name || ""}
+              onChange={(e) => set("app_name", e.target.value)}
+              placeholder="mis. BPR Bangun Arta"
+              data-testid="branding-app_name"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="tagline">Tagline / Sub Judul</Label>
+            <Input
+              id="tagline"
+              value={form.tagline || ""}
+              onChange={(e) => set("tagline", e.target.value)}
+              placeholder="Subjudul singkat di bawah nama"
+              data-testid="branding-tagline"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="brand_initial">Inisial Brand</Label>
+            <Input
+              id="brand_initial"
+              maxLength={3}
+              value={form.brand_initial || ""}
+              onChange={(e) => set("brand_initial", e.target.value)}
+              placeholder="mis. BA"
+              data-testid="branding-brand_initial"
+            />
+            <p className="text-xs text-muted-foreground">Dipakai bila logo belum diunggah.</p>
+          </div>
+          <div
+            className="flex items-center gap-3 rounded-lg border bg-muted/30 p-3"
+            data-testid="branding-identity-preview"
           >
-            {saving ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
-            Save changes
-          </Button>
+            <div className="flex size-11 shrink-0 items-center justify-center rounded-md bg-primary text-sm font-semibold uppercase text-primary-foreground">
+              {initial}
+            </div>
+            <div className="min-w-0">
+              <p className="truncate text-sm font-semibold">{form.app_name || "Application Name"}</p>
+              {form.tagline ? (
+                <p className="truncate text-xs text-muted-foreground">{form.tagline}</p>
+              ) : null}
+            </div>
+          </div>
         </div>
+      </Section>
 
-        {/* General */}
-        <TabsContent value="general">
-          <Card>
-            <CardContent className="space-y-4 pt-6">
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div className="space-y-1.5">
-                  <Label htmlFor="app_name">Application name</Label>
-                  <Input
-                    id="app_name"
-                    value={form.app_name || ""}
-                    onChange={(e) => set("app_name", e.target.value)}
-                    placeholder="e.g. BPR Bangun Arta"
-                    data-testid="branding-app_name"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="tagline">Tagline</Label>
-                  <Input
-                    id="tagline"
-                    value={form.tagline || ""}
-                    onChange={(e) => set("tagline", e.target.value)}
-                    placeholder="Short subtitle shown under the name"
-                    data-testid="branding-tagline"
-                  />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
+      {/* Aset Merek */}
+      <Section title="Aset Merek" testid="branding-section-assets">
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          <AssetField
+            kind="logo_light"
+            label="Logo (latar terang)"
+            hint="Logo gelap untuk latar terang. PNG/SVG, maks 512 KB."
+            previewUrl={assetUrl("logo_light")}
+            onChanged={refresh}
+          />
+          <AssetField
+            kind="logo_dark"
+            label="Logo (latar gelap)"
+            hint="Logo terang untuk latar gelap, mis. panel login."
+            previewUrl={assetUrl("logo_dark")}
+            onChanged={refresh}
+          />
+          <AssetField
+            kind="favicon"
+            label="Favicon"
+            hint="Ikon persegi (PNG/ICO), 32-512 px."
+            previewUrl={assetUrl("favicon")}
+            onChanged={refresh}
+          />
+        </div>
+        <div className="flex items-start gap-2 rounded-md border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+          <Info className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+          <span>
+            Semua aset disimpan langsung di database (bukan penyimpanan berkas), sehingga otomatis
+            ikut terbawa saat Backup &amp; Restore.
+          </span>
+        </div>
+      </Section>
 
-        {/* Logos & Favicon */}
-        <TabsContent value="logos">
-          <Card>
-            <CardContent className="grid grid-cols-1 gap-6 pt-6 sm:grid-cols-3">
-              <AssetField
-                kind="logo_light"
-                label="Logo (light background)"
-                hint="Dark logo for light backgrounds."
-                previewUrl={assetUrl("logo_light")}
-                onChanged={refresh}
-              />
-              <AssetField
-                kind="logo_dark"
-                label="Logo (dark background)"
-                hint="Light logo for dark backgrounds."
-                previewUrl={assetUrl("logo_dark")}
-                onChanged={refresh}
-              />
-              <AssetField
-                kind="favicon"
-                label="Favicon"
-                hint="Square icon (PNG/ICO), 32-512px."
-                previewUrl={assetUrl("favicon")}
-                onChanged={refresh}
-              />
-            </CardContent>
-          </Card>
-        </TabsContent>
+      {/* SEO & Metadata */}
+      <Section title="SEO & Metadata" testid="branding-section-seo">
+        <div className="space-y-1.5">
+          <Label htmlFor="meta_description">Meta Description</Label>
+          <Textarea
+            id="meta_description"
+            rows={3}
+            value={form.meta_description || ""}
+            onChange={(e) => set("meta_description", e.target.value)}
+            placeholder="Ringkasan singkat situs (≈155 karakter)."
+            data-testid="branding-meta_description"
+          />
+        </div>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className="space-y-1.5">
+            <Label htmlFor="meta_keywords">Meta Keywords</Label>
+            <Input
+              id="meta_keywords"
+              value={form.meta_keywords || ""}
+              onChange={(e) => set("meta_keywords", e.target.value)}
+              placeholder="kata, kunci, dipisah, koma"
+              data-testid="branding-meta_keywords"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="canonical_url">Canonical URL</Label>
+            <Input
+              id="canonical_url"
+              value={form.canonical_url || ""}
+              onChange={(e) => set("canonical_url", e.target.value)}
+              placeholder="https://app.example.com"
+              data-testid="branding-canonical_url"
+            />
+          </div>
+        </div>
+        <div className="flex items-center justify-between gap-4 rounded-md border px-3 py-2">
+          <div>
+            <Label htmlFor="allow_indexing" className="text-sm font-normal">
+              Terlihat di mesin pencari
+            </Label>
+            <p className="text-xs text-muted-foreground">
+              Bila nonaktif, halaman meminta mesin pencari untuk tidak mengindeks (noindex,
+              nofollow). Disarankan tetap nonaktif untuk konsol internal.
+            </p>
+          </div>
+          <Switch
+            id="allow_indexing"
+            checked={Boolean(form.allow_indexing)}
+            onCheckedChange={(v) => set("allow_indexing", v)}
+            data-testid="branding-allow_indexing"
+          />
+        </div>
+        <div className="rounded-md border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+          <span className="font-medium text-foreground">Berkas otomatis:</span>{" "}
+          <a
+            href="/robots.txt"
+            target="_blank"
+            rel="noreferrer"
+            className="underline underline-offset-2 hover:text-foreground"
+            data-testid="branding-robots-link"
+          >
+            /robots.txt
+          </a>{" "}
+          (mengikuti toggle visibilitas) dan{" "}
+          <a
+            href="/sitemap.xml"
+            target="_blank"
+            rel="noreferrer"
+            className="underline underline-offset-2 hover:text-foreground"
+            data-testid="branding-sitemap-link"
+          >
+            /sitemap.xml
+          </a>{" "}
+          (URL terdeteksi otomatis dari alamat aplikasi). Simpan perubahan dulu untuk melihat
+          pembaruannya.
+        </div>
+      </Section>
 
-        {/* SEO */}
-        <TabsContent value="seo">
-          <Card>
-            <CardContent className="space-y-4 pt-6">
-              <div className="space-y-1.5">
-                <Label htmlFor="meta_description">Meta description</Label>
-                <Textarea
-                  id="meta_description"
-                  rows={3}
-                  value={form.meta_description || ""}
-                  onChange={(e) => set("meta_description", e.target.value)}
-                  placeholder="A concise summary of the site (≈155 characters)."
-                  data-testid="branding-meta_description"
-                />
-              </div>
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div className="space-y-1.5">
-                  <Label htmlFor="meta_keywords">Meta keywords</Label>
-                  <Input
-                    id="meta_keywords"
-                    value={form.meta_keywords || ""}
-                    onChange={(e) => set("meta_keywords", e.target.value)}
-                    placeholder="comma, separated, keywords"
-                    data-testid="branding-meta_keywords"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="canonical_url">Canonical URL</Label>
-                  <Input
-                    id="canonical_url"
-                    value={form.canonical_url || ""}
-                    onChange={(e) => set("canonical_url", e.target.value)}
-                    placeholder="https://app.example.com"
-                    data-testid="branding-canonical_url"
-                  />
-                </div>
-              </div>
-              <div className="flex items-center justify-between rounded-md border px-3 py-2">
-                <div>
-                  <Label htmlFor="allow_indexing" className="text-sm font-normal">
-                    Search engine visibility
-                  </Label>
-                  <p className="text-xs text-muted-foreground">
-                    When off, search engines are asked not to index this site (noindex).
-                  </p>
-                </div>
-                <Switch
-                  id="allow_indexing"
-                  checked={Boolean(form.allow_indexing)}
-                  onCheckedChange={(v) => set("allow_indexing", v)}
-                  data-testid="branding-allow_indexing"
-                />
-              </div>
-              <div className="rounded-md border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
-                <span className="font-medium text-foreground">Auto-served files:</span>{" "}
-                <a
-                  href="/robots.txt"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="underline underline-offset-2 hover:text-foreground"
-                  data-testid="branding-robots-link"
-                >
-                  /robots.txt
-                </a>{" "}
-                (reflects the visibility toggle) and{" "}
-                <a
-                  href="/sitemap.xml"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="underline underline-offset-2 hover:text-foreground"
-                  data-testid="branding-sitemap-link"
-                >
-                  /sitemap.xml
-                </a>{" "}
-                (URL detected automatically from your app&apos;s address). Save your changes first to see them update.
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
+      {/* Sitemap */}
+      <Section title="Sitemap" testid="branding-section-sitemap">
+        <SitemapManager />
+      </Section>
 
-        {/* Sitemap */}
-        <TabsContent value="sitemap">
-          <Card>
-            <CardContent className="pt-6">
-              <SitemapManager />
-            </CardContent>
-          </Card>
-        </TabsContent>
+      {/* Pratinjau Tautan (Open Graph) */}
+      <Section title="Pratinjau Tautan (Open Graph)" testid="branding-section-social">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className="space-y-1.5">
+            <Label htmlFor="og_title">OG Title</Label>
+            <Input
+              id="og_title"
+              value={form.og_title || ""}
+              onChange={(e) => set("og_title", e.target.value)}
+              placeholder="Default mengikuti nama aplikasi"
+              data-testid="branding-og_title"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="og_description">OG Description</Label>
+            <Input
+              id="og_description"
+              value={form.og_description || ""}
+              onChange={(e) => set("og_description", e.target.value)}
+              placeholder="Default mengikuti meta description"
+              data-testid="branding-og_description"
+            />
+          </div>
+        </div>
+        <AssetField
+          kind="og_image"
+          label="OG Image"
+          hint="Gambar pratinjau tautan (disarankan 1200×630)."
+          previewUrl={ogUrl}
+          onChanged={refresh}
+        />
+        <p className="text-xs text-muted-foreground">
+          Pratinjau tautan dipakai oleh crawler WhatsApp, Facebook, Telegram, dan X. Setelah
+          mengubah, minta ulang pratinjau di aplikasi chat (cache crawler bisa bertahan beberapa
+          jam).
+        </p>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          disabled={!ogUrl}
+          onClick={() => ogUrl && window.open(ogUrl, "_blank", "noopener")}
+          data-testid="branding-og-test"
+        >
+          <Eye className="size-4" /> Uji
+        </Button>
+      </Section>
 
-        {/* Social */}
-        <TabsContent value="social">
-          <Card>
-            <CardContent className="space-y-4 pt-6">
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div className="space-y-1.5">
-                  <Label htmlFor="og_title">OG title</Label>
-                  <Input
-                    id="og_title"
-                    value={form.og_title || ""}
-                    onChange={(e) => set("og_title", e.target.value)}
-                    placeholder="Falls back to application name"
-                    data-testid="branding-og_title"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="og_description">OG description</Label>
-                  <Input
-                    id="og_description"
-                    value={form.og_description || ""}
-                    onChange={(e) => set("og_description", e.target.value)}
-                    placeholder="Falls back to meta description"
-                    data-testid="branding-og_description"
-                  />
-                </div>
-              </div>
-              <AssetField
-                kind="og_image"
-                label="OG image"
-                hint="Preview image for shared links (recommended 1200×630)."
-                previewUrl={assetUrl("og_image")}
-                onChanged={refresh}
-              />
-            </CardContent>
-          </Card>
-        </TabsContent>
+      {/* Kontak & Footer */}
+      <Section title="Kontak & Footer" testid="branding-section-contact">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className="space-y-1.5">
+            <Label htmlFor="support_email">Email Dukungan</Label>
+            <Input
+              id="support_email"
+              type="email"
+              value={form.support_email || ""}
+              onChange={(e) => set("support_email", e.target.value)}
+              placeholder="support@example.com"
+              data-testid="branding-support_email"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="copyright_text">Teks Hak Cipta / Footer</Label>
+            <Input
+              id="copyright_text"
+              value={form.copyright_text || ""}
+              onChange={(e) => set("copyright_text", e.target.value)}
+              placeholder="© 2026 Perusahaan Anda"
+              data-testid="branding-copyright_text"
+            />
+          </div>
+        </div>
+      </Section>
 
-        {/* Contact */}
-        <TabsContent value="contact">
-          <Card>
-            <CardContent className="grid grid-cols-1 gap-4 pt-6 sm:grid-cols-2">
-              <div className="space-y-1.5">
-                <Label htmlFor="support_email">Support email</Label>
-                <Input
-                  id="support_email"
-                  type="email"
-                  value={form.support_email || ""}
-                  onChange={(e) => set("support_email", e.target.value)}
-                  placeholder="support@example.com"
-                  data-testid="branding-support_email"
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="copyright_text">Copyright / footer text</Label>
-                <Input
-                  id="copyright_text"
-                  value={form.copyright_text || ""}
-                  onChange={(e) => set("copyright_text", e.target.value)}
-                  placeholder="© 2026 Your Company"
-                  data-testid="branding-copyright_text"
-                />
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
-
-      {/* Mobile-only save bar (desktop save lives in the tab toolbar). */}
-      <div className="sticky bottom-0 -mx-4 border-t bg-background p-4 sm:hidden">
+      {/* Sticky save bar (aligned right, all screens) */}
+      <div className="sticky bottom-0 z-10 -mx-4 flex justify-end border-t bg-background/95 px-4 py-3 backdrop-blur supports-[backdrop-filter]:bg-background/80 sm:-mx-6 sm:px-6">
         <Button
           onClick={save}
+          size="sm"
           disabled={saving}
-          className="w-full"
-          data-testid="branding-save-btn-mobile"
+          data-testid="branding-save-btn"
         >
           {saving ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
-          Save changes
+          Simpan
         </Button>
       </div>
     </div>

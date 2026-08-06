@@ -132,6 +132,7 @@ export default function PushNotificationsPage() {
         <CardFooter className="justify-end">
           <Button
             onClick={send}
+            size="sm"
             disabled={sending || !configured}
             data-testid="push-send"
           >

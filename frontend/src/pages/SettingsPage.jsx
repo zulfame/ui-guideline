@@ -223,6 +223,7 @@ export default function SettingsPage() {
             <CardFooter className="justify-end border-t pt-6">
               <Button
                 type="submit"
+                size="sm"
                 disabled={isSubmitting}
                 data-testid="settings-pw-submit-button"
               >

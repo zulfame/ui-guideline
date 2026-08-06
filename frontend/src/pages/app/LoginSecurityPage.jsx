@@ -135,14 +135,14 @@ function DataTableCard({
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <div className="relative max-w-xs flex-1">
+        <div className="flex flex-col gap-2 rounded-lg border bg-muted/40 p-2 sm:flex-row sm:items-center sm:justify-between">
+          <div className="relative w-full max-w-[15rem]">
             <Search className="absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
             <Input
               value={globalFilter}
               onChange={(e) => setGlobalFilter(e.target.value)}
               placeholder={searchPlaceholder}
-              className="pl-8"
+              className="h-[var(--ctl-h-sm)] pl-8 text-xs"
               data-testid={`${testid}-search`}
             />
           </div>
@@ -166,7 +166,7 @@ function DataTableCard({
           ) : data.length === 0 ? (
             <EmptyState variant="first-time" icon={emptyIcon} title={emptyTitle} description={emptyDescription} />
           ) : (
-            <Table data-testid={`${testid}-table`} className="[&_td]:whitespace-nowrap [&_th]:whitespace-nowrap">
+            <Table data-testid={`${testid}-table`} className="tbl-density [&_td]:whitespace-nowrap [&_th]:whitespace-nowrap">
               <TableHeader>
                 {table.getHeaderGroups().map((hg) => (
                   <TableRow key={hg.id} className="bg-muted/50 hover:bg-muted/50">
@@ -210,7 +210,7 @@ function DataTableCard({
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
               <Select value={String(pageSize)} onValueChange={(v) => table.setPageSize(Number(v))}>
-                <SelectTrigger className="h-8 w-[70px]" data-testid={`${testid}-page-size`}>
+                <SelectTrigger className="h-[var(--ctl-h-sm)] w-[70px]" data-testid={`${testid}-page-size`}>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -229,7 +229,7 @@ function DataTableCard({
                 <Button
                   variant="outline"
                   size="icon"
-                  className="size-8"
+                  className="size-[var(--ctl-h-sm)]"
                   onClick={() => table.previousPage()}
                   disabled={!table.getCanPreviousPage()}
                   aria-label="Previous page"
@@ -240,7 +240,7 @@ function DataTableCard({
                 <Button
                   variant="outline"
                   size="icon"
-                  className="size-8"
+                  className="size-[var(--ctl-h-sm)]"
                   onClick={() => table.nextPage()}
                   disabled={!table.getCanNextPage()}
                   aria-label="Next page"

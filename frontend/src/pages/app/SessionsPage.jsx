@@ -154,7 +154,7 @@ export default function SessionsPage() {
             </CardDescription>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <div className="flex items-center gap-2 rounded-md border px-3 py-1.5">
+            <div className="flex h-[var(--ctl-h-sm)] items-center gap-2 rounded-md border px-3">
               <Switch
                 id="show-revoked"
                 checked={showRevoked}

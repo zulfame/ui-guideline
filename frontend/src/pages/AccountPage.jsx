@@ -271,7 +271,7 @@ export default function AccountPage() {
                 No active devices.
               </div>
             ) : (
-              <Table data-testid="my-devices-table" className="[&_td]:whitespace-nowrap [&_th]:whitespace-nowrap">
+              <Table data-testid="my-devices-table" className="tbl-density [&_td]:whitespace-nowrap [&_th]:whitespace-nowrap">
                 <TableHeader>
                   <TableRow className="bg-muted/50 hover:bg-muted/50">
                     <TableHead>Device</TableHead>

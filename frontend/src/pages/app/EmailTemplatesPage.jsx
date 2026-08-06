@@ -300,7 +300,7 @@ export default function EmailTemplatesPage() {
         </CardContent>
         <CardFooter className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div className="flex items-center gap-2">
-            <Button onClick={save} disabled={saving} data-testid="email-template-save">
+            <Button onClick={save} size="sm" disabled={saving} data-testid="email-template-save">
               {saving ? (
                 <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
               ) : (
@@ -310,6 +310,7 @@ export default function EmailTemplatesPage() {
             </Button>
             <Button
               variant="outline"
+              size="sm"
               onClick={resetToActive}
               disabled={saving}
               data-testid="email-template-reset"
@@ -336,6 +337,7 @@ export default function EmailTemplatesPage() {
             </div>
             <Button
               variant="secondary"
+              size="sm"
               onClick={sendTest}
               disabled={sendingTest}
               data-testid="email-template-send-test"

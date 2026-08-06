@@ -162,6 +162,14 @@ code {
     }
     .tbl-density td {
         font-size: 0.8125rem; /* ~13px · slightly smaller body text */
+        line-height: 1.5rem; /* fixed line box so rows with/without badges match height */
+        vertical-align: middle;
+    }
+    /* Badges (and other inline chips) must not exceed the cell's line box, so a
+       row that contains a badge is exactly as tall as a plain-text row (R47). */
+    .tbl-density td .inline-flex,
+    .tbl-density td [data-slot="badge"] {
+        vertical-align: middle;
     }
     .tbl-density th {
         height: auto;

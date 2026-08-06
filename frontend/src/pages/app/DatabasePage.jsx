@@ -325,7 +325,7 @@ export default function DatabasePage() {
             </p>
           </CardContent>
           <CardFooter className="border-t pt-4">
-            <Button onClick={createBackup} disabled={backingUp} data-testid="database-backup-btn">
+            <Button onClick={createBackup} size="sm" disabled={backingUp} data-testid="database-backup-btn">
               {backingUp ? <Loader2 className="size-4 animate-spin" /> : <DatabaseBackup className="size-4" />}
               {backingUp ? "Creating backup..." : "Create backup"}
             </Button>
@@ -355,6 +355,7 @@ export default function DatabasePage() {
           <CardFooter className="border-t pt-4">
             <Button
               variant="outline"
+              size="sm"
               disabled={!file}
               onClick={() => openRestore({ type: "upload", file })}
               data-testid="database-restore-upload-btn"
@@ -532,7 +533,7 @@ export default function DatabasePage() {
                     />
                   </div>
                   <div className="flex items-end">
-                    <Button type="button" variant="outline" onClick={testS3} disabled={testingS3} data-testid="settings-s3-test">
+                    <Button type="button" variant="outline" size="sm" onClick={testS3} disabled={testingS3} data-testid="settings-s3-test">
                       {testingS3 ? <Loader2 className="size-4 animate-spin" /> : <Cloud className="size-4" />}
                       Test connection
                     </Button>
@@ -542,7 +543,7 @@ export default function DatabasePage() {
             </div>
           </CardContent>
           <CardFooter className="border-t pt-4">
-            <Button onClick={saveSettings} disabled={savingSettings} data-testid="settings-save">
+            <Button onClick={saveSettings} size="sm" disabled={savingSettings} data-testid="settings-save">
               {savingSettings ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
               Save settings
             </Button>
@@ -582,7 +583,7 @@ export default function DatabasePage() {
                 description="Create your first backup to see it listed here."
               />
             ) : (
-              <Table data-testid="database-backups-table" className="[&_td]:whitespace-nowrap [&_th]:whitespace-nowrap">
+              <Table data-testid="database-backups-table" className="tbl-density [&_td]:whitespace-nowrap [&_th]:whitespace-nowrap">
                 <TableHeader>
                   <TableRow className="bg-muted/50 hover:bg-muted/50">
                     <TableHead>

@@ -364,11 +364,11 @@ export default function ClientsPage() {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => openUsage(c)} data-testid={`client-usage-${c.id}`}>
-                    <BarChart3 className="size-4" /> View usage
-                  </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => openEdit(c)} data-testid={`client-detail-${c.id}`}>
                     <Eye className="size-4" /> Detail
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => openUsage(c)} data-testid={`client-usage-${c.id}`}>
+                    <BarChart3 className="size-4" /> View usage
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => setRegenTarget(c)} data-testid={`client-regenerate-${c.id}`}>
                     <RefreshCw className="size-4" /> Regenerate key

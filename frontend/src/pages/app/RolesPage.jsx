@@ -937,6 +937,12 @@ export default function RolesPage() {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem
+                onClick={() => openEdit(row.original)}
+                data-testid={`roles-detail-${row.original.id}`}
+              >
+                <Eye className="size-4" /> Detail
+              </DropdownMenuItem>
+              <DropdownMenuItem
                 onClick={() => moveRole(row.original, -1)}
                 data-testid={`roles-move-left-${row.original.id}`}
               >
@@ -947,12 +953,6 @@ export default function RolesPage() {
                 data-testid={`roles-move-right-${row.original.id}`}
               >
                 <ArrowRight className="size-4" /> Move right
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => openEdit(row.original)}
-                data-testid={`roles-detail-${row.original.id}`}
-              >
-                <Eye className="size-4" /> Detail
               </DropdownMenuItem>
               {!isProtectedRole(row.original.name) && (
                 <DropdownMenuItem

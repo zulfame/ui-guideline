@@ -220,9 +220,6 @@ export default function UserFormPage() {
                             data-testid="user-field-user_id"
                           />
                         </FormControl>
-                        <p className="text-xs text-muted-foreground">
-                          {isEdit ? "Unique. You can change it." : "Auto-generated if left blank. Unique; can be edited."}
-                        </p>
                         <FormMessage />
                       </FormItem>
                     )}

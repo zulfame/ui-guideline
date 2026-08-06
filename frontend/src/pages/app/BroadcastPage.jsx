@@ -224,7 +224,7 @@ export default function BroadcastPage() {
             <div className="overflow-x-auto rounded-md border">
               <Table
                 data-testid="broadcast-table"
-                className="[&_td]:whitespace-nowrap [&_th]:whitespace-nowrap"
+                className="tbl-density [&_td]:whitespace-nowrap [&_th]:whitespace-nowrap"
               >
                 <TableHeader>
                   <TableRow className="bg-muted/50 hover:bg-muted/50">
