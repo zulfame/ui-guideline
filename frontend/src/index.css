@@ -160,6 +160,9 @@ code {
         padding-top: var(--tbl-cell-py);
         padding-bottom: var(--tbl-cell-py);
     }
+    .tbl-density td {
+        font-size: 0.8125rem; /* ~13px · slightly smaller body text */
+    }
     .tbl-density th {
         height: auto;
         text-transform: uppercase;

@@ -780,7 +780,7 @@ export default function OfficesPage() {
               value={String(pageSize)}
               onValueChange={(v) => table.setPageSize(Number(v))}
             >
-              <SelectTrigger className="h-8 w-[70px]" data-testid="offices-page-size">
+              <SelectTrigger className="h-[var(--ctl-h-sm)] w-[70px]" data-testid="offices-page-size">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -801,7 +801,7 @@ export default function OfficesPage() {
               <Button
                 variant="outline"
                 size="icon"
-                className="size-8"
+                className="size-[var(--ctl-h-sm)]"
                 onClick={() => table.previousPage()}
                 disabled={!table.getCanPreviousPage()}
                 aria-label="Previous page"
@@ -811,7 +811,7 @@ export default function OfficesPage() {
               <Button
                 variant="outline"
                 size="icon"
-                className="size-8"
+                className="size-[var(--ctl-h-sm)]"
                 onClick={() => table.nextPage()}
                 disabled={!table.getCanNextPage()}
                 aria-label="Next page"
