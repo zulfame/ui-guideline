@@ -783,6 +783,7 @@ export default function UsersPage() {
                     onClick={() => table.previousPage()}
                     disabled={!table.getCanPreviousPage()}
                     aria-label="Previous page"
+                    data-testid="users-prev-page"
                   >
                     <ChevronLeft className="size-4" />
                   </Button>
@@ -793,6 +794,7 @@ export default function UsersPage() {
                     onClick={() => table.nextPage()}
                     disabled={!table.getCanNextPage()}
                     aria-label="Next page"
+                    data-testid="users-next-page"
                   >
                     <ChevronRight className="size-4" />
                   </Button>

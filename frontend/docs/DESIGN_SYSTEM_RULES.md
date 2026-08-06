@@ -372,6 +372,7 @@ Setiap `<Table>` pada halaman list WAJIB memakai class **`tbl-density`** (digabu
 `[&_td]:whitespace-nowrap [&_th]:whitespace-nowrap`). Efek otomatis dari `.tbl-density`:
 - padding vertikal sel `td/th` = `var(--tbl-cell-py)` → ikut Dense (`0.25rem`) / Comfortable (`0.75rem`).
 - `td` = **13px** (`0.8125rem`); `th` = **UPPERCASE** + `letter-spacing .05em` + `0.75rem`, `height:auto`.
+- **background header abu** seragam: `thead th` = `hsl(var(--muted)/0.5)` (dipaksa via CSS, tidak bergantung markup per-halaman).
 
 DILARANG mengatur ulang tinggi/padding baris via nilai arbitrer per-halaman.
 
@@ -409,6 +410,25 @@ pada form CRUD sederhana (judul `CardTitle` sudah cukup).
 > WAJIB mengikuti R47 sejak awal.
 
 ---
+
+## 12B. R48 — Konsistensi Ukuran Tombol (Non-Negotiable)
+
+Ukuran font tombol **mengikuti `size`** (by design): `sm` = `text-xs` (12px), `default` =
+`text-sm` (14px). Yang WAJIB dijaga adalah **konsistensi antar tombol sederajat**.
+
+- **Default halaman aplikasi = `size="sm"`.** Semua tombol aksi halaman (header actions,
+  toolbar, CTA sekunder seperti "New Client", "View API Docs", "Import/Export") memakai
+  **`size="sm"`** agar seragam & compact (selaras R47/R39).
+- ❌ DILARANG menaruh tombol beda `size` berdampingan / pada page yang sama tanpa alasan
+  (mis. header `sm` 12px vs CTA `default` 14px) — inkonsistensi yang dilaporkan user.
+- `default`/`lg` hanya untuk konteks khusus (mis. tombol submit utama di form/dialog besar)
+  dan tetap konsisten antar sesama tombol di konteks itu.
+
+> SSOT ukuran: `components/ui/button.jsx` (`sm`=`text-xs`, `default`=`text-sm`). Prioritas app: `sm`.
+
+---
+
+
 
 
 

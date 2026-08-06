@@ -170,14 +170,14 @@ export default function SessionsPage() {
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <div className="relative max-w-xs flex-1">
+          <div className="flex flex-col gap-2 rounded-lg border bg-muted/40 p-2 sm:flex-row sm:items-center sm:justify-between">
+            <div className="relative w-full max-w-[15rem]">
               <Search className="absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
               <Input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search user, email or IP..."
-                className="pl-8"
+                placeholder="Search..."
+                className="h-[var(--ctl-h-sm)] pl-8 text-xs"
                 data-testid="sessions-search"
               />
             </div>
@@ -204,7 +204,7 @@ export default function SessionsPage() {
                 description="There are no signed-in sessions to show right now."
               />
             ) : (
-              <Table data-testid="sessions-table" className="[&_td]:whitespace-nowrap [&_th]:whitespace-nowrap">
+              <Table data-testid="sessions-table" className="tbl-density [&_td]:whitespace-nowrap [&_th]:whitespace-nowrap">
                 <TableHeader>
                   <TableRow className="bg-muted/50 hover:bg-muted/50">
                     <TableHead>User</TableHead>

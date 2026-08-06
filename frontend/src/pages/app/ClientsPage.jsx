@@ -542,6 +542,7 @@ export default function ClientsPage() {
                     onClick={() => table.previousPage()}
                     disabled={!table.getCanPreviousPage()}
                     aria-label="Previous page"
+                    data-testid="clients-prev-page"
                   >
                     <ChevronLeft className="size-4" />
                   </Button>
@@ -552,6 +553,7 @@ export default function ClientsPage() {
                     onClick={() => table.nextPage()}
                     disabled={!table.getCanNextPage()}
                     aria-label="Next page"
+                    data-testid="clients-next-page"
                   >
                     <ChevronRight className="size-4" />
                   </Button>
@@ -578,6 +580,7 @@ export default function ClientsPage() {
             </div>
           </div>
           <Button
+            size="sm"
             onClick={() => navigate("/developers")}
             className="shrink-0"
             data-testid="open-api-docs-button"

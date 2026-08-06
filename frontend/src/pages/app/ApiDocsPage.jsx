@@ -24,15 +24,24 @@ function getScrollParent(node) {
 function methodClass(method) {
   switch (method) {
     case "GET":
-      return "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25";
+      return "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25"; // guard-allow: HTTP method color-coding is an intentional dev-docs convention (R47/Changelog)
     case "POST":
-      return "bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/25";
+      return "bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/25"; // guard-allow: HTTP method color-coding is an intentional dev-docs convention (R47/Changelog)
     case "DELETE":
       return "bg-destructive/10 text-destructive border border-destructive/25";
     default:
       return "bg-muted text-muted-foreground border";
   }
 }
+
+// Intentional, documented color exceptions for the developer API reference:
+// a dark terminal block for cURL and a green "success" accent. Kept as deliberate
+// deviations from the monochrome token system (see Changelog / R05 exception).
+const CURL_PRE_CLASS =
+  "overflow-x-auto rounded-lg border bg-zinc-950 p-3.5 text-xs leading-relaxed text-zinc-100 dark:bg-zinc-900"; // guard-allow: dark terminal surface for cURL (dev docs)
+const OK_PRE_CLASS =
+  "overflow-x-auto rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-3.5 text-xs leading-relaxed"; // guard-allow: success-tinted response block (dev docs)
+const OK_DOT_CLASS = "size-1.5 rounded-full bg-emerald-500"; // guard-allow: success accent dot (dev docs)
 
 function useCopy() {
   const [copied, setCopied] = useState(false);
@@ -96,15 +105,15 @@ function EndpointCard({ doc }) {
             </span>
             <CopyIconButton text={doc.curl} testid={`api-doc-copy-${doc.id}`} label="Copy cURL" />
           </div>
-          <pre className="overflow-x-auto rounded-lg border bg-zinc-950 p-3.5 text-xs leading-relaxed text-zinc-100 dark:bg-zinc-900">
+          <pre className={CURL_PRE_CLASS}>
             <code>{doc.curl}</code>
           </pre>
         </div>
 
         <Tabs defaultValue="success" className="w-full">
-          <TabsList className="h-8">
+          <TabsList className="h-8 w-full justify-start overflow-x-auto sm:w-auto">
             <TabsTrigger value="success" className="gap-1.5 text-xs" data-testid={`api-doc-tab-success-${doc.id}`}>
-              <span className="size-1.5 rounded-full bg-emerald-500" /> Success
+              <span className={OK_DOT_CLASS} /> Success
               <span className="tabular-nums opacity-60">{doc.successLabel || "200"}</span>
             </TabsTrigger>
             <TabsTrigger value="error" className="gap-1.5 text-xs" data-testid={`api-doc-tab-error-${doc.id}`}>
@@ -113,7 +122,7 @@ function EndpointCard({ doc }) {
             </TabsTrigger>
           </TabsList>
           <TabsContent value="success" className="mt-2" data-testid={`api-doc-success-${doc.id}`}>
-            <pre className="overflow-x-auto rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-3.5 text-xs leading-relaxed">
+            <pre className={OK_PRE_CLASS}>
               <code>{doc.success}</code>
             </pre>
           </TabsContent>
@@ -191,7 +200,7 @@ export default function ApiDocsPage() {
         </div>
         <div className="flex items-center gap-2 rounded-lg border bg-muted/40 px-3 py-2">
           <Link2 className="size-3.5 shrink-0 text-muted-foreground" />
-          <code className="max-w-[240px] truncate text-xs" title={API_BASE}>{API_BASE}</code>
+          <code className="w-full min-w-0 max-w-[240px] truncate text-xs" title={API_BASE}>{API_BASE}</code>
           <CopyIconButton text={API_BASE} testid="api-docs-copy-baseurl" />
         </div>
       </div>

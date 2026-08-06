@@ -232,6 +232,7 @@ function DataTableCard({
                   onClick={() => table.previousPage()}
                   disabled={!table.getCanPreviousPage()}
                   aria-label="Previous page"
+                  data-testid="loginsec-prev-page"
                 >
                   <ChevronLeft className="size-4" />
                 </Button>
@@ -242,6 +243,7 @@ function DataTableCard({
                   onClick={() => table.nextPage()}
                   disabled={!table.getCanNextPage()}
                   aria-label="Next page"
+                  data-testid="loginsec-next-page"
                 >
                   <ChevronRight className="size-4" />
                 </Button>
