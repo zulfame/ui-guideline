@@ -28,6 +28,7 @@ import {
   ShieldCheck,
   Terminal,
   Trash2,
+  X,
 } from "lucide-react";
 import { Bar, BarChart, CartesianGrid, XAxis } from "recharts";
 
@@ -642,7 +643,7 @@ export default function ClientsPage() {
           </DialogBody>
           <DialogFooter>
             <DialogClose asChild>
-              <Button type="button" variant="outline" data-testid="clients-form-cancel">Cancel</Button>
+              <Button type="button" variant="outline" data-testid="clients-form-cancel"><X className="size-4" /> Cancel</Button>
             </DialogClose>
             <Button onClick={submitForm} disabled={saving} data-testid="clients-form-submit">
               {saving ? <Loader2 className="size-4 animate-spin" /> : <ShieldCheck className="size-4" />}
@@ -670,7 +671,7 @@ export default function ClientsPage() {
             </div>
           </DialogBody>
           <DialogFooter>
-            <Button onClick={() => setRevealKey(null)} data-testid="client-key-done">Done</Button>
+            <Button onClick={() => setRevealKey(null)} data-testid="client-key-done"><Check className="size-4" /> Done</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -716,7 +717,7 @@ export default function ClientsPage() {
             working immediately and a new key will be issued.
           </div>
           <AlertDialogFooter>
-            <AlertDialogCancel data-testid="client-regenerate-cancel">Cancel</AlertDialogCancel>
+            <AlertDialogCancel data-testid="client-regenerate-cancel"><X className="size-4" /> Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={(e) => {
                 e.preventDefault();
@@ -725,7 +726,7 @@ export default function ClientsPage() {
               disabled={acting}
               data-testid="client-regenerate-confirm"
             >
-              Regenerate
+              <RefreshCw className="size-4" /> Regenerate
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -742,7 +743,7 @@ export default function ClientsPage() {
             will stop working.
           </div>
           <AlertDialogFooter>
-            <AlertDialogCancel data-testid="client-revoke-cancel">Cancel</AlertDialogCancel>
+            <AlertDialogCancel data-testid="client-revoke-cancel"><X className="size-4" /> Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={(e) => {
                 e.preventDefault();
@@ -752,7 +753,7 @@ export default function ClientsPage() {
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               data-testid="client-revoke-confirm"
             >
-              Revoke
+              <Ban className="size-4" /> Revoke
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -769,7 +770,7 @@ export default function ClientsPage() {
             its key. This cannot be undone.
           </div>
           <AlertDialogFooter>
-            <AlertDialogCancel data-testid="client-delete-cancel">Cancel</AlertDialogCancel>
+            <AlertDialogCancel data-testid="client-delete-cancel"><X className="size-4" /> Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={(e) => {
                 e.preventDefault();
@@ -779,7 +780,7 @@ export default function ClientsPage() {
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               data-testid="client-delete-confirm"
             >
-              Delete
+              <Trash2 className="size-4" /> Delete
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

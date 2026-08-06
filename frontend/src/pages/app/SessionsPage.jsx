@@ -7,6 +7,7 @@ import {
   RefreshCw,
   Search,
   Smartphone,
+  X,
 } from "lucide-react";
 
 import API from "@/lib/api";
@@ -292,7 +293,7 @@ export default function SessionsPage() {
             signed out on that device and must log in again. This cannot be undone.
           </div>
           <AlertDialogFooter>
-            <AlertDialogCancel data-testid="session-revoke-cancel">Cancel</AlertDialogCancel>
+            <AlertDialogCancel data-testid="session-revoke-cancel"><X className="size-4" /> Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={(e) => { e.preventDefault(); doRevoke(); }}
               disabled={acting}

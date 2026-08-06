@@ -17,6 +17,7 @@ import {
   ArrowRight,
   ArrowUp,
   ArrowUpDown,
+  Check,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
@@ -33,6 +34,7 @@ import {
   Settings2,
   Trash2,
   Upload,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -418,10 +420,10 @@ function RoleFormDialog({ open, onOpenChange, editing, roles, levels, onSaved })
                 onClick={() => onOpenChange(false)}
                 data-testid="role-form-cancel"
               >
-                Cancel
+                <X className="size-4" /> Cancel
               </Button>
               <Button type="submit" disabled={submitting} data-testid="role-form-submit">
-                {submitting ? "Saving..." : "Save role"}
+                <Check className="size-4" /> {submitting ? "Saving..." : "Save role"}
               </Button>
             </DialogFooter>
           </form>
@@ -601,7 +603,7 @@ function LevelManagerDialog({ open, onOpenChange, levels, onChanged }) {
                   onClick={() => saveLevel(l.id)}
                   data-testid={`level-save-${l.id}`}
                 >
-                  Save
+                  <Check className="size-4" /> Save
                 </Button>
                 <Button
                   variant="ghost"
@@ -654,7 +656,7 @@ function LevelManagerDialog({ open, onOpenChange, levels, onChanged }) {
             onClick={() => onOpenChange(false)}
             data-testid="levels-close"
           >
-            Close
+            <X className="size-4" /> Close
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -1292,7 +1294,7 @@ export default function RolesPage() {
           </div>
           <AlertDialogFooter>
             <Button variant="outline" onClick={closeDelete} data-testid="roles-delete-cancel">
-              Cancel
+              <X className="size-4" /> Cancel
             </Button>
             {reassignInfo ? (
               <Button
@@ -1301,7 +1303,7 @@ export default function RolesPage() {
                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                 data-testid="roles-reassign-confirm"
               >
-                Reassign &amp; delete
+                <Trash2 className="size-4" /> Reassign &amp; delete
               </Button>
             ) : (
               <Button
@@ -1309,7 +1311,7 @@ export default function RolesPage() {
                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                 data-testid="roles-delete-confirm"
               >
-                Delete
+                <Trash2 className="size-4" /> Delete
               </Button>
             )}
           </AlertDialogFooter>
@@ -1329,14 +1331,14 @@ export default function RolesPage() {
           </div>
           <AlertDialogFooter>
             <AlertDialogCancel data-testid="roles-bulk-delete-cancel">
-              Cancel
+              <X className="size-4" /> Cancel
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmBulkDelete}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               data-testid="roles-bulk-delete-confirm"
             >
-              Delete
+              <Trash2 className="size-4" /> Delete
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

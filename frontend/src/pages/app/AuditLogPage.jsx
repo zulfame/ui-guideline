@@ -11,6 +11,7 @@ import {
   RefreshCw,
   Search,
   Trash2,
+  X,
 } from "lucide-react";
 
 import API from "@/lib/api";
@@ -644,7 +645,7 @@ export default function AuditLogPage() {
           <DialogFooter>
             <DialogClose asChild>
               <Button variant="outline" disabled={purging} data-testid="audit-purge-cancel">
-                Cancel
+                <X className="size-4" /> Cancel
               </Button>
             </DialogClose>
             <Button
@@ -668,7 +669,7 @@ export default function AuditLogPage() {
             This permanently removes the selected audit log entries. This cannot be undone.
           </div>
           <AlertDialogFooter>
-            <AlertDialogCancel data-testid="audit-bulk-delete-cancel">Cancel</AlertDialogCancel>
+            <AlertDialogCancel data-testid="audit-bulk-delete-cancel"><X className="size-4" /> Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={(e) => {
                 e.preventDefault();

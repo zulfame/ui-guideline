@@ -6,10 +6,13 @@ import {
   Mail,
   MessageSquare,
   MoreHorizontal,
+  Save,
   Send,
   SendHorizontal,
   Settings2,
   Webhook,
+  Wifi,
+  X,
   XCircle,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -378,13 +381,13 @@ export default function BroadcastPage() {
               disabled={testing || saving}
               data-testid="broadcast-test-btn"
             >
-              {testing ? <Loader2 className="size-4 animate-spin" /> : null}
+              {testing ? <Loader2 className="size-4 animate-spin" /> : <Wifi className="size-4" />}
               Test connection
             </Button>
             <div className="flex flex-col gap-2 sm:flex-row">
               <DialogClose asChild>
                 <Button variant="outline" className="w-full sm:w-auto" disabled={testing || saving}>
-                  Cancel
+                  <X className="size-4" /> Cancel
                 </Button>
               </DialogClose>
               <Button
@@ -393,7 +396,7 @@ export default function BroadcastPage() {
                 disabled={saving || testing}
                 data-testid="broadcast-save-btn"
               >
-                {saving ? <Loader2 className="size-4 animate-spin" /> : null}
+                {saving ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
                 Save
               </Button>
             </div>
@@ -452,10 +455,10 @@ export default function BroadcastPage() {
               ) : null}
             </div>
           </DialogBody>
-          <DialogFooter className="flex-col gap-2 sm:flex-row sm:justify-end">
+          <DialogFooter className="flex-col gap-2 sm:flex-row sm:justify-between">
             <DialogClose asChild>
               <Button variant="outline" className="w-full sm:w-auto" disabled={sending}>
-                Cancel
+                <X className="size-4" /> Cancel
               </Button>
             </DialogClose>
             <Button

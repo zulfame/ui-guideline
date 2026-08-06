@@ -12,6 +12,7 @@ import {
   Save,
   Trash2,
   Upload,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -665,7 +666,7 @@ export default function DatabasePage() {
             {deleteTarget?.s3_key ? " from the server and S3." : " from the server."} This cannot be undone.
           </div>
           <AlertDialogFooter>
-            <AlertDialogCancel data-testid="database-delete-cancel">Cancel</AlertDialogCancel>
+            <AlertDialogCancel data-testid="database-delete-cancel"><X className="size-4" /> Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={(e) => {
                 e.preventDefault();
@@ -763,7 +764,7 @@ export default function DatabasePage() {
           <DialogFooter>
             <DialogClose asChild>
               <Button variant="outline" disabled={busy} data-testid="database-restore-cancel">
-                Cancel
+                <X className="size-4" /> Cancel
               </Button>
             </DialogClose>
             <Button

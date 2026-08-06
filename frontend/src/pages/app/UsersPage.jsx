@@ -16,6 +16,7 @@ import {
   ArrowDown,
   ArrowUp,
   ArrowUpDown,
+  Check,
   ChevronLeft,
   ChevronRight,
   FilterX,
@@ -28,9 +29,11 @@ import {
   RefreshCw,
   RotateCcw,
   Search,
+  Send,
   Smartphone,
   Trash2,
   Upload,
+  X,
 } from "lucide-react";
 
 import API, { fetchAll } from "@/lib/api";
@@ -185,11 +188,11 @@ function ChangePasswordDialog({ open, onOpenChange, user, onSaved }) {
             <DialogFooter>
               <DialogClose asChild>
                 <Button type="button" variant="outline" data-testid="user-changepw-cancel">
-                  Cancel
+                  <X className="size-4" /> Cancel
                 </Button>
               </DialogClose>
               <Button type="submit" disabled={submitting} data-testid="user-changepw-submit">
-                {submitting ? "Saving..." : "Change password"}
+                <KeyRound className="size-4" /> {submitting ? "Saving..." : "Change password"}
               </Button>
             </DialogFooter>
           </form>
@@ -268,11 +271,11 @@ function SendNotificationDialog({ open, onOpenChange, user }) {
         <DialogFooter>
           <DialogClose asChild>
             <Button type="button" variant="outline" data-testid="user-push-cancel">
-              Cancel
+              <X className="size-4" /> Cancel
             </Button>
           </DialogClose>
           <Button type="button" onClick={submit} disabled={sending} data-testid="user-push-submit">
-            {sending ? "Sending..." : "Send"}
+            <Send className="size-4" /> {sending ? "Sending..." : "Send"}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -841,9 +844,9 @@ export default function UsersPage() {
             </AlertDialogDescription>
           </div>
           <AlertDialogFooter>
-            <AlertDialogCancel data-testid="users-reset-cancel">Cancel</AlertDialogCancel>
+            <AlertDialogCancel data-testid="users-reset-cancel"><X className="size-4" /> Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={confirmReset} data-testid="users-reset-confirm">
-              Reset password
+              <RotateCcw className="size-4" /> Reset password
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -862,13 +865,13 @@ export default function UsersPage() {
             </AlertDialogDescription>
           </div>
           <AlertDialogFooter>
-            <AlertDialogCancel data-testid="users-delete-cancel">Cancel</AlertDialogCancel>
+            <AlertDialogCancel data-testid="users-delete-cancel"><X className="size-4" /> Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmDelete}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               data-testid="users-delete-confirm"
             >
-              Delete
+              <Trash2 className="size-4" /> Delete
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -887,12 +890,12 @@ export default function UsersPage() {
             </AlertDialogDescription>
           </div>
           <AlertDialogFooter>
-            <AlertDialogCancel data-testid="users-unbind-cancel">Cancel</AlertDialogCancel>
+            <AlertDialogCancel data-testid="users-unbind-cancel"><X className="size-4" /> Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => unbindDevice(unbindTarget)}
               data-testid="users-unbind-confirm"
             >
-              Unbind device
+              <Smartphone className="size-4" /> Unbind device
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -909,13 +912,13 @@ export default function UsersPage() {
             </AlertDialogDescription>
           </div>
           <AlertDialogFooter>
-            <AlertDialogCancel data-testid="users-bulk-delete-cancel">Cancel</AlertDialogCancel>
+            <AlertDialogCancel data-testid="users-bulk-delete-cancel"><X className="size-4" /> Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmBulkDelete}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               data-testid="users-bulk-delete-confirm"
             >
-              Delete
+              <Trash2 className="size-4" /> Delete
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

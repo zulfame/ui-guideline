@@ -4,7 +4,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
-import { ArrowLeft, Loader2, Save } from "lucide-react";
+import { ArrowLeft, Loader2, RefreshCw, Save } from "lucide-react";
 
 import API, { fetchAll } from "@/lib/api";
 import { Button } from "@/components/ui/button";
@@ -163,7 +163,7 @@ export default function RoleFormPage() {
           variant="error"
           action={
             <Button variant="outline" size="sm" onClick={load} data-testid="role-form-retry">
-              Try again
+              <RefreshCw className="size-4" /> Try again
             </Button>
           }
         />

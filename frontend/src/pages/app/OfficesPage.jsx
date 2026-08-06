@@ -16,6 +16,7 @@ import {
   ArrowDown,
   ArrowUp,
   ArrowUpDown,
+  Check,
   ChevronLeft,
   ChevronRight,
   Download,
@@ -27,6 +28,7 @@ import {
   Search,
   Trash2,
   Upload,
+  X,
 } from "lucide-react";
 
 import API, { fetchAll } from "@/lib/api";
@@ -343,11 +345,11 @@ function OfficeFormDialog({ open, onOpenChange, mode, initialValues, onSaved }) 
             <DialogFooter>
               <DialogClose asChild>
                 <Button type="button" variant="outline" data-testid="office-form-cancel">
-                  Cancel
+                  <X className="size-4" /> Cancel
                 </Button>
               </DialogClose>
               <Button type="submit" disabled={submitting} data-testid="office-form-submit">
-                {submitting ? "Saving..." : mode === "edit" ? "Save changes" : "Save office"}
+                <Check className="size-4" /> {submitting ? "Saving..." : mode === "edit" ? "Save changes" : "Save office"}
               </Button>
             </DialogFooter>
           </form>
@@ -864,7 +866,7 @@ export default function OfficesPage() {
           </div>
           <AlertDialogFooter>
             <Button variant="outline" onClick={closeDelete} data-testid="offices-delete-cancel">
-              Cancel
+              <X className="size-4" /> Cancel
             </Button>
             {reassignInfo ? (
               <Button
@@ -873,7 +875,7 @@ export default function OfficesPage() {
                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                 data-testid="offices-reassign-confirm"
               >
-                Reassign &amp; delete
+                <Trash2 className="size-4" /> Reassign &amp; delete
               </Button>
             ) : (
               <Button
@@ -881,7 +883,7 @@ export default function OfficesPage() {
                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                 data-testid="offices-delete-confirm"
               >
-                Delete
+                <Trash2 className="size-4" /> Delete
               </Button>
             )}
           </AlertDialogFooter>
@@ -900,13 +902,13 @@ export default function OfficesPage() {
             </AlertDialogDescription>
           </div>
           <AlertDialogFooter>
-            <AlertDialogCancel data-testid="offices-bulk-delete-cancel">Cancel</AlertDialogCancel>
+            <AlertDialogCancel data-testid="offices-bulk-delete-cancel"><X className="size-4" /> Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmBulkDelete}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               data-testid="offices-bulk-delete-confirm"
             >
-              Delete
+              <Trash2 className="size-4" /> Delete
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

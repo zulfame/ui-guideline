@@ -177,7 +177,9 @@ export default function ChangePasswordPage() {
                     Updating...
                   </>
                 ) : (
-                  "Update password"
+                  <>
+                    <KeyRound className="h-4 w-4" aria-hidden="true" /> Update password
+                  </>
                 )}
               </Button>
 

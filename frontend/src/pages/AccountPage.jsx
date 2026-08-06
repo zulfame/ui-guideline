@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Loader2, LogIn, LogOut, Monitor, MonitorSmartphone, Smartphone } from "lucide-react";
+import { Loader2, LogIn, LogOut, Monitor, MonitorSmartphone, Smartphone, X } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -355,7 +355,7 @@ export default function AccountPage() {
             This signs you out everywhere except this device. Those devices will need to log in again.
           </div>
           <AlertDialogFooter>
-            <AlertDialogCancel data-testid="my-devices-signout-others-cancel">Cancel</AlertDialogCancel>
+            <AlertDialogCancel data-testid="my-devices-signout-others-cancel"><X className="size-4" /> Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={(e) => { e.preventDefault(); doRevokeOthers(); }}
               disabled={acting}

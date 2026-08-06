@@ -428,6 +428,37 @@ Ukuran font tombol **mengikuti `size`** (by design): `sm` = `text-xs` (12px), `d
 
 ---
 
+## 12C. R49 — Semua Tombol Wajib Ada Ikon (Non-Negotiable)
+
+Setiap `<Button>` / `AlertDialogAction` / `AlertDialogCancel` (di halaman **dan** dialog)
+WAJIB menampilkan ikon lucide-react di sisi kiri label. Tombol khusus ikon (`size="icon"`)
+sudah otomatis patuh.
+
+Konvensi ikon default (pakai yang paling relevan bila ada konteks lebih spesifik):
+- Save/Simpan → `Check`/`Save` · Submit password → `KeyRound` · Cancel/Batal/Close/Tutup → `X`
+- Delete/Hapus/Clear/Purge → `Trash2` · Confirm → `Check` · Add/New → `Plus` · Back → `ArrowLeft`
+- Reset (form) → `RotateCcw` · Retry → `RefreshCw` · Send → `Send`/`SendHorizontal`
+- Revoke → `Ban` · Regenerate → `RefreshCw` · Test connection → `Wifi` · Sign out → `LogOut`
+
+> Saat loading, ikon boleh diganti spinner `Loader2 animate-spin`, tetapi state normal tetap wajib berikon.
+
+---
+
+## 12D. R50 — Penempatan Tombol Footer (Non-Negotiable)
+
+Footer dialog/halaman dengan **dua tombol** WAJIB tersebar **kiri & kanan** (bukan menumpuk
+di kanan): **Cancel/Batal di KIRI, tombol utama (Save/Confirm/Delete) di KANAN**.
+
+- SSOT: `DialogFooter` & `AlertDialogFooter` default kini `sm:justify-between` (urutan DOM:
+  Cancel dulu → primary) — jadi otomatis kiri/kanan tanpa util per-halaman.
+- ❌ DILARANG menimpa dengan `sm:justify-end` untuk footer dua-tombol.
+- Footer **satu tombol** tetap boleh rata kanan (`justify-end`).
+
+> SSOT: `components/ui/dialog.jsx`, `components/ui/alert-dialog.jsx`.
+
+---
+
+
 
 
 

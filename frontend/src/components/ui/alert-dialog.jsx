@@ -54,7 +54,7 @@ const AlertDialogFooter = ({
 }) => (
   <div
     className={cn(
-      "flex flex-col-reverse gap-2 border-t border-border px-6 py-4 sm:flex-row sm:justify-end",
+      "flex flex-col-reverse gap-2 border-t border-border px-6 py-4 sm:flex-row sm:justify-between",
       className
     )}
     {...props} />

@@ -21,6 +21,7 @@ import {
   Search,
   ShieldAlert,
   Trash2,
+  X,
 } from "lucide-react";
 
 import API from "@/lib/api";
@@ -576,14 +577,14 @@ export default function LoginSecurityPage() {
             Removes the login-throttle record for <span className="font-medium text-foreground">{deleteAttempt?.identifier}</span>.
           </div>
           <AlertDialogFooter>
-            <AlertDialogCancel data-testid="login-attempt-delete-cancel">Cancel</AlertDialogCancel>
+            <AlertDialogCancel data-testid="login-attempt-delete-cancel"><X className="size-4" /> Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={(e) => { e.preventDefault(); doDeleteAttempt(); }}
               disabled={acting}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               data-testid="login-attempt-delete-confirm"
             >
-              Delete
+              <Trash2 className="size-4" /> Delete
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -599,14 +600,14 @@ export default function LoginSecurityPage() {
             This removes every login-throttle record, including any active lockouts. This cannot be undone.
           </div>
           <AlertDialogFooter>
-            <AlertDialogCancel data-testid="login-security-clear-cancel">Cancel</AlertDialogCancel>
+            <AlertDialogCancel data-testid="login-security-clear-cancel"><X className="size-4" /> Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={(e) => { e.preventDefault(); doClearAttempts(); }}
               disabled={acting}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               data-testid="login-security-clear-confirm"
             >
-              Clear all
+              <Trash2 className="size-4" /> Clear all
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -622,14 +623,14 @@ export default function LoginSecurityPage() {
             Removes the password reset request for <span className="font-medium text-foreground">{deleteReset?.email}</span>.
           </div>
           <AlertDialogFooter>
-            <AlertDialogCancel data-testid="password-reset-delete-cancel">Cancel</AlertDialogCancel>
+            <AlertDialogCancel data-testid="password-reset-delete-cancel"><X className="size-4" /> Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={(e) => { e.preventDefault(); doDeleteReset(); }}
               disabled={acting}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               data-testid="password-reset-delete-confirm"
             >
-              Delete
+              <Trash2 className="size-4" /> Delete
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -645,14 +646,14 @@ export default function LoginSecurityPage() {
             This removes all recorded password reset requests. This cannot be undone.
           </div>
           <AlertDialogFooter>
-            <AlertDialogCancel data-testid="password-resets-clear-cancel">Cancel</AlertDialogCancel>
+            <AlertDialogCancel data-testid="password-resets-clear-cancel"><X className="size-4" /> Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={(e) => { e.preventDefault(); doClearResets(); }}
               disabled={acting}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               data-testid="password-resets-clear-confirm"
             >
-              Clear all
+              <Trash2 className="size-4" /> Clear all
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
