@@ -650,13 +650,13 @@ export default function OfficesPage() {
         <CardContent className="space-y-4">
           {/* Toolbar */}
           <div className="flex flex-col gap-2 rounded-lg border bg-muted/40 p-2 sm:flex-row sm:items-center sm:justify-between">
-            <div className="relative max-w-xs flex-1">
+            <div className="relative w-full max-w-[15rem]">
               <Search className="absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
               <Input
                 value={globalFilter}
                 onChange={(e) => setGlobalFilter(e.target.value)}
-                placeholder="Search offices..."
-                className="pl-8"
+                placeholder="Search..."
+                className="h-[var(--ctl-h-sm)] pl-8 text-xs"
                 data-testid="offices-search"
               />
             </div>
