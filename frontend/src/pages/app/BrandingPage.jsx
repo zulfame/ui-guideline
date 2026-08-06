@@ -34,7 +34,6 @@ const SITEMAP_SORT = { path: (u) => u.path };
 const TEXT_FIELDS = [
   "app_name",
   "tagline",
-  "brand_initial",
   "meta_description",
   "meta_keywords",
   "og_title",
@@ -75,10 +74,10 @@ function AssetField({ kind, label, hint, previewUrl, onChanged }) {
       const fd = new FormData();
       fd.append("file", f);
       await API.post(`/branding/assets/${kind}`, fd);
-      toast.success(`${label} diperbarui`);
+      toast.success(`${label} updated`);
       await onChanged();
     } catch (err) {
-      toast.error(err?.response?.data?.detail || "Unggah gagal. Silakan coba lagi.");
+      toast.error(err?.response?.data?.detail || "Upload failed. Please try again.");
     } finally {
       setBusy(false);
       if (inputRef.current) inputRef.current.value = "";
@@ -89,10 +88,10 @@ function AssetField({ kind, label, hint, previewUrl, onChanged }) {
     setBusy(true);
     try {
       await API.delete(`/branding/assets/${kind}`);
-      toast.success(`${label} direset`);
+      toast.success(`${label} reset`);
       await onChanged();
     } catch {
-      toast.error("Reset gagal. Silakan coba lagi.");
+      toast.error("Reset failed. Please try again.");
     } finally {
       setBusy(false);
     }
@@ -130,7 +129,7 @@ function AssetField({ kind, label, hint, previewUrl, onChanged }) {
             data-testid={`branding-upload-${kind}`}
           >
             {busy ? <Loader2 className="size-4 animate-spin" /> : <Upload className="size-4" />}
-            {previewUrl ? "Ganti" : "Unggah"}
+            {previewUrl ? "Replace" : "Upload"}
           </Button>
           <Button
             type="button"
@@ -162,7 +161,7 @@ function SitemapManager() {
       const { data } = await API.get("/sitemap-urls");
       setUrls(data);
     } catch {
-      toast.error("Gagal memuat URL sitemap.");
+      toast.error("Failed to load sitemap URLs.");
     } finally {
       setLoading(false);
     }
@@ -174,7 +173,7 @@ function SitemapManager() {
 
   const add = async () => {
     if (!newPath.trim()) {
-      toast.error("Path wajib diisi.");
+      toast.error("Path is required.");
       return;
     }
     setAdding(true);
@@ -184,13 +183,13 @@ function SitemapManager() {
         changefreq: newFreq,
         priority: newPriority,
       });
-      toast.success("URL ditambahkan");
+      toast.success("URL added");
       setNewPath("");
       setNewFreq("weekly");
       setNewPriority("0.5");
       fetchUrls();
     } catch (err) {
-      toast.error(err?.response?.data?.detail || "Gagal menambahkan URL.");
+      toast.error(err?.response?.data?.detail || "Failed to add URL.");
     } finally {
       setAdding(false);
     }
@@ -201,7 +200,7 @@ function SitemapManager() {
     try {
       await API.put(`/sitemap-urls/${id}`, { [field]: value });
     } catch (err) {
-      toast.error(err?.response?.data?.detail || "Pembaruan gagal.");
+      toast.error(err?.response?.data?.detail || "Update failed.");
       fetchUrls();
     }
   };
@@ -209,21 +208,21 @@ function SitemapManager() {
   const remove = async (id) => {
     try {
       await API.delete(`/sitemap-urls/${id}`);
-      toast.success("URL dihapus");
+      toast.success("URL removed");
       fetchUrls();
     } catch {
-      toast.error("Hapus gagal.");
+      toast.error("Delete failed.");
     }
   };
 
   return (
     <div className="space-y-4">
       <p className="text-sm text-muted-foreground">
-        Kelola halaman publik yang disertakan pada{" "}
-        <span className="font-medium text-foreground">sitemap.xml</span>. Root situs ditambahkan
-        otomatis; tambah, ubah, atau hapus entri sesuai kebutuhan. Path digabung dengan alamat
-        aplikasi Anda yang <span className="font-medium text-foreground">terdeteksi otomatis</span>{" "}
-        dari server.
+        Manage the public pages included in{" "}
+        <span className="font-medium text-foreground">sitemap.xml</span>. The site root is added
+        automatically; add, edit, or remove entries as needed. Paths combine with your app&apos;s
+        address, which is <span className="font-medium text-foreground">detected automatically</span>{" "}
+        from the server.
       </p>
 
       {/* Add row */}
@@ -239,7 +238,7 @@ function SitemapManager() {
           />
         </div>
         <div className="space-y-1.5">
-          <Label>Frekuensi</Label>
+          <Label>Change freq</Label>
           <Select value={newFreq} onValueChange={setNewFreq}>
             <SelectTrigger className="w-full sm:w-36" data-testid="sitemap-new-freq">
               <SelectValue />
@@ -252,7 +251,7 @@ function SitemapManager() {
           </Select>
         </div>
         <div className="space-y-1.5">
-          <Label>Prioritas</Label>
+          <Label>Priority</Label>
           <Select value={newPriority} onValueChange={setNewPriority}>
             <SelectTrigger className="w-full sm:w-24" data-testid="sitemap-new-priority">
               <SelectValue />
@@ -272,7 +271,7 @@ function SitemapManager() {
           data-testid="sitemap-add-btn"
         >
           {adding ? <Loader2 className="size-4 animate-spin" /> : <Plus className="size-4" />}
-          Tambah
+          Add
         </Button>
       </div>
 
@@ -286,23 +285,23 @@ function SitemapManager() {
               <TableHead>
                 <SortHead label="Path" sortKey="path" sort={sort} onToggle={toggle} />
               </TableHead>
-              <TableHead>Frekuensi</TableHead>
-              <TableHead>Prioritas</TableHead>
-              <TableHead>Aktif</TableHead>
-              <TableHead className="text-right">Aksi</TableHead>
+              <TableHead>Change freq</TableHead>
+              <TableHead>Priority</TableHead>
+              <TableHead>Enabled</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {loading ? (
               <TableRow>
                 <TableCell colSpan={5} className="text-center text-muted-foreground">
-                  Memuat…
+                  Loading…
                 </TableCell>
               </TableRow>
             ) : urls.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={5} className="text-center text-muted-foreground">
-                  Belum ada URL.
+                  No URLs yet.
                 </TableCell>
               </TableRow>
             ) : (
@@ -346,7 +345,7 @@ function SitemapManager() {
                       size="icon"
                       className="size-8 text-destructive"
                       onClick={() => remove(u.id)}
-                      aria-label="Hapus URL"
+                      aria-label="Delete URL"
                       data-testid={`sitemap-delete-${u.id}`}
                     >
                       <Trash2 className="size-4" />
@@ -378,9 +377,9 @@ export default function BrandingPage() {
     try {
       await API.put("/branding", form);
       await refresh();
-      toast.success("Branding tersimpan");
+      toast.success("Branding saved");
     } catch (err) {
-      toast.error(err?.response?.data?.detail || "Simpan gagal. Silakan coba lagi.");
+      toast.error(err?.response?.data?.detail || "Save failed. Please try again.");
     } finally {
       setSaving(false);
     }
@@ -388,47 +387,33 @@ export default function BrandingPage() {
 
   if (!form) return null;
 
-  const initial =
-    (form.brand_initial || "").trim() ||
-    (form.app_name || "A").trim().slice(0, 2).toUpperCase();
+  const initial = (form.app_name || "A").trim().slice(0, 2).toUpperCase();
   const ogUrl = assetUrl("og_image");
 
   return (
-    <div className="space-y-6 pb-24" data-testid="branding-page">
-      {/* Identitas Aplikasi */}
-      <Section title="Identitas Aplikasi" testid="branding-section-identity">
-        <div className="grid grid-cols-1 items-end gap-4 lg:grid-cols-4">
+    <div className="space-y-6" data-testid="branding-page">
+      {/* Application Identity */}
+      <Section title="Application Identity" testid="branding-section-identity">
+        <div className="grid grid-cols-1 items-end gap-4 lg:grid-cols-3">
           <div className="space-y-1.5">
-            <Label htmlFor="app_name">Nama Aplikasi</Label>
+            <Label htmlFor="app_name">Application name</Label>
             <Input
               id="app_name"
               value={form.app_name || ""}
               onChange={(e) => set("app_name", e.target.value)}
-              placeholder="mis. BPR Bangun Arta"
+              placeholder="e.g. BPR Bangun Arta"
               data-testid="branding-app_name"
             />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="tagline">Tagline / Sub Judul</Label>
+            <Label htmlFor="tagline">Tagline</Label>
             <Input
               id="tagline"
               value={form.tagline || ""}
               onChange={(e) => set("tagline", e.target.value)}
-              placeholder="Subjudul singkat di bawah nama"
+              placeholder="Short subtitle shown under the name"
               data-testid="branding-tagline"
             />
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="brand_initial">Inisial Brand</Label>
-            <Input
-              id="brand_initial"
-              maxLength={3}
-              value={form.brand_initial || ""}
-              onChange={(e) => set("brand_initial", e.target.value)}
-              placeholder="mis. BA"
-              data-testid="branding-brand_initial"
-            />
-            <p className="text-xs text-muted-foreground">Dipakai bila logo belum diunggah.</p>
           </div>
           <div
             className="flex items-center gap-3 rounded-lg border bg-muted/30 p-3"
@@ -447,27 +432,27 @@ export default function BrandingPage() {
         </div>
       </Section>
 
-      {/* Aset Merek */}
-      <Section title="Aset Merek" testid="branding-section-assets">
+      {/* Brand Assets */}
+      <Section title="Brand Assets" testid="branding-section-assets">
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
           <AssetField
             kind="logo_light"
-            label="Logo (latar terang)"
-            hint="Logo gelap untuk latar terang. PNG/SVG, maks 512 KB."
+            label="Logo (light background)"
+            hint="Dark logo for light backgrounds. PNG/SVG, max 512 KB."
             previewUrl={assetUrl("logo_light")}
             onChanged={refresh}
           />
           <AssetField
             kind="logo_dark"
-            label="Logo (latar gelap)"
-            hint="Logo terang untuk latar gelap, mis. panel login."
+            label="Logo (dark background)"
+            hint="Light logo for dark backgrounds, e.g. the login panel."
             previewUrl={assetUrl("logo_dark")}
             onChanged={refresh}
           />
           <AssetField
             kind="favicon"
             label="Favicon"
-            hint="Ikon persegi (PNG/ICO), 32-512 px."
+            hint="Square icon (PNG/ICO), 32-512 px."
             previewUrl={assetUrl("favicon")}
             onChanged={refresh}
           />
@@ -475,8 +460,8 @@ export default function BrandingPage() {
         <div className="flex items-start gap-2 rounded-md border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
           <Info className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
           <span>
-            Semua aset disimpan langsung di database (bukan penyimpanan berkas), sehingga otomatis
-            ikut terbawa saat Backup &amp; Restore.
+            All assets are stored directly in the database (not file storage), so they are
+            automatically included in Backup &amp; Restore.
           </span>
         </div>
       </Section>
@@ -484,24 +469,24 @@ export default function BrandingPage() {
       {/* SEO & Metadata */}
       <Section title="SEO & Metadata" testid="branding-section-seo">
         <div className="space-y-1.5">
-          <Label htmlFor="meta_description">Meta Description</Label>
+          <Label htmlFor="meta_description">Meta description</Label>
           <Textarea
             id="meta_description"
             rows={3}
             value={form.meta_description || ""}
             onChange={(e) => set("meta_description", e.target.value)}
-            placeholder="Ringkasan singkat situs (≈155 karakter)."
+            placeholder="A concise summary of the site (≈155 characters)."
             data-testid="branding-meta_description"
           />
         </div>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div className="space-y-1.5">
-            <Label htmlFor="meta_keywords">Meta Keywords</Label>
+            <Label htmlFor="meta_keywords">Meta keywords</Label>
             <Input
               id="meta_keywords"
               value={form.meta_keywords || ""}
               onChange={(e) => set("meta_keywords", e.target.value)}
-              placeholder="kata, kunci, dipisah, koma"
+              placeholder="comma, separated, keywords"
               data-testid="branding-meta_keywords"
             />
           </div>
@@ -519,11 +504,11 @@ export default function BrandingPage() {
         <div className="flex items-center justify-between gap-4 rounded-md border px-3 py-2">
           <div>
             <Label htmlFor="allow_indexing" className="text-sm font-normal">
-              Terlihat di mesin pencari
+              Search engine visibility
             </Label>
             <p className="text-xs text-muted-foreground">
-              Bila nonaktif, halaman meminta mesin pencari untuk tidak mengindeks (noindex,
-              nofollow). Disarankan tetap nonaktif untuk konsol internal.
+              When off, search engines are asked not to index this site (noindex, nofollow).
+              Recommended to keep off for an internal console.
             </p>
           </div>
           <Switch
@@ -534,7 +519,7 @@ export default function BrandingPage() {
           />
         </div>
         <div className="rounded-md border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
-          <span className="font-medium text-foreground">Berkas otomatis:</span>{" "}
+          <span className="font-medium text-foreground">Auto-served files:</span>{" "}
           <a
             href="/robots.txt"
             target="_blank"
@@ -544,7 +529,7 @@ export default function BrandingPage() {
           >
             /robots.txt
           </a>{" "}
-          (mengikuti toggle visibilitas) dan{" "}
+          (reflects the visibility toggle) and{" "}
           <a
             href="/sitemap.xml"
             target="_blank"
@@ -554,8 +539,8 @@ export default function BrandingPage() {
           >
             /sitemap.xml
           </a>{" "}
-          (URL terdeteksi otomatis dari alamat aplikasi). Simpan perubahan dulu untuk melihat
-          pembaruannya.
+          (URL detected automatically from your app&apos;s address). Save your changes first to see
+          them update.
         </div>
       </Section>
 
@@ -564,41 +549,40 @@ export default function BrandingPage() {
         <SitemapManager />
       </Section>
 
-      {/* Pratinjau Tautan (Open Graph) */}
-      <Section title="Pratinjau Tautan (Open Graph)" testid="branding-section-social">
+      {/* Link Preview (Open Graph) */}
+      <Section title="Link Preview (Open Graph)" testid="branding-section-social">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div className="space-y-1.5">
-            <Label htmlFor="og_title">OG Title</Label>
+            <Label htmlFor="og_title">OG title</Label>
             <Input
               id="og_title"
               value={form.og_title || ""}
               onChange={(e) => set("og_title", e.target.value)}
-              placeholder="Default mengikuti nama aplikasi"
+              placeholder="Falls back to application name"
               data-testid="branding-og_title"
             />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="og_description">OG Description</Label>
+            <Label htmlFor="og_description">OG description</Label>
             <Input
               id="og_description"
               value={form.og_description || ""}
               onChange={(e) => set("og_description", e.target.value)}
-              placeholder="Default mengikuti meta description"
+              placeholder="Falls back to meta description"
               data-testid="branding-og_description"
             />
           </div>
         </div>
         <AssetField
           kind="og_image"
-          label="OG Image"
-          hint="Gambar pratinjau tautan (disarankan 1200×630)."
+          label="OG image"
+          hint="Preview image for shared links (recommended 1200×630)."
           previewUrl={ogUrl}
           onChanged={refresh}
         />
         <p className="text-xs text-muted-foreground">
-          Pratinjau tautan dipakai oleh crawler WhatsApp, Facebook, Telegram, dan X. Setelah
-          mengubah, minta ulang pratinjau di aplikasi chat (cache crawler bisa bertahan beberapa
-          jam).
+          The link preview is used by WhatsApp, Facebook, Telegram, and X crawlers. After changing
+          it, request a re-scrape in the chat app (crawler caches can last a few hours).
         </p>
         <Button
           type="button"
@@ -608,15 +592,15 @@ export default function BrandingPage() {
           onClick={() => ogUrl && window.open(ogUrl, "_blank", "noopener")}
           data-testid="branding-og-test"
         >
-          <Eye className="size-4" /> Uji
+          <Eye className="size-4" /> Test
         </Button>
       </Section>
 
-      {/* Kontak & Footer */}
-      <Section title="Kontak & Footer" testid="branding-section-contact">
+      {/* Contact & Footer */}
+      <Section title="Contact & Footer" testid="branding-section-contact">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div className="space-y-1.5">
-            <Label htmlFor="support_email">Email Dukungan</Label>
+            <Label htmlFor="support_email">Support email</Label>
             <Input
               id="support_email"
               type="email"
@@ -627,20 +611,20 @@ export default function BrandingPage() {
             />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="copyright_text">Teks Hak Cipta / Footer</Label>
+            <Label htmlFor="copyright_text">Copyright / footer text</Label>
             <Input
               id="copyright_text"
               value={form.copyright_text || ""}
               onChange={(e) => set("copyright_text", e.target.value)}
-              placeholder="© 2026 Perusahaan Anda"
+              placeholder="© 2026 Your Company"
               data-testid="branding-copyright_text"
             />
           </div>
         </div>
       </Section>
 
-      {/* Sticky save bar (aligned right, all screens) */}
-      <div className="sticky bottom-0 z-10 -mx-4 flex justify-end border-t bg-background/95 px-4 py-3 backdrop-blur supports-[backdrop-filter]:bg-background/80 sm:-mx-6 sm:px-6">
+      {/* Save bar (bottom of page, right-aligned) */}
+      <div className="flex justify-end border-t pt-4">
         <Button
           onClick={save}
           size="sm"
@@ -648,7 +632,7 @@ export default function BrandingPage() {
           data-testid="branding-save-btn"
         >
           {saving ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
-          Simpan
+          Save changes
         </Button>
       </div>
     </div>

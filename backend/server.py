@@ -1296,7 +1296,6 @@ def _branding_bucket() -> AsyncIOMotorGridFSBucket:
 class BrandingUpdate(BaseModel):
     app_name: Optional[str] = None
     tagline: Optional[str] = None
-    brand_initial: Optional[str] = None
     meta_description: Optional[str] = None
     meta_keywords: Optional[str] = None
     og_title: Optional[str] = None
