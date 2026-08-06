@@ -1,0 +1,22 @@
+{
+  "summary": "Frontend-only verification of the compact design pattern (from Offices) applied to Users, Roles, and Clients pages. All requested checks passed: tbl-density table class present on all three lists, UPPERCASE headers, toolbar card with search 'Search...', page-size and density toggle working, Detail (Eye) menu item in place with correct testids (users-detail-*, roles-detail-*, client-detail-*), Copy ID removed from all three action menus, Detail navigates to edit pages with 'Detail User/Role' title and breadcrumb, clients Detail opens clients-form-dialog. User create flow works end-to-end with form-dense container; test user was created and cleaned up. Regression: /offices, /users/new, /roles/new, /offices/new all load without crash.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Users list has no explicit data-testid on prev/next pagination buttons (users-pagination-prev/next). Adding testids would improve automated pagination testing (currently must fall back to text 'Next'/'Prev' which is absent — the buttons are icon-only).",
+    "Office combobox on /users/new returned an empty label ('None') for the first item; verify Offices seed data doesn't have entries without a display label."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "n/a", "frontend": "100%"},
+  "test_credentials": "sa@bprbangunarta.co.id / SA@4dm1n (from /app/memory/test_credentials.md)",
+  "seed_data_creation": "Created TEST Compact <ts> user and deleted after test.",
+  "should_call_test_agent_after_fix": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Compact design pattern verified across Users/Roles/Clients. Row action menus: users menu has [Detail, Change password, Reset to default, Deactivate, Delete]; roles menu has [Move left, Move right, Detail, Delete]; clients menu has [View usage, Detail, Regenerate key, Revoke, Delete]. Density toggle exposes 'Dense'/'Comfortable' radio items; row height changed 37px->53px on toggle. Pagination prev/next are icon-only buttons without data-testids."
+}

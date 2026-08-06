@@ -157,7 +157,7 @@ export default function RoleFormPage() {
   };
 
   return (
-    <div className="space-y-6" data-testid="role-form-page">
+    <div className="form-dense space-y-6" data-testid="role-form-page">
       {status === "error" ? (
         <EmptyState
           variant="error"
@@ -180,13 +180,10 @@ export default function RoleFormPage() {
           <form onSubmit={form.handleSubmit(submit)} noValidate>
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">{isEdit ? "Edit Role" : "Add Role"}</CardTitle>
-                <CardDescription>
-                  A role represents a position (jabatan). Configure its superior, level and order.
-                </CardDescription>
+                <CardTitle className="text-base">{isEdit ? "Detail Role" : "Add Role"}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-5">
-                <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <div className="grid grid-cols-1 items-start gap-x-4 gap-y-2 sm:grid-cols-2 lg:grid-cols-4">
                   <FormField
                     control={form.control}
                     name="name"

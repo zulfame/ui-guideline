@@ -20,15 +20,14 @@ import {
   ChevronDown,
   ChevronLeft,
   ChevronRight,
-  Copy,
   Download,
+  Eye,
   FileImage,
   FileText,
   FilterX,
   Layers,
   MoreHorizontal,
   Network,
-  Pencil,
   Plus,
   Search,
   Settings2,
@@ -927,7 +926,7 @@ export default function RolesPage() {
               <Button
                 variant="ghost"
                 size="icon"
-                className="size-8"
+                className="size-7"
                 aria-label="Row actions"
                 data-testid={`roles-row-actions-${row.original.id}`}
               >
@@ -935,16 +934,6 @@ export default function RolesPage() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem
-                onClick={() => {
-                  navigator.clipboard?.writeText(row.original.id);
-                  toast.success("Role ID copied", { description: row.original.id });
-                }}
-                data-testid={`roles-copy-id-${row.original.id}`}
-              >
-                <Copy className="size-4" /> Copy ID
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
               <DropdownMenuItem
                 onClick={() => moveRole(row.original, -1)}
                 data-testid={`roles-move-left-${row.original.id}`}
@@ -959,9 +948,9 @@ export default function RolesPage() {
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => openEdit(row.original)}
-                data-testid={`roles-edit-${row.original.id}`}
+                data-testid={`roles-detail-${row.original.id}`}
               >
-                <Pencil className="size-4" /> Edit
+                <Eye className="size-4" /> Detail
               </DropdownMenuItem>
               {!isProtectedRole(row.original.name) && (
                 <DropdownMenuItem
@@ -1131,7 +1120,7 @@ export default function RolesPage() {
             ) : (
               <Table
                 data-testid="roles-table"
-                className="[&_td]:whitespace-nowrap [&_th]:whitespace-nowrap"
+                className="tbl-density [&_td]:whitespace-nowrap [&_th]:whitespace-nowrap"
               >
                 <TableHeader>
                   {table.getHeaderGroups().map((hg) => (
@@ -1196,7 +1185,7 @@ export default function RolesPage() {
                   value={String(pageSize)}
                   onValueChange={(v) => table.setPageSize(Number(v))}
                 >
-                  <SelectTrigger className="h-8 w-[70px]" data-testid="roles-page-size">
+                  <SelectTrigger className="h-[var(--ctl-h-sm)] w-[70px]" data-testid="roles-page-size">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -1217,7 +1206,7 @@ export default function RolesPage() {
                   <Button
                     variant="outline"
                     size="icon"
-                    className="size-8"
+                    className="size-[var(--ctl-h-sm)]"
                     onClick={() => table.previousPage()}
                     disabled={!table.getCanPreviousPage()}
                     aria-label="Previous page"
@@ -1228,7 +1217,7 @@ export default function RolesPage() {
                   <Button
                     variant="outline"
                     size="icon"
-                    className="size-8"
+                    className="size-[var(--ctl-h-sm)]"
                     onClick={() => table.nextPage()}
                     disabled={!table.getCanNextPage()}
                     aria-label="Next page"

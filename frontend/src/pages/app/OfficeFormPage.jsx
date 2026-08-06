@@ -143,7 +143,7 @@ export default function OfficeFormPage() {
   };
 
   return (
-    <div className="space-y-6" data-testid="office-form-page">
+    <div className="form-dense space-y-6" data-testid="office-form-page">
       {status === "error" ? (
         <EmptyState
           variant="error"

@@ -18,10 +18,10 @@ import {
   ChevronLeft,
   ChevronRight,
   Copy,
+  Eye,
   FilterX,
   Loader2,
   MoreHorizontal,
-  Pencil,
   Plus,
   RefreshCw,
   Search,
@@ -355,7 +355,7 @@ export default function ClientsPage() {
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="size-8"
+                    className="size-7"
                     aria-label="Row actions"
                     data-testid={`client-row-actions-${c.id}`}
                   >
@@ -366,8 +366,8 @@ export default function ClientsPage() {
                   <DropdownMenuItem onClick={() => openUsage(c)} data-testid={`client-usage-${c.id}`}>
                     <BarChart3 className="size-4" /> View usage
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => openEdit(c)} data-testid={`client-edit-${c.id}`}>
-                    <Pencil className="size-4" /> Edit
+                  <DropdownMenuItem onClick={() => openEdit(c)} data-testid={`client-detail-${c.id}`}>
+                    <Eye className="size-4" /> Detail
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => setRegenTarget(c)} data-testid={`client-regenerate-${c.id}`}>
                     <RefreshCw className="size-4" /> Regenerate key
@@ -424,14 +424,14 @@ export default function ClientsPage() {
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Toolbar */}
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <div className="relative max-w-xs flex-1">
+          <div className="flex flex-col gap-2 rounded-lg border bg-muted/40 p-2 sm:flex-row sm:items-center sm:justify-between">
+            <div className="relative w-full max-w-[15rem]">
               <Search className="absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
               <Input
                 value={globalFilter}
                 onChange={(e) => setGlobalFilter(e.target.value)}
-                placeholder="Search clients..."
-                className="pl-8"
+                placeholder="Search..."
+                className="h-[var(--ctl-h-sm)] pl-8 text-xs"
                 data-testid="clients-search"
               />
             </div>
@@ -474,7 +474,7 @@ export default function ClientsPage() {
                 }
               />
             ) : (
-              <Table data-testid="clients-table" className="[&_td]:whitespace-nowrap [&_th]:whitespace-nowrap">
+              <Table data-testid="clients-table" className="tbl-density [&_td]:whitespace-nowrap [&_th]:whitespace-nowrap">
                 <TableHeader>
                   {table.getHeaderGroups().map((hg) => (
                     <TableRow key={hg.id} className="bg-muted/50 hover:bg-muted/50">
@@ -519,7 +519,7 @@ export default function ClientsPage() {
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
                 <Select value={String(pageSize)} onValueChange={(v) => table.setPageSize(Number(v))}>
-                  <SelectTrigger className="h-8 w-[70px]" data-testid="clients-page-size">
+                  <SelectTrigger className="h-[var(--ctl-h-sm)] w-[70px]" data-testid="clients-page-size">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -538,7 +538,7 @@ export default function ClientsPage() {
                   <Button
                     variant="outline"
                     size="icon"
-                    className="size-8"
+                    className="size-[var(--ctl-h-sm)]"
                     onClick={() => table.previousPage()}
                     disabled={!table.getCanPreviousPage()}
                     aria-label="Previous page"
@@ -548,7 +548,7 @@ export default function ClientsPage() {
                   <Button
                     variant="outline"
                     size="icon"
-                    className="size-8"
+                    className="size-[var(--ctl-h-sm)]"
                     onClick={() => table.nextPage()}
                     disabled={!table.getCanNextPage()}
                     aria-label="Next page"
@@ -589,7 +589,7 @@ export default function ClientsPage() {
 
       {/* Create / Edit dialog */}
       <Dialog open={formOpen} onOpenChange={setFormOpen}>
-        <DialogContent className="sm:max-w-lg" data-testid="clients-form-dialog">
+        <DialogContent className="form-dense sm:max-w-lg" data-testid="clients-form-dialog">
           <DialogHeader>
             <DialogTitle>{formMode === "create" ? "Add API Client" : "Edit API Client"}</DialogTitle>
             <DialogDescription>

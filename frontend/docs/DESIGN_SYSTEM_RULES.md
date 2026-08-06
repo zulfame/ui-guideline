@@ -361,6 +361,56 @@ Dicek sebagian otomatis oleh `design-guard.sh` (#10 — lebar fiks tanpa fallbac
 `pages/app`), sisanya **verifikasi visual di 3 breakpoint** adalah bagian dari Definition of Done.
 
 ---
+## 12A. R47 — Tabel & Form Compact untuk Halaman List/CRUD (Non-Negotiable)
+
+Menyeragamkan tampilan **halaman list master-data** (Offices, Users, Roles, Clients, dst.)
+agar rapat, konsisten, dan mengikuti toggle Density. Semua utilitas sudah tersedia di
+`index.css` (jangan bikin nilai arbitrer baru).
+
+**R47.1 — Baris tabel compact (density-aware).**
+Setiap `<Table>` pada halaman list WAJIB memakai class **`tbl-density`** (digabung dengan
+`[&_td]:whitespace-nowrap [&_th]:whitespace-nowrap`). Efek otomatis dari `.tbl-density`:
+- padding vertikal sel `td/th` = `var(--tbl-cell-py)` → ikut Dense (`0.25rem`) / Comfortable (`0.75rem`).
+- `td` = **13px** (`0.8125rem`); `th` = **UPPERCASE** + `letter-spacing .05em` + `0.75rem`, `height:auto`.
+
+DILARANG mengatur ulang tinggi/padding baris via nilai arbitrer per-halaman.
+
+**R47.2 — Toolbar dibungkus card abu.**
+Baris toolbar (search + filter + Density) WAJIB dibungkus:
+`flex flex-col gap-2 rounded-lg border bg-muted/40 p-2 sm:flex-row sm:items-center sm:justify-between`.
+
+**R47.3 — Search box seragam.**
+Container `relative w-full max-w-[15rem]`; `<Input>` = `h-[var(--ctl-h-sm)] pl-8 text-xs`,
+placeholder **`"Search..."`** (bukan "Search users..." dsb). Ikon `Search` absolute kiri.
+
+**R47.4 — Kontrol pagination = tinggi Density.**
+`SelectTrigger` page-size = `h-[var(--ctl-h-sm)] w-[70px]`; tombol prev/next (icon) =
+`size-[var(--ctl-h-sm)]`. Tujuannya sejajar dengan tombol Density (`size="sm"`).
+
+**R47.5 — Tombol aksi baris.**
+Trigger `⋯` (DropdownMenu) memakai `size-7` (bukan `size-8`).
+
+**R47.6 — Item menu aksi: "Detail" + hapus "Copy ID".**
+Item yang membuka halaman/dialog edit diberi label **"Detail"** dengan ikon **`Eye`** (lucide),
+menggantikan "Edit"/ikon `Pencil`. Item **"Copy ID" DIHAPUS**. Item fungsional lain
+(Move, Regenerate, Revoke, Reset, Unbind, Deactivate, Delete, dll.) **tetap dipertahankan**.
+Konsekuensinya judul & breadcrumb halaman form memakai **"Detail X"** (bukan "Edit X").
+
+**R47.7 — Form compact via `.form-dense`.**
+Container form (halaman form atau `DialogContent`) memakai class **`form-dense`**. Efek:
+- `--item-gap: 0.125rem` → jarak label→kontrol rapat (jangan set `space-y` manual per `FormItem`).
+- `label`, `input`, `textarea`, `[role="combobox"]` = **13px**.
+Grid field memakai `gap-x-4 gap-y-2` (rapatkan jarak antar-baris). **CardDescription dihapus**
+pada form CRUD sederhana (judul `CardTitle` sudah cukup).
+
+> SSOT variabel: `index.css` (`--tbl-cell-py`, `--ctl-h-sm`, `.tbl-density`, `.form-dense`).
+> Diterapkan pada: `OfficesPage`, `UsersPage`, `RolesPage`, `ClientsPage` + form terkait
+> (`OfficeFormPage`, `UserFormPage`, `RoleFormPage`, dialog Clients). Halaman list/CRUD baru
+> WAJIB mengikuti R47 sejak awal.
+
+---
+
+
 
 ## 13. Governance Lanjutan (rujukan — SSOT di `DESIGN_SYSTEM.md`)
 
@@ -382,5 +432,6 @@ Bagian ini hanya **penunjuk**; definisi lengkap & otoritatif ada di `DESIGN_SYST
 - **Responsive Tabs** (`TabsList` WAJIB `w-full justify-start overflow-x-auto sm:w-auto`; dilarang `flex-wrap`; toolbar tab+aksi `flex-col sm:flex-row`; tombol submit penting di bawah pada mobile) → **R44 (Bagian 12)**; dicek otomatis oleh `design-guard.sh` (#12).
 - **Skala Tipografi** (konten `pages/app`: judul/`CardTitle` `text-base font-semibold`, body/label/tabel `text-sm`, helper `text-xs`; dilarang `text-xl/2xl/3xl/4xl`; auth & katalog design-system dikecualikan) → **R45 (Bagian 12)**; dicek otomatis oleh `design-guard.sh` (#13).
 - **Kolom Tabel Sortable** (setiap header konten wajib bisa di-sort; kecuali checkbox/Actions/Detail & kolom kontrol/switch/select; server-side untuk tabel berpaginasi; sub-tabel dialog & tabel tree dikecualikan) → **R46 (Bagian 12)**; diverifikasi via review/testing.
+- **Tabel & Form Compact List/CRUD** (`.tbl-density` pada `<Table>`; header UPPERCASE; `td` 13px; toolbar `rounded-lg border bg-muted/40 p-2`; search `max-w-[15rem]` + `h-[var(--ctl-h-sm)] text-xs` placeholder "Search..."; pagination `h-/size-[var(--ctl-h-sm)]`; aksi `size-7`; menu "Detail"+`Eye` tanpa "Copy ID"; form `.form-dense` 13px + grid `gap-x-4 gap-y-2`; hapus `CardDescription`) → **R47 (Bagian 12A)**.
 
 > Setiap perubahan komponen/pattern **wajib** tunduk pada Versioning (2C.15) & tercatat di Changelog.

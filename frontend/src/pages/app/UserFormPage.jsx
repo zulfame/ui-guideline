@@ -178,7 +178,7 @@ export default function UserFormPage() {
   };
 
   return (
-    <div className="space-y-6" data-testid="user-form-page">
+    <div className="form-dense space-y-6" data-testid="user-form-page">
       {status === "error" ? (
         <EmptyState
           variant="error"
@@ -201,15 +201,10 @@ export default function UserFormPage() {
           <form onSubmit={form.handleSubmit(submit)} noValidate>
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">{isEdit ? "Edit User" : "Add User"}</CardTitle>
-                <CardDescription>
-                  {isEdit
-                    ? "Update the user details below."
-                    : "A system default password is assigned and must be changed on first login."}
-                </CardDescription>
+                <CardTitle className="text-base">{isEdit ? "Detail User" : "Add User"}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-5">
-                <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <div className="grid grid-cols-1 items-start gap-x-4 gap-y-2 sm:grid-cols-2 lg:grid-cols-4">
                   <FormField
                     control={form.control}
                     name="user_id"

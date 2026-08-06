@@ -169,6 +169,23 @@ code {
         letter-spacing: 0.05em;
         font-size: 0.75rem;
     }
+    /* Header text often sits inside a <button> (sortable header) which does not
+       inherit text-transform by default — force it on all th descendants. */
+    .tbl-density th * {
+        text-transform: uppercase;
+    }
+
+    /* Compact form density (opt-in via `.form-dense` on a form container).
+       Tightens the label→control gap and sets a 13px control/label font. */
+    .form-dense {
+        --item-gap: 0.125rem;
+    }
+    .form-dense label,
+    .form-dense input,
+    .form-dense textarea,
+    .form-dense [role="combobox"] {
+        font-size: 13px;
+    }
 }
 
 @layer base {

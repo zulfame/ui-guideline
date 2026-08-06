@@ -22,7 +22,7 @@ import {
   KeyRound,
   MoreHorizontal,
   Bell,
-  Pencil,
+  Eye,
   Plus,
   Power,
   RefreshCw,
@@ -504,7 +504,7 @@ export default function UsersPage() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="size-8"
+                  className="size-7"
                   aria-label="Row actions"
                   data-testid={`users-row-actions-${row.original.id}`}
                 >
@@ -514,9 +514,9 @@ export default function UsersPage() {
               <DropdownMenuContent align="end">
                 <DropdownMenuItem
                   onClick={() => openEdit(row.original)}
-                  data-testid={`users-edit-${row.original.id}`}
+                  data-testid={`users-detail-${row.original.id}`}
                 >
-                  <Pencil className="size-4" /> Edit
+                  <Eye className="size-4" /> Detail
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={() => setPwTarget(row.original)}
@@ -627,14 +627,14 @@ export default function UsersPage() {
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <div className="relative max-w-xs flex-1">
+          <div className="flex flex-col gap-2 rounded-lg border bg-muted/40 p-2 sm:flex-row sm:items-center sm:justify-between">
+            <div className="relative w-full max-w-[15rem]">
               <Search className="absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
               <Input
                 value={globalFilter}
                 onChange={(e) => setGlobalFilter(e.target.value)}
-                placeholder="Search users..."
-                className="pl-8"
+                placeholder="Search..."
+                className="h-[var(--ctl-h-sm)] pl-8 text-xs"
                 data-testid="users-search"
               />
             </div>
@@ -704,7 +704,7 @@ export default function UsersPage() {
                 }
               />
             ) : (
-              <Table data-testid="users-table" className="[&_td]:whitespace-nowrap [&_th]:whitespace-nowrap">
+              <Table data-testid="users-table" className="tbl-density [&_td]:whitespace-nowrap [&_th]:whitespace-nowrap">
                 <TableHeader>
                   {table.getHeaderGroups().map((hg) => (
                     <TableRow key={hg.id} className="bg-muted/50 hover:bg-muted/50">
@@ -758,7 +758,7 @@ export default function UsersPage() {
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
                 <Select value={String(pageSize)} onValueChange={(v) => table.setPageSize(Number(v))}>
-                  <SelectTrigger className="h-8 w-[70px]" data-testid="users-page-size">
+                  <SelectTrigger className="h-[var(--ctl-h-sm)] w-[70px]" data-testid="users-page-size">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -779,7 +779,7 @@ export default function UsersPage() {
                   <Button
                     variant="outline"
                     size="icon"
-                    className="size-8"
+                    className="size-[var(--ctl-h-sm)]"
                     onClick={() => table.previousPage()}
                     disabled={!table.getCanPreviousPage()}
                     aria-label="Previous page"
@@ -789,7 +789,7 @@ export default function UsersPage() {
                   <Button
                     variant="outline"
                     size="icon"
-                    className="size-8"
+                    className="size-[var(--ctl-h-sm)]"
                     onClick={() => table.nextPage()}
                     disabled={!table.getCanNextPage()}
                     aria-label="Next page"
