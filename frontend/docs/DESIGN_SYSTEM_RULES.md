@@ -142,6 +142,13 @@ Combobox, Date Picker, Password Input. Composite =
 - Gunakan **placeholder generik**: `UI Guidelines`, `Sign In`, `Welcome back`,
   `Dashboard`, `Users`, `Settings`, `Search`, `Save`, `Cancel`, `Delete`,
   `Loading...`, `No Data Available`, `Feature One`, dst.
+- 🔴 **BAHASA UI = INGGRIS SAJA (Non-Negotiable).** SEMUA teks yang tampil di layar
+  (label, judul section/Card, placeholder, tombol, hint, toast, pesan error/validasi,
+  header tabel) WAJIB **Bahasa Inggris** — tidak peduli bahasa komunikasi user maupun
+  bahasa pada screenshot/referensi yang diberikan user. **Bila user memberi referensi
+  desain berbahasa lain, yang diikuti HANYA *layout*-nya, BUKAN bahasanya** — terjemahkan
+  balik semua teks ke Bahasa Inggris. Menerjemahkan konten UI ke bahasa lain = pelanggaran
+  aturan (insiden Update 78).
 
 ---
 
@@ -391,11 +398,13 @@ placeholder **`"Search..."`** (bukan "Search users..." dsb). Ikon `Search` absol
 **R47.5 — Tombol aksi baris.**
 Trigger `⋯` (DropdownMenu) memakai `size-7` (bukan `size-8`).
 
-**R47.6 — Item menu aksi: "Detail" + hapus "Copy ID".**
+**R47.6 — Item menu aksi: "Detail" paling atas + hapus "Copy ID".**
 Item yang membuka halaman/dialog edit diberi label **"Detail"** dengan ikon **`Eye`** (lucide),
-menggantikan "Edit"/ikon `Pencil`. Item **"Copy ID" DIHAPUS**. Item fungsional lain
-(Move, Regenerate, Revoke, Reset, Unbind, Deactivate, Delete, dll.) **tetap dipertahankan**.
-Konsekuensinya judul & breadcrumb halaman form memakai **"Detail X"** (bukan "Edit X").
+menggantikan "Edit"/ikon `Pencil`, dan **WAJIB berada di posisi PALING ATAS** menu aksi
+(sebelum item lain seperti Move/View usage/Regenerate/Revoke/Delete). Item **"Copy ID" DIHAPUS**.
+Item fungsional lain (Move, Regenerate, Revoke, Reset, Unbind, Deactivate, Delete, dll.)
+**tetap dipertahankan** di bawah "Detail". Konsekuensinya judul & breadcrumb halaman form
+memakai **"Detail X"** (bukan "Edit X").
 
 **R47.7 — Form compact via `.form-dense`.**
 Container form (halaman form atau `DialogContent`) memakai class **`form-dense`**. Efek:
@@ -403,6 +412,13 @@ Container form (halaman form atau `DialogContent`) memakai class **`form-dense`*
 - `label`, `input`, `textarea`, `[role="combobox"]` = **13px**.
 Grid field memakai `gap-x-4 gap-y-2` (rapatkan jarak antar-baris). **CardDescription dihapus**
 pada form CRUD sederhana (judul `CardTitle` sudah cukup).
+
+**R47.8 — Tinggi baris seragam (badge vs non-badge).**
+Baris dengan `Badge`/chip WAJIB setinggi baris teks-polos. SSOT: `.tbl-density td` diberi
+**`line-height: 1.5rem`** + **`vertical-align: middle`** (index.css) agar line-box sel selalu
+menampung badge (~22px) tanpa menambah tinggi baris. DILARANG menyamakan tinggi baris via
+padding/height arbitrer per-halaman. (Insiden Update 78 — user melaporkan baris ber-badge lebih
+tinggi.)
 
 > SSOT variabel: `index.css` (`--tbl-cell-py`, `--ctl-h-sm`, `.tbl-density`, `.form-dense`).
 > Diterapkan pada: `OfficesPage`, `UsersPage`, `RolesPage`, `ClientsPage` + form terkait
@@ -458,6 +474,35 @@ di kanan): **Cancel/Batal di KIRI, tombol utama (Save/Confirm/Delete) di KANAN**
 
 ---
 
+## 12E. R51 — Pola Halaman Konfigurasi (Section Cards Bertumpuk) (Non-Negotiable)
+
+Untuk halaman **konfigurasi/pengaturan satu-halaman yang panjang** (mis. Branding) yang berisi
+**banyak grup field** — BUKAN list/CRUD (R47) dan BUKAN dialog. Pola ini menggantikan Tabs bila
+kontennya berupa form bersambung yang di-scroll.
+
+**R51.1 — Section cards bertumpuk.** Setiap grup field dibungkus **`Card`** terpisah dengan
+`CardHeader` (judul section, `CardTitle text-base`) + `CardContent space-y-4`. Root halaman
+`space-y-6`. Gunakan **satu komponen `Section` reusable** per halaman (jangan hand-roll Card
+berulang). Contoh section: *Application Identity, Brand Assets, SEO & Metadata, Sitemap,
+Link Preview, Contact & Footer*.
+
+**R51.2 — Save bar di bawah (BUKAN sticky mengambang).** Tombol simpan diletakkan pada bar di
+**akhir aliran halaman**: `flex justify-end border-t pt-4`, tombol `size="sm"` rata kanan (R48),
+berikon (R49). **DILARANG** save bar `sticky`/`fixed` dengan `backdrop-blur`/negative-margin yang
+**mengambang menutupi konten** (insiden Update 78 — dinilai "jelek" oleh user).
+
+**R51.3 — Layout mengikuti referensi, teks tetap Inggris.** Bila user memberi screenshot
+referensi, ikuti **struktur/urutan section** saja; **JANGAN** menambah field/fitur yang tidak
+diminta dan **JANGAN** menerjemahkan teks (lihat §6 — Inggris saja).
+
+**R51.4 — Grid field di dalam section.** Field pendek berpasangan `grid grid-cols-1 sm:grid-cols-2 gap-4`;
+field teks panjang (textarea/description) full-width (selaras R41).
+
+> SSOT contoh: `pages/app/BrandingPage.jsx` (komponen `Section` + save bar). Bedakan dari R47
+> (halaman list/CRUD) dan R40 (Card+DataTable). Tabel apa pun di dalam section tetap tunduk R47/R43.
+
+---
+
 
 
 
@@ -483,6 +528,7 @@ Bagian ini hanya **penunjuk**; definisi lengkap & otoritatif ada di `DESIGN_SYST
 - **Responsive Tabs** (`TabsList` WAJIB `w-full justify-start overflow-x-auto sm:w-auto`; dilarang `flex-wrap`; toolbar tab+aksi `flex-col sm:flex-row`; tombol submit penting di bawah pada mobile) → **R44 (Bagian 12)**; dicek otomatis oleh `design-guard.sh` (#12).
 - **Skala Tipografi** (konten `pages/app`: judul/`CardTitle` `text-base font-semibold`, body/label/tabel `text-sm`, helper `text-xs`; dilarang `text-xl/2xl/3xl/4xl`; auth & katalog design-system dikecualikan) → **R45 (Bagian 12)**; dicek otomatis oleh `design-guard.sh` (#13).
 - **Kolom Tabel Sortable** (setiap header konten wajib bisa di-sort; kecuali checkbox/Actions/Detail & kolom kontrol/switch/select; server-side untuk tabel berpaginasi; sub-tabel dialog & tabel tree dikecualikan) → **R46 (Bagian 12)**; diverifikasi via review/testing.
-- **Tabel & Form Compact List/CRUD** (`.tbl-density` pada `<Table>`; header UPPERCASE; `td` 13px; toolbar `rounded-lg border bg-muted/40 p-2`; search `max-w-[15rem]` + `h-[var(--ctl-h-sm)] text-xs` placeholder "Search..."; pagination `h-/size-[var(--ctl-h-sm)]`; aksi `size-7`; menu "Detail"+`Eye` tanpa "Copy ID"; form `.form-dense` 13px + grid `gap-x-4 gap-y-2`; hapus `CardDescription`) → **R47 (Bagian 12A)**.
+- **Tabel & Form Compact List/CRUD** (`.tbl-density` pada `<Table>`; header UPPERCASE; `td` 13px; toolbar `rounded-lg border bg-muted/40 p-2`; search `max-w-[15rem]` + `h-[var(--ctl-h-sm)] text-xs` placeholder "Search..."; pagination `h-/size-[var(--ctl-h-sm)]`; aksi `size-7`; menu **"Detail"+`Eye` paling atas** tanpa "Copy ID"; **tinggi baris seragam** via `td line-height:1.5rem`+`vertical-align:middle`; form `.form-dense` 13px + grid `gap-x-4 gap-y-2`; hapus `CardDescription`) → **R47 (Bagian 12A)**.
+- **Pola Halaman Konfigurasi** (halaman pengaturan panjang non-CRUD: **section `Card` bertumpuk** via komponen `Section` reusable, root `space-y-6`; **save bar `flex justify-end border-t pt-4`** `size="sm"` — DILARANG sticky/fixed mengambang; ikuti *layout* referensi tapi teks tetap Inggris & jangan tambah field tak diminta) → **R51 (Bagian 12E)**; SSOT `pages/app/BrandingPage.jsx`.
 
 > Setiap perubahan komponen/pattern **wajib** tunduk pada Versioning (2C.15) & tercatat di Changelog.
